@@ -1,33 +1,104 @@
 Welcome to the gridka-school wiki!
 ==================================
 
-This quide is to be used as reference for the installation of the
-OpenStack Grizzly. It does not pretend to be complete, its main aim is
-to define a skeleton for the future workshop to take place during the
-GridKa School in Karlsruhe 26-30 August this summer.
+This quide is to be used as reference for the installation of
+OpenStack `Grizzly` during the `GridKa School 2013 - Training Session on
+OpenStack` . 
 
-As starting reference has been used the following `tutorial <https://github.com/mseknibilel/OpenStack-Grizzly-Install-Guide/blob/master/OpenStack_Grizzly_Install_Guide.rst>`_.
+As starting reference has been used the following `tutorial
+<https://github.com/mseknibilel/OpenStack-Grizzly-Install-Guide/blob/master/OpenStack_Grizzly_Install_Guide.rst>`_.
 
-As a lot of inconsistencies have been found we added and edited what we considered necessary for the correct functionallity of the OpenStack software.
+As a lot of inconsistencies have been found we added and edited what
+we considered necessary for the correct functionallity of the
+OpenStack software.
 
-The official Grizzly tutorial can be found `here <http://docs.openstack.org/grizzly/openstack-compute/install/apt/content/>`_.
+The official Grizzly tutorial can be found `here
+<http://docs.openstack.org/grizzly/openstack-compute/install/apt/content/>`_.
 
-Extended notes taken during the hands-on session on Grizzly's installation done by Antonio + some howto:
 
 OpenStack overview
 ------------------
 
-The main component is Keystone. All the other services use Keystone for the authentication by the means of tokens. The authentication is done through username and password on the MySQL database which gives back the token to the service which has made the request.
+This tutorial will show how to install the main components of
+OpenStack, specifically:
 
-* RabbitMQ + MySQL (those two should allow HA of OpenStack?)
+RabbitMQ
+    used by the central services
 
-* Horizon is the Web Interface: it must installed on the same machine hosting nova-api.
+MySQL
+    used by the central services
 
-* It is not mandatory to have all the services on the same host. Different databases can be installed/used.
+Keystone
+    OpenStack service which provides authentication. In our setup we
+    will store login, password and tokens in the MySQL db.
 
-* Cinder services allows to mount additionl volumes on running VM. The volumes are persistent and are not cancelled once the VM is terminated. A VM can be started from a Volume.
+nova-api
+    OpenStack API endpoint, used by the web interface, command line
+    tools and API clients.
 
-* TO BE COMPLETED with the rest of the services
+nova-scheduler
+    scheduler for the VM
+
+nova-network
+    OpenStack service to configure the network of the VMs and to
+    optionally provide so-called *Floating IPs*, IPs that can be
+    *attached* and *detachted* from a virtual machine while it is
+    already running.
+
+glance
+    image service, used to store virtual disk *templates* for the
+    virtual machines.
+
+cinder
+    volume service, used to create persistent volumes that can be then
+    attached to running virtual machines
+
+Horizon
+    web interface to nova-api
+
+
+Tutorial overview
+-----------------
+
+Each team will have two physical machines to work with. They will be
+used to host KVM Virtual Machines that will be used both for running
+the central services and the compute nodes.
+
+One of the nodes will run 6 VMs running the various central services,
+and are called:
+
+| hostname     | services          |
++--------------+-------------------+
+| db-node      | mysql+rabbitmq    |
+| auth-node    | keystone          |
+| image-node   | glance            |
+| api-node     | nova-api + horizon|
+| network-node | nova-network      |
+| volume-node  | cinder            |
+
+while the other will run 2 VMs hosting the compute nodes for your
+stack:
+
+| hostname     | services          |
++--------------+-------------------+
+| compute-1    | nova-compute      |
+| compute-2    | nova-compute      |
+
+
+How to access the physical nodes
+++++++++++++++++++++++++++++++++
+
+Virtual Machines
+++++++++++++++++
+
+TODO: explain the configuration of the VM images, what's already
+installed and configured etc.
+
+Network Setup
++++++++++++++
+
+TODO: explain the network configuration of the VMs etc 
+
 
 Workflow for a VM Creation
 --------------------------
@@ -39,16 +110,23 @@ Different sheduling policy and options can be set in the nova's configuration fi
 Installation:
 -------------
 
-* MySQL + RabbitMQ,
-* Keyston
-* Glance, Cinder.
-* Nova-* (except nova-compute)
-* Nova-compute
+We will install the following services in sequence, on different
+virtual machines.
+
+* ``db-node``: MySQL + RabbitMQ,
+* ``auth-node``: keystone
+* ``image-node``: glance
+* ``api-node``: noda-api, nova-scheduler
+* ``network-node``: nova-network
+* ``volume-node``: cinder
+* ``compute-1``: nova-compute
+* ``compute-2``: nova-compute
 
 Note: on each service installed (except for nova-compute) a new endpoint has to be added in keystone. Zone can be used for the services (to be further explainded)
 
-MySQL
-+++++
+``db-node``: MySQL installation
++++++++++++++++++++++++++++++++
+
 
 ::
 
@@ -58,6 +136,7 @@ mysqld listens on the 3306 but the IP is set to 127.0.0.1. This has to be change
 
 RabbitMQ
 ++++++++
+
 
 Does NOT need a specific configuration. Should run out of the box. Antonio is not sure if the queues need some setup
 
