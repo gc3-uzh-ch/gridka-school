@@ -6,11 +6,11 @@ OpenStack Grizzly. It does not pretend to be complete, its main aim is
 to define a skeleton for the future workshop to take place during the
 GridKa School in Karlsruhe 26-30 August this summer.
 
-As starting reference has been used the following tutorial.
+As starting reference has been used the following `tutorial <https://github.com/mseknibilel/OpenStack-Grizzly-Install-Guide/blob/master/OpenStack_Grizzly_Install_Guide.rst>`_.
 
 As a lot of inconsistencies have been found we added and edited what we considered necessary for the correct functionallity of the OpenStack software.
 
-The official Grizzly tutorial can be found here.
+The official Grizzly tutorial can be found `here <http://docs.openstack.org/grizzly/openstack-compute/install/apt/content/>`_.
 
 Extended notes taken during the hands-on session on Grizzly's installation done by Antonio + some howto:
 
