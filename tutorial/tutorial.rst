@@ -1,6 +1,10 @@
 Welcome to the gridka-school wiki!
+==================================
 
-This quide is to be used as reference for the installation of the OpenStack Grizzly. It does not pretend to be complete, its main aim is to define a skeleton for the future workshop to take place during the GridKa School in Karlsruhe 26-30 August this summer.
+This quide is to be used as reference for the installation of the
+OpenStack Grizzly. It does not pretend to be complete, its main aim is
+to define a skeleton for the future workshop to take place during the
+GridKa School in Karlsruhe 26-30 August this summer.
 
 As starting reference has been used the following tutorial.
 
@@ -10,7 +14,8 @@ The official Grizzly tutorial can be found here.
 
 Extended notes taken during the hands-on session on Grizzly's installation done by Antonio + some howto:
 
-# OpenStack overview
+OpenStack overview
+------------------
 
 The main component is Keystone. All the other services use Keystone for the authentication by the means of tokens. The authentication is done through username and password on the MySQL database which gives back the token to the service which has made the request.
 
@@ -24,13 +29,15 @@ The main component is Keystone. All the other services use Keystone for the auth
 
 * TO BE COMPLETED with the rest of the services
 
-# Workflow for a VM Creation
+Workflow for a VM Creation
+--------------------------
 
 Horizon asks Keyston for an authorization.Keystone is then checking on what the users/tenants are "supposed" to see (in terms of images, quotes, etc). Working nodes are periodically writing their status in the nova-database. When a new request arrives it is processed by the nova-scheduler which writes in the nova-database when a matchmaking with a free resource has been accomplished. On the next poll when the resource reads the nova-database it "realises" that it is supposed to start a new VM. nova-compute writes then the status inside the nova database.
 
 Different sheduling policy and options can be set in the nova's configuration file.
 
-# Installation:
+Installation:
+-------------
 
 * MySQL + RabbitMQ,
 * Keyston
@@ -40,26 +47,35 @@ Different sheduling policy and options can be set in the nova's configuration fi
 
 Note: on each service installed (except for nova-compute) a new endpoint has to be added in keystone. Zone can be used for the services (to be further explainded)
 
-## MySQL
+MySQL
++++++
+
+::
 
      apt-get install mysql-server python-mysqldb 
 
 mysqld listens on the 3306 but the IP is set to 127.0.0.1. This has to be changes so we can make the server accessible from the private nodes' network (192.168.160.45)
 
-## RabbitMQ
+RabbitMQ
+++++++++
 
 Does NOT need a specific configuration. Should run out of the box. Antonio is not sure if the queues need some setup
 
-## NTP
+NTP
++++
+
 Install NTP.
 
-## Keystone
+Keystone
+++++++++
 
 On Keyston we need to configure the MySQL database for the authentication/authorization of the services and endpoints. Keystone management is done through the following commands: "keystone-manage" and "keystone".
 
 We have to (this list is TO BE better explained and described):
 
 Create a keystone database user and grant him access to the database.
+
+::
 
     # keystone-mange db_sync (it feeds the DB with the needed information)
 
@@ -71,7 +87,8 @@ Define a token inside keystone.conf (better a random string) which is used for t
 * Define the endpoints (usually it is a good practice to do that when a new service is enabled).
 * At the end the relations between tenants, users and roles has to be done.
 
-## Glance
+Glance
+++++++
 
 For the glance service installation to be done as follows:
 
@@ -82,7 +99,8 @@ For the glance service installation to be done as follows:
 * glance db_sync
 * create endpoint on Keystone
 
-## Nova
+Nova
+++++
 
 * apt-get install ...
 * Needs two endpoints: EC2 and compute
@@ -91,7 +109,8 @@ For the glance service installation to be done as follows:
 * Imaging Service: put imaging server: 192.168.160.45:9292?
 * Restart services
 
-## Nova-compute (does not need an endpoint)
+Nova-compute (does not need an endpoint)
+++++++++++++++++++++++++++++++++++++++++
 
 Install grizzly repository on the compute node. Install and configure KVM
 
@@ -101,11 +120,14 @@ Install grizzly repository on the compute node. Install and configure KVM
 * apt-get install nova-compute-kvm
 * Modify l'API in api-paste.ini in order to abilitate access to keystone.
 
-## Nova and Nova-compute: network configuration
+Nova and Nova-compute: network configuration
+++++++++++++++++++++++++++++++++++++++++++++
 
 Networking inside OpenStack / Grizzly is provided by the nova-network component. Here bellow is what has to be done in order to configure networking properly on OpenStack.
 
-### General
+General
+~~~~~~~
+
 
 On the node running nova-network we need at least three physical network interfaces. In our current testing configuration we have:
 
@@ -115,34 +137,37 @@ On the node running nova-network we need at least three physical network interfa
 
 A bridge is needed for the VMs. The host running nova-network manages: NATTING, DHCP, Floating IPs.
 
-### On the Main Node
+On the Main Node
+~~~~~~~~~~~~~~~~
 
-Ensure yourself the installation of all the nova components has been done correctly (nova user creation, database, etc) an easy check can be done by issuing:
+Ensure yourself the installation of all the nova components has been done correctly (nova user creation, database, etc) an easy check can be done by issuing::
 
       # nova service-list 
 
-Check if the "nova-network" component is installed
+Check if the "nova-network" component is installed::
 
       # root@grizzly:/etc/nova# dpkg -l | grep nova-network
       # ii  nova-network                     1:2013.1-0ubuntu2~cloud1             OpenStack Compute - Network manager.
 
 Check if the "vlan bridge-utils" are installed.
 
+::
+
     ebtables
 
-In order get the issues working you have to install also the "ebtables" software package which administrates the ethernet bridge frame table:
+In order get the issues working you have to install also the "ebtables" software package which administrates the ethernet bridge frame table::
 
     # apt-get install ebtables 
 
-Enable IP_Forwarding:
+Enable IP_Forwarding::
 
     # sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
 
- To save you from rebooting, perform the following
+ To save you from rebooting, perform the following::
 
     # sysctl net.ipv4.ip_forward=1
 
-Add the network bridge in /etc/network/interfaces
+Add the network bridge in /etc/network/interfaces::
 
     auto br100
     iface br100 inet static
@@ -154,9 +179,11 @@ Add the network bridge in /etc/network/interfaces
 
 Once you're done bring up the br100 interface.
 
+::
+
     # ifconfing br100 up
 
-Add the following lines to the /etc/nova/nova.conf file for the network setup:
+Add the following lines to the /etc/nova/nova.conf file for the network setup::
 
       # NETWORK
       network_manager=nova.network.manager.FlatDHCPManager
@@ -184,15 +211,16 @@ Add the following lines to the /etc/nova/nova.conf file for the network setup:
       default_floating_pool=public
       public_interface=eth2
 
-### On the Compute Node
+On the Compute Node
+~~~~~~~~~~~~~~~~~~~
 
-Check if "nova-compute-kvm" has been installed on the compute node:
+Check if "nova-compute-kvm" has been installed on the compute node::
 
       root@node-08-01-02:~# dpkg -l | grep nova-compute
       ii  nova-compute                     1:2013.1-0ubuntu2~cloud1                   OpenStack Compute - compute node
       ii  nova-compute-kvm                 1:2013.1-0ubuntu2~cloud1                   OpenStack Compute - compute node (KVM)
 
-Configure the br100 interface by deleting the part related to the eth0 interface and adding the following lines:
+Configure the br100 interface by deleting the part related to the eth0 interface and adding the following lines::
 
       # The primary network interface
         auto br100
@@ -203,41 +231,45 @@ Configure the br100 interface by deleting the part related to the eth0 interface
 
 Once you're done bring up the br100 interface.
 
+::
+
     # ifconfing br100 up
 
 No network inforamtion is needed in the /etc/nova/nova.conf file on the compute node.
 
-### Nova network creation
+Nova network creation
+~~~~~~~~~~~~~~~~~~~~~
 
-You have to create manually a private internal network on the main node:
+You have to create manually a private internal network on the main node::
 
        # nova-manage network create --fixed_range_v4 10.65.4.0/22 --num_networks 1 --network_size 1000 --bridge br100 --bridge_interface eth1 net1
 
-Create a floating public network
+Create a floating public network::
 
        # nova-manage floating create --ip_range <Public_IP>/NetMask --pool=public
 
-Enable the security groups for ssh and icmp on (needed for the public network)
+Enable the security groups for ssh and icmp on (needed for the public network)::
 
        # nova secgroup-add-role default icmp -1 -1 0.0.0.0/0
        # nova secgroup-add-rule default tcp 22 22 0.0.0.0/0
 
-## Cinder
+Cinder
+++++++
 
 The OpenStack Block Storage API allows manipulation of volumes, volume types (similar to compute flavors) and volume snapshots. Bellow you can find the information on how to install and configure cinder using a local VG.
 
 * Create storage space for Cinder (TO BE DEFINES)
 
-* Install the needed packages:
+* Install the needed packages::
 
         # apt-get install -y cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms
 
-* Create User and enable it in the admin tenant
+* Create User and enable it in the admin tenant::
 
         # keystone --os-username=admin --os-tenant-name=admin --os-password=keystoneqwerty --os-auth url=http://192.168.160.45:35357/v2.0 user-create --name=cinder --pass=cinderqwerty --tenant-id=a908ccc0bafe4c40a4cb060e20897a75 --email=info@gc3.uzh.ch 
         # keystone --os-username=admin --os-tenant-name=admin --os-password=keystoneqwerty --os-auth-url=http://192.168.160.45:35357/v2.0 user-role-add --tenant-id a908ccc0bafe4c40a4cb060e20897a75 --user-id c41e0a304e0345b5babe2105734ef929 --role-id 677543c6020844788ec3b232798a1390
 
-* Add the cinder service and create and end point
+* Add the cinder service and create and end point::
 
         # keystone --os-username=admin --os-tenant-name=admin --os-password=keystoneqwerty --os-auth-url=http://192.168.160.45:35357/v2.0 service-create --name cinder --type volume --description 'OpenStack Volume Service'
         # keystone --os-username=admin --os-tenant-name=admin --os-password=keystoneqwerty --os-auth-url=http://192.168.160.45:35357/v2.0 endpoint-create --region RegionOne --service-id=6ef7129fb15c46b79e70160dca99f3dc --publicurl 'http://192.168.160.45:8776/v1/$(tenant_id)s' --adminurl 'http://192.168.160.45:8776/v1/$(tenant_id)s' --internalurl 'http://192.168.160.45:8776/v1/$(tenant_id)s' 
@@ -246,11 +278,13 @@ The OpenStack Block Storage API allows manipulation of volumes, volume types (si
 
 * Create Cinder DB, modify api-paste.ini and enable access to keystone, configure end-point
 
-## Horizon
+Horizon
++++++++
 
 After an "apt-get install..." the service should work out of the box by accessing: http://IP/horizon
 
-# Recap
+Recap
+-----
 
 Small recap on what has to be done for a sevice installation:
 
