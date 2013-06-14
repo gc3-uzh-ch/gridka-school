@@ -17,6 +17,13 @@
 		<link rel="stylesheet" href="reveal.js/css/reveal.min.css">
 		<link rel="stylesheet" href="reveal.js/css/theme/default.css" id="theme">
 
+        <!-- for fullscreen images -->
+        <!-- https://github.com/regisb/reveal.js-fullscreen-img -->
+        <link rel="stylesheet" href="site/css/fullscreen-img.css">
+
+        <!-- our own styles -->
+        <link rel="stylesheet" href="site/css/site.css">
+
 		<!-- For syntax highlighting -->
 		<link rel="stylesheet" href="reveal.js/lib/css/zenburn.css">
 
@@ -102,7 +109,7 @@ function linkify( selector ) {
 				center: true,
 
 				theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
-				transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+				transition: Reveal.getQueryHash().transition || 'linear', // default/cube/page/concave/zoom/linear/fade/none
 
 				// Optional libraries used to extend on reveal.js
 				dependencies: [
@@ -111,7 +118,8 @@ function linkify( selector ) {
 					{ src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
 					{ src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
 					{ src: 'reveal.js/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
-					{ src: 'reveal.js/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+					{ src: 'reveal.js/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } },
+                    { src: 'site/js/fullscreen-img.js' },
 					// { src: 'plugin/search/search.js', async: true, condition: function() { return !!document.body.classList; } }
 					// { src: 'plugin/remotes/remotes.js', async: true, condition: function() { return !!document.body.classList; } }
 				]

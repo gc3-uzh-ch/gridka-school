@@ -1,0 +1,11 @@
+.dark_bg{
+    background-color: rgba(100,100,100 ,0.8);
+}
+
+.attribution {
+    font-size: 16px;
+    position: relative;
+    bottom: 0;
+    right: 0;
+
+}
