@@ -20,7 +20,15 @@
 		<!-- For syntax highlighting -->
 		<link rel="stylesheet" href="reveal.js/lib/css/zenburn.css">
 
-		<!-- If the query includes 'print-pdf', use the PDF print sheet -->
+        <!-- for fullscreen images -->
+        <!-- https://github.com/regisb/reveal.js-fullscreen-img -->
+        <link rel="stylesheet" href="site/css/fullscreen-img.css">
+
+        <!-- our own styles -->
+        <link rel="stylesheet" href="site/css/site.css">
+
+
+        <!-- If the query includes 'print-pdf', use the PDF print sheet -->
 		<script>
 			document.write( '<link rel="stylesheet" href="reveal.js/css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
 		</script>
@@ -38,7 +46,7 @@
 			<div class="slides">
 
 				<section>
-					<h1>OpenStack Introduction</h1>
+					<h1>Introduction to OpenStack</h1>
 					<h3>An overview over the Stack</h3>
 					<p>
 						<small>Jens-Christian Fischer <a href="http://twitter.com/jcfischer">@jcfischer</a></small>
@@ -46,43 +54,227 @@
 				</section>
 
 
-				<section data-markdown>
-					<script type="text/template">
-						## Markdown support
 
-						For those of you who like that sort of thing. Instructions and a bit more info available [here](https://github.com/hakimel/reveal.js#markdown).
-
-						```
-						<section data-markdown>
-						  ## Markdown support
-
-						  For those of you who like that sort of thing.
-						  Instructions and a bit more info available [here](https://github.com/hakimel/reveal.js#markdown).
-						</section>
-						```
-					</script>
+				<section fullscreen-img="http://farm4.staticflickr.com/3343/3479326045_06e6147ded_b.jpg" data-transition="fade">
+                    <h1 class="dark_bg">Not just fluffy</h1>
+                    <span class="attribution">http://www.flickr.com/photos/paulsgarden/3479326045</span>
 				</section>
 
-				<section>
-					<h2>Pretty Code</h2>
-					<pre><code data-trim contenteditable>
-function linkify( selector ) {
-  if( supports3DTransforms ) {
-
-    var nodes = document.querySelectorAll( selector );
-
-    for( var i = 0, len = nodes.length; i &lt; len; i++ ) {
-      var node = nodes[i];
-
-      if( !node.className ) ) {
-        node.className += ' roll';
-      }
-    };
-  }
-}
-					</code></pre>
-					<p>Courtesy of <a href="http://softwaremaniacs.org/soft/highlight/en/description/">highlight.js</a>.</p>
+                <section fullscreen-img="http://farm3.staticflickr.com/2337/2359829594_0faf82fb73_b.jpg" data-transition="fade">
+                    <h1 class="dark_bg">but big</h1>
+                    <span class="attribution">http://www.flickr.com/photos/9926320@N05/2359829594</span>
 				</section>
+
+
+                <section fullscreen-img="http://farm9.staticflickr.com/8108/8656549092_d0468d1fb3_b.jpg" fullscreen-size="contain"  data-transition="fade">
+                    <h1>and scary</h1>
+                    <span class="attribution">http://www.flickr.com/photos/34534185@N00/8656549092</span>
+                </section>
+
+                <section>
+                    <section >
+                        <h2>Seems simple</h2>
+                        <img class="plain" src="http://www.openstack.org/themes/openstack/images/openstack-software-diagram.png" width="1024">
+                    </section>
+                    <section fullscreen-img="images/openstack-logical-arch-folsom.jpg"  fullscreen-size="contain">
+                        <h1 class="dark_bg">but isn't</h1>
+
+                    </section>
+
+                </section>
+
+                <section>
+                    <h2>Let me tell you a story</h2>
+                </section>
+
+                <section>
+                    <section>
+                        <h2>The life of a VM</h2>
+                    </section>
+                    <section>
+                        <h2>You want to start a VM on your cloud</h2>
+                    </section>
+                    <section>
+                        <h2>Through the API ask to create one</h2>
+                    </section>
+                    <section>
+                        <h2>The API will check with <em>Keystone</em></h2>
+                        <p>Keystone handles authentication and authorisation</p>
+                    </section>
+                    <section>
+                        <h2>The API will check with <em>Keystone</em></h2>
+                        <p>Keystone handles authentication and authorisation</p>
+                    </section>
+
+                </section>
+
+                <section>
+                    <h2>Major Blocks</h2>
+                    <ul>
+                        <li class="fragment">Compute</li>
+                        <li class="fragment">Storage</li>
+                        <li class="fragment">Networking</li>
+                        <li class="fragment">Dashboard</li>
+                        <li class="fragment">Shared Services</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <section>
+                        <h2>Compute</h2>
+                        Provision and manage large networks of virtual machines
+                    </section>
+                    <section>
+                        <h2>Storage</h2>
+                        Object and Block storage for use with servers and applications
+                    </section>
+                    <section>
+                        <h2>Networking</h2>
+                        Pluggable, scalable, API-driven network and IP management
+                    </section>
+                    <section>
+                        <h2>Dashboard</h2>
+                        Graphical interface to access, provision and automate cloud-based resources
+                    </section>
+                    <section>
+                        <h2>Shared Services</h2>
+                        Identity (authentication and authorisation) and Image services
+                    </section>
+                </section>
+
+<!--  KEYSTONE -->
+                <section>
+                    <section>
+                        <h2>Keystone</h2>
+                    </section>
+                    <section>
+                        <h2>Details</h2>
+                    </section>
+                </section>
+
+<!--  GLANCE -->
+
+                <section>
+                    <section>
+                        <h2>Glance</h2>
+                    </section>
+                    <section>
+                        <h2>Details</h2>
+                    </section>
+                </section>
+
+                <!--  NOVA -->
+
+                <section>
+                    <section>
+                        <h2>Nova</h2>
+                    </section>
+                    <section>
+                        <h2>Details</h2>
+                    </section>
+                </section>
+
+                <!--  Swift -->
+
+                <section>
+                    <section>
+                        <h2>Swift</h2>
+                    </section>
+                    <section>
+                        <h2>Details</h2>
+                    </section>
+                </section>
+                <!--  CINDER -->
+
+                <section>
+                    <section>
+                        <h2>Cinder</h2>
+                    </section>
+                    <section>
+                        <h2>Details</h2>
+                    </section>
+                </section>
+
+                <!--  HORIZON -->
+
+                <section>
+                    <section>
+                        <h2>Horizon</h2>
+                    </section>
+                    <section>
+                        <h2>Details</h2>
+                    </section>
+                </section>
+
+
+                <!--  Network -->
+
+                <section>
+                    <section>
+                        <h2>Nova Network</h2>
+                    </section>
+                    <section>
+                        <h2>Details</h2>
+                    </section>
+                </section>
+
+
+                <!--  Quantum -->
+
+                <section>
+                    <section>
+                        <h2>Quantum</h2>
+                    </section>
+                    <section>
+                        <h2>Details</h2>
+                    </section>
+                </section>
+
+
+                <!--  NOVA API -->
+
+                <section>
+                    <section>
+                        <h2>Nova API</h2>
+                    </section>
+                    <section>
+                        <h2>Details</h2>
+                    </section>
+                </section>
+
+                <!--  NOVA API -->
+
+                <section>
+                    <section>
+                        <h2>Nova API</h2>
+                    </section>
+                    <section>
+                        <h2>Details</h2>
+                    </section>
+                </section>
+
+
+                <!--  MySQL -->
+
+                <section>
+                    <section>
+                        <h2>MySQL</h2>
+                    </section>
+                    <section>
+                        <h2>Details</h2>
+                    </section>
+                </section>
+
+                <!--  RabbitMQ -->
+
+                <section>
+                    <section>
+                        <h2>RabbitMQ</h2>
+                    </section>
+                    <section>
+                        <h2>Details</h2>
+                    </section>
+                </section>
 
 			</div>
 
@@ -102,7 +294,7 @@ function linkify( selector ) {
 				center: true,
 
 				theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
-				transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+				transition: Reveal.getQueryHash().transition || 'linear', // default/cube/page/concave/zoom/linear/fade/none
 
 				// Optional libraries used to extend on reveal.js
 				dependencies: [
@@ -111,8 +303,10 @@ function linkify( selector ) {
 					{ src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
 					{ src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
 					{ src: 'reveal.js/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
-					{ src: 'reveal.js/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
-					// { src: 'plugin/search/search.js', async: true, condition: function() { return !!document.body.classList; } }
+					{ src: 'reveal.js/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } },
+                    { src: 'site/js/fullscreen-img.js' },
+
+                    // { src: 'plugin/search/search.js', async: true, condition: function() { return !!document.body.classList; } }
 					// { src: 'plugin/remotes/remotes.js', async: true, condition: function() { return !!document.body.classList; } }
 				]
 			});
