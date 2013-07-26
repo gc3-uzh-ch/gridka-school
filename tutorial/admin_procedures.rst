@@ -31,14 +31,16 @@ Create bridges between the two hosts
 
         # yum install bridge-utils tunctl 
 
-* Create the bridge and add the eth1 interface to it
+* Create the bridge and add the eth1 interface to it:: 
+
 
         # brctl addbr br1  
         # brctl addif br1 eth1
 
 * Add the ifcfg-br1 configuration file in /etc/sysconfig/network-scripts/
 
-It should look like this: 
+It should look like this::
+
 
         DEVICE="br1"
         BOOTPROTO=static
@@ -53,11 +55,13 @@ It should look like this:
         NETWORK=10.0.0.0
         NM_CONTROLLED=no          
 
+
 Bridge interface probably needed also for the public interface eth0.  
 
 * Change the ifcfg-eth1 configuration file in /etc/sysconfig/network-scripts/ 
 
-It should look like this: 
+It should look like this::
+
 
         DEVICE=eth1
         BOOTPROTO=static
@@ -67,11 +71,13 @@ It should look like this:
         NM_CONTROLLED=no
         BRIDGE=br1
 
+
 * Restart the network 
 
         # service network restart 
 
-* Edit the /etc/hosts file with:
+* Edit the /etc/hosts file with::
+
 
         10.0.0.3    db-node
         10.0.0.4    auth-node
