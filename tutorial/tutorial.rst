@@ -158,17 +158,22 @@ problems on some of the nodes, e.g.: missing connectivity or if the host is down
 * Go in sudo mode on all the nodes
 
 ::
+
         sudo su - 
+
 
 * We have to add the OpenStack Grizzly repository:
 
-:: 
+::
+ 
         apt-get install -y ubuntu-cloud-keyring
         echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/grizzly main >> /etc/apt/sources.list.d/grizzly.list
 
+
 * Update the system: 
 
-:: 
+::
+ 
         apt-get update -y
         apt-get upgrade -y 
         apt-get dist-upgrade -y      
@@ -176,7 +181,9 @@ problems on some of the nodes, e.g.: missing connectivity or if the host is down
 * Install the NTP service
 
 ::
+
         apt-get install -y ntp 
+
 
 ``db-node``: MySQL installation
 +++++++++++++++++++++++++++++++
@@ -185,23 +192,28 @@ The db-node will host the mysql server which OpenStack uses extensively for all 
 In oder to install the mysql server please do: 
 
 ::
+
         apt-get install mysql-server python-mysqldb 
+
 
 you will be promped for a password. Please use: *mysql*. This will help us in debugging issue in the future :) 
 
 mysqld listens on the 3306 but the IP is set to 127.0.0.1. This has to be changes so we 
 can make the server accessible from the private nodes' network (10.0.0.0/24)
 
-:: 
+::
+ 
         sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mysql/my.cnf
         service mysql restart
+
 
 RabbitMQ
 ++++++++
 
 Install the RabbitMQ software which does not need a specific configuration: 
 
-:: 
+::
+ 
         apt-get install -y rabbitmq-server
 
 
