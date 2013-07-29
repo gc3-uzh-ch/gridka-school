@@ -3,7 +3,7 @@ Welcome to the gridka-school wiki!
 
 This quide is to be used as reference for the installation of
 OpenStack `Grizzly` during the `GridKa School 2013 - Training Session on
-OpenStack` . 
+OpenStack`. 
 
 As starting reference has been used the following `tutorial
 <https://github.com/mseknibilel/OpenStack-Grizzly-Install-Guide/blob/master/OpenStack_Grizzly_Install_Guide.rst>`_.
@@ -26,7 +26,7 @@ RabbitMQ
     used by the central services
 
 MySQL
-    used by the central services
+    used by the central services 
 
 Keystone
     OpenStack service which provides authentication. In our setup we
@@ -91,8 +91,32 @@ How to access the physical nodes
 Virtual Machines
 ++++++++++++++++
 
-TODO: explain the configuration of the VM images, what's already
-installed and configured etc.
+In order to access the virtual machines and start working on the configuration of OpenStack
+services listed above you will have to login on one of the nodes assigned to
+your group by doing:
+
+::
+        ssh user@gks-number.domain.example.com -p NUMBER
+
+Once you are logged you already can access all the different VMs. Bellow an explanation of
+how this task can be accomplished:
+
+:: 
+        ssh gridka@<service-name>
+
+The <service-name> string has to be replaced with one of the following values:
+
+* db-node
+* auth-node 
+* image-node 
+* api-node 
+* network-node
+* volume-node
+* compute-1-node
+* compute-2-node
+
+which, as you can immagine, corresponds to a specific VM which is aimed to host 
+the specified OpenStack service. 
 
 Network Setup
 +++++++++++++
@@ -103,7 +127,8 @@ TODO: explain the network configuration of the VMs etc
 Workflow for a VM Creation
 --------------------------
 
-Horizon asks Keyston for an authorization.Keystone is then checking on what the users/tenants are "supposed" to see (in terms of images, quotes, etc). Working nodes are periodically writing their status in the nova-database. When a new request arrives it is processed by the nova-scheduler which writes in the nova-database when a matchmaking with a free resource has been accomplished. On the next poll when the resource reads the nova-database it "realises" that it is supposed to start a new VM. nova-compute writes then the status inside the nova database.
+Horizon asks Keyston for an authorization.
+Keystone is then checking on what the users/tenants are "supposed" to see (in terms of images, quotes, etc). Working nodes are periodically writing their status in the nova-database. When a new request arrives it is processed by the nova-scheduler which writes in the nova-database when a matchmaking with a free resource has been accomplished. On the next poll when the resource reads the nova-database it "realises" that it is supposed to start a new VM. nova-compute writes then the status inside the nova database.
 
 Different sheduling policy and options can be set in the nova's configuration file.
 
@@ -113,40 +138,75 @@ Installation:
 We will install the following services in sequence, on different
 virtual machines.
 
+* ``all nodes installation``: Common tasks for all the nodes
 * ``db-node``: MySQL + RabbitMQ,
-* ``auth-node``: keystone
-* ``image-node``: glance
-* ``api-node``: noda-api, nova-scheduler
-* ``network-node``: nova-network
-* ``volume-node``: cinder
-* ``compute-1``: nova-compute
-* ``compute-2``: nova-compute
+* ``auth-node``: keystone,
+* ``image-node``: glance,
+* ``api-node``: noda-api, nova-scheduler,
+* ``network-node``: nova-network,
+* ``volume-node``: cinder,
+* ``compute-1``: nova-compute,
+* ``compute-2``: nova-compute,
 
 Note: on each service installed (except for nova-compute) a new endpoint has to be added in keystone. Zone can be used for the services (to be further explainded)
+
+``all nodes installation`` 
+
+Before starting you have to perform some common operation on all the hosts. This turnes to be usefull as it can easily identify 
+problems on some of the nodes, e.g.: missing connectivity or if the host is down. 
+
+* Go in sudo mode on all the nodes
+
+::
+        sudo su - 
+
+* We have to add the OpenStack Grizzly repository:
+
+:: 
+        apt-get install -y ubuntu-cloud-keyring
+        echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/grizzly main >> /etc/apt/sources.list.d/grizzly.list
+
+* Update the system: 
+
+:: 
+        apt-get update -y
+        apt-get upgrade -y 
+        apt-get dist-upgrade -y      
+
+* Install the NTP service
+
+::
+        apt-get install -y ntp 
 
 ``db-node``: MySQL installation
 +++++++++++++++++++++++++++++++
 
+The db-node will host the mysql server which OpenStack uses extensively for all of its services.
+In oder to install the mysql server please do: 
 
 ::
+        apt-get install mysql-server python-mysqldb 
 
-     apt-get install mysql-server python-mysqldb 
+you will be promped for a password. Please use: *mysql*. This will help us in debugging issue in the future :) 
 
-mysqld listens on the 3306 but the IP is set to 127.0.0.1. This has to be changes so we can make the server accessible from the private nodes' network (192.168.160.45)
+mysqld listens on the 3306 but the IP is set to 127.0.0.1. This has to be changes so we 
+can make the server accessible from the private nodes' network (10.0.0.0/24)
+
+:: 
+        sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mysql/my.cnf
+        service mysql restart
 
 RabbitMQ
 ++++++++
 
+Install the RabbitMQ software which does not need a specific configuration: 
 
-Does NOT need a specific configuration. Should run out of the box. Antonio is not sure if the queues need some setup
+:: 
+        apt-get install -y rabbitmq-server
 
-NTP
-+++
 
-Install NTP.
-
-Keystone
-++++++++
+``auth-node``: Keystone
+++++++++++++++++++++++++
 
 On Keyston we need to configure the MySQL database for the authentication/authorization of the services and endpoints. Keystone management is done through the following commands: "keystone-manage" and "keystone".
 
