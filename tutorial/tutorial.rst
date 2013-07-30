@@ -8,9 +8,8 @@ OpenStack`.
 As starting reference has been used the following `tutorial
 <https://github.com/mseknibilel/OpenStack-Grizzly-Install-Guide/blob/master/OpenStack_Grizzly_Install_Guide.rst>`_.
 
-As a lot of inconsistencies have been found we added and edited what
-we considered necessary for the correct functionallity of the
-OpenStack software.
+We adapated the tutorial above with what we cosidered necessary for our purpouses and for installing OpenStack on
+6 hosts.
 
 The official Grizzly tutorial can be found `here
 <http://docs.openstack.org/grizzly/openstack-compute/install/apt/content/>`_.
@@ -22,115 +21,107 @@ OpenStack overview
 This tutorial will show how to install the main components of
 OpenStack, specifically:
 
-RabbitMQ
-    used by the central services
-
 MySQL
-    used by the central services 
+    mysql databased is used for the saving services' related information.
+
+RabbitMQ
+    Messaging service used for the communication between two nova components.
 
 Keystone
     OpenStack service which provides authentication. In our setup we
     will store login, password and tokens in the MySQL db.
 
 nova-api
-    OpenStack API endpoint, used by the web interface, command line
+    OpenStack API endpoint. It is used by the web interface, command line
     tools and API clients.
 
 nova-scheduler
-    scheduler for the VM
+    OpenStack scheduler service which decide how and where 
+    to dispatch volume and compute requests.
 
 nova-network
-    OpenStack service to configure the network of the VMs and to
-    optionally provide so-called *Floating IPs*, IPs that can be
+    OpenStack service used to configure the network of the VMs and to
+    optionally provide the so-called *Floating IPs*. IPs that can be
     *attached* and *detachted* from a virtual machine while it is
     already running.
 
+nova-compute
+    OpenStack service which runs on the compute node. It performs all the
+    needed operations from starting the VM to its termination.
+
 glance
-    image service, used to store virtual disk *templates* for the
-    virtual machines.
+    OpenStack imaging service. It is used to store virtual disk *templates*
+    for the virtual machines.
 
 cinder
-    volume service, used to create persistent volumes that can be then
-    attached to running virtual machines
+    OpenStack volume service. It is used to create persistent volumes which
+    can be attached to a running virtual machine later on.
 
 Horizon
-    web interface to nova-api
+    OpenStack Web Interface to nova-api.
 
 
 Tutorial overview
 -----------------
 
-Each team will have two physical machines to work with. They will be
-used to host KVM Virtual Machines that will be used both for running
-the central services and the compute nodes.
+Each team will have two physical machines to work with.
 
-One of the nodes will run 6 VMs running the various central services,
-and are called:
+One of the nodes will run 6 VMs running the various central services. 
+They are called as follows:
 
-| hostname     | services          |
-+--------------+-------------------+
-| db-node      | mysql+rabbitmq    |
-| auth-node    | keystone          |
-| image-node   | glance            |
-| api-node     | nova-api + horizon|
-| network-node | nova-network      |
-| volume-node  | cinder            |
+* ``db-node``:  runs *mysql+rabbitmq*  
+* ``auth-node``: runs *keystone*
+* ``image-node``: runs *glance*
+* ``api-node``: runs *nova-api+horizon+nova-scheduler*
+* ``network-node``: runs *nova-network*
+* ``volume-node``: runs *cinder*
 
-while the other will run 2 VMs hosting the compute nodes for your
-stack:
+while the other will run 2 VMs hosting the compute nodes for your stack:
 
-| hostname     | services          |
-+--------------+-------------------+
-| compute-1    | nova-compute      |
-| compute-2    | nova-compute      |
+* ``compute-1``: runs *nova-compute*
+* ``compute-2``: runs *nova-compute*
 
 
 How to access the physical nodes
 ++++++++++++++++++++++++++++++++
 
+In order to access the different virtual machines and start working on the 
+configuration of OpenStack services listed above you will have to first login 
+on one of the nodes assigned to your group by doing:
+
+::
+
+        ssh user@gks-number.domain.example.com -p NUMBER
+
+
 Virtual Machines
 ++++++++++++++++
 
-In order to access the virtual machines and start working on the configuration of OpenStack
-services listed above you will have to login on one of the nodes assigned to
-your group by doing:
-
-::
-        ssh user@gks-number.domain.example.com -p NUMBER
-
-Once you are logged you already can access all the different VMs. Bellow an explanation of
-how this task can be accomplished:
+From that bastion node you can now login to the variuos VMs by doing:
 
 :: 
+
         ssh gridka@<service-name>
 
-The <service-name> string has to be replaced with one of the following values:
+The *service-name* string has to be replaced with one of the following values:
 
-* db-node
-* auth-node 
-* image-node 
-* api-node 
-* network-node
-* volume-node
-* compute-1-node
-* compute-2-node
+* **db-node**, 
+* **auth-node**, 
+* **api-node**, 
+* **network-node**, 
+* **image-node**, 
+* **volume-node**, 
+* **compute-1-node**, 
+* **compute-2-node**
 
-which, as you can immagine, corresponds to a specific VM which is aimed to host 
-the specified OpenStack service. 
+where each of the listed values corresponds to a specific VM hosting the OpenStack
+services as explained in the Tutorial Overview section. 
 
 Network Setup
 +++++++++++++
 
 TODO: explain the network configuration of the VMs etc 
 
-
-Workflow for a VM Creation
---------------------------
-
-Horizon asks Keyston for an authorization.
-Keystone is then checking on what the users/tenants are "supposed" to see (in terms of images, quotes, etc). Working nodes are periodically writing their status in the nova-database. When a new request arrives it is processed by the nova-scheduler which writes in the nova-database when a matchmaking with a free resource has been accomplished. On the next poll when the resource reads the nova-database it "realises" that it is supposed to start a new VM. nova-compute writes then the status inside the nova database.
-
-Different sheduling policy and options can be set in the nova's configuration file.
 
 Installation:
 -------------
@@ -148,12 +139,16 @@ virtual machines.
 * ``compute-1``: nova-compute,
 * ``compute-2``: nova-compute,
 
-Note: on each service installed (except for nova-compute) a new endpoint has to be added in keystone. Zone can be used for the services (to be further explainded)
 
-``all nodes installation`` 
+``all nodes installation``
+--------------------------
 
-Before starting you have to perform some common operation on all the hosts. This turnes to be usefull as it can easily identify 
-problems on some of the nodes, e.g.: missing connectivity or if the host is down. 
+Repoistories, NTP, system update
+++++++++++++++++++++++++++++++++
+
+Before starting you have to perform some common operation on all the hosts. This turnes to be
+usefull as it can easily identify problems on some of the nodes, e.g.: missing connectivity 
+or down of the host. 
 
 * Go in sudo mode on all the nodes
 
@@ -162,7 +157,7 @@ problems on some of the nodes, e.g.: missing connectivity or if the host is down
         sudo su - 
 
 
-* We have to add the OpenStack Grizzly repository:
+* Add the OpenStack Grizzly repository:
 
 ::
  
@@ -176,7 +171,8 @@ problems on some of the nodes, e.g.: missing connectivity or if the host is down
  
         apt-get update -y
         apt-get upgrade -y 
-        apt-get dist-upgrade -y      
+        apt-get dist-upgrade -y    
+
 
 * Install the NTP service
 
@@ -185,21 +181,25 @@ problems on some of the nodes, e.g.: missing connectivity or if the host is down
         apt-get install -y ntp 
 
 
-``db-node``: MySQL installation
-+++++++++++++++++++++++++++++++
+``db-node``
+-----------
 
-The db-node will host the mysql server which OpenStack uses extensively for all of its services.
-In oder to install the mysql server please do: 
+
+MySQL installation
+++++++++++++++++++
+
+Now please move on the db-node where we have to install the MySQL server.
+In oder to do that please execute: 
 
 ::
 
         apt-get install mysql-server python-mysqldb 
 
 
-you will be promped for a password. Please use: *mysql*. This will help us in debugging issue in the future :) 
+you will be promped for a password, use: **mysql**. This will help us in debugging issues in the future. 
 
-mysqld listens on the 3306 but the IP is set to 127.0.0.1. This has to be changes so we 
-can make the server accessible from the private nodes' network (10.0.0.0/24)
+mysqld listens on the 3306 but the IP is set to 127.0.0.1. This has to be changes in order
+to make the server accessible from nodes one private network (10.0.0.0/24)
 
 ::
  
@@ -210,33 +210,117 @@ can make the server accessible from the private nodes' network (10.0.0.0/24)
 RabbitMQ
 ++++++++
 
-Install the RabbitMQ software which does not need a specific configuration: 
+Install the RabbitMQ software:
 
 ::
  
         apt-get install -y rabbitmq-server
+        
+
+RabbitMQ does not need any specific configuration. Please keep the connection to the 
+db-node open as we will need to operate on it briefly.
 
 
-``auth-node``: Keystone
-++++++++++++++++++++++++
+``auth-node``
+-------------
 
-On Keyston we need to configure the MySQL database for the authentication/authorization of the services and endpoints. Keystone management is done through the following commands: "keystone-manage" and "keystone".
+Keystone
+++++++++
 
-We have to (this list is TO BE better explained and described):
+* Create the Keystone Databese on the **db-node** by doing:
 
-Create a keystone database user and grant him access to the database.
+::   
+
+        mysql -u root -p
+
+        mysql> CREATE DATABASE keystone;
+        mysql> GRANT ALL ON keystone.* TO 'keystoneUser'@'%' IDENTIFIED BY 'keystonePass';
+        
+        
+* Install keystone by doing:
 
 ::
 
-    # keystone-mange db_sync (it feeds the DB with the needed information)
+        apt-get install keystone python-mysqldb -y
+        
+* Change the DB reference in the /etc/keystone/keystone.conf 
+For doing that you have to replace the connection starting string with:
 
-Define a token inside keystone.conf (better a random string) which is used for the administartion afterwards. The port to be used for the administartion ( for potentialy destructive command ) is: 35357, the one for regular administration is 5000.
+::
 
-* Create the "admin" and "service" tenants (not mandatory??).
-* Create the "admin" user.
-* Define roles (see the tutorial).
-* Define the endpoints (usually it is a good practice to do that when a new service is enabled).
-* At the end the relations between tenants, users and roles has to be done.
+        connection = mysql://keystoneUser:keystonePass@10.0.0.3/keystone
+        
+* Restart the keystone servce:
+
+:: 
+
+        service keystone restart
+        
+* Popolate the keystone database:
+
+::
+
+        keystone-manage db_sync
+    
+which will popolate the database with the needed information. 
+
+* Create Tenants, Roles and Users
+
+Before starting you have to setup two environment virables 
+needed for correct functionallity of the keystone service:
+
+:: 
+
+        export SERVICE_TOKEN="ADMIN"
+        export SERVICE_ENDPOINT="http://10.0.0.4:35357/v2.0"
+
+
+Now create the following tenatns: **admin** and **service**
+
+::
+
+        keystone tenant-create --name=admin
+        keystone tenant-create --name=service
+
+Create the user then:
+
+::
+
+        keystone user-create --name=admin --pass=keystoneAdmin
+        
+Go on by creating the different roles:
+
+:: 
+
+        keystone role-create --name=admin
+        keystone role-create --name=KeystoneAdmin
+        keystone role-create --name=KeystoneServiceAdmin
+        # It is used by Horizon and Swift
+        keystone role-create --name=Member
+        
+Assign Roles:
+
+:: 
+
+        keystone user-role-add --user admin --role admin --tenant admin 
+        keystone user-role-add --user admin --role KeystoneAdmin --tenant admin 
+        keystone user-role-add --user admin --role KeystoneServiceAdmin --tenant admin
+
+        
+
+You can change the TOKEN string defined in the */etc/keystone/keystone.conf* to and arbitrary random
+string. We will use: "ADMIN_TOKEN". Please restart keystone when done. 
+
+
+For not having to export the credential variables each time you can create a file called 
+keystone_creds and load it. 
+
+
+:: 
+
+        export SERVICE_TOKEN="ADMIN_TOKEN"
+        export SERVICE_ENDPOINT="http://10.0.0.4:35357/v2.0"
+
 
 Glance
 ++++++
@@ -433,6 +517,14 @@ Horizon
 +++++++
 
 After an "apt-get install..." the service should work out of the box by accessing: http://IP/horizon
+
+Workflow for a VM Creation
+--------------------------
+
+Horizon asks Keyston for an authorization.
+Keystone is then checking on what the users/tenants are "supposed" to see (in terms of images, quotes, etc). Working nodes are periodically writing their status in the nova-database. When a new request arrives it is processed by the nova-scheduler which writes in the nova-database when a matchmaking with a free resource has been accomplished. On the next poll when the resource reads the nova-database it "realises" that it is supposed to start a new VM. nova-compute writes then the status inside the nova database.
+
+Different sheduling policy and options can be set in the nova's configuration file.
 
 Recap
 -----
