@@ -325,10 +325,52 @@ keystone_creds and load it.
 Glance
 ++++++
 
-For the glance service installation to be done as follows:
+In this section we are going to install and configure the glance imaging service. 
 
-* apt-get install ...
-* mysql: create glance database (databases can be separated: not necessary on the same machine)
+First move to the **db-node** and create the database:
+
+::
+
+
+        mysql -u root -p
+
+        mysql> CREATE DATABASE glance;
+        mysql> GRANT ALL ON glance.* TO 'glanceUser'@'%' IDENTIFIED BY 'glancePass';
+
+Go **back to the image-node** and install glance then:
+
+::
+
+        apt-get install glance
+        
+Create endpoint:
+
+We have to create an endpoint for the imageing service. This is to be done on the auth-node,
+so please login there and follow the steps:
+
+* Setup the environment:
+
+::   
+
+        export MYSQL_USER=keystoneUser
+        export MYSQL_DATABASE=keystone
+        export MYSQL_HOST=10.0.0.3
+        export MYSQL_PASSWORD=keystonePass
+        
+* Source the kyestone_creds file you've created previously:
+
+        source keystone_creds
+        
+* Export the Keystone region variable:
+
+        export KEYSTONE_REGION=RegionOne
+        
+* Create the image service by doing:
+
+        keystone service-create --name glance --type image --description 'Image Service of OpenStack'
+        
+
+ 
 * put endpoint information only in /etc/glance/paste files
 * user glance have to be set with admin role in the tenant service (this is valid for all the services)
 * glance db_sync
