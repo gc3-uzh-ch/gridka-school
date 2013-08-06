@@ -320,7 +320,10 @@ keystone_creds and load it.
 
         export SERVICE_TOKEN="ADMIN_TOKEN"
         export SERVICE_ENDPOINT="http://10.0.0.4:35357/v2.0"
-
+        
+        
+``image-node``
+-------------
 
 Glance
 ++++++
@@ -345,7 +348,7 @@ Go **back to the image-node** and install glance then:
         
 Create endpoint:
 
-We have to create an endpoint for the imageing service. This is to be done on the auth-node,
+We have to create an endpoint for the imageing service. This is to be done on the **auth-node**,
 so please login there and follow the steps:
 
 * Setup the environment:
@@ -359,22 +362,173 @@ so please login there and follow the steps:
         
 * Source the kyestone_creds file you've created previously:
 
+::
+
         source keystone_creds
         
 * Export the Keystone region variable:
+
+::
 
         export KEYSTONE_REGION=RegionOne
         
 * Create the image service by doing:
 
+::
+
         keystone service-create --name glance --type image --description 'Image Service of OpenStack'
         
+        
+* Create the glance user and add the role by doing.
 
- 
-* put endpoint information only in /etc/glance/paste files
-* user glance have to be set with admin role in the tenant service (this is valid for all the services)
-* glance db_sync
-* create endpoint on Keystone
+First get the service tenant id:
+
+::
+
+
+        root@auth-node:~# keystone tenant-get service
+        +-------------+---------------------------------------+
+        |   Property  |              Value                    |
+        +-------------+---------------------------------------+
+        | description |                                       |
+        |   enabled   |               True                    |
+        |      id     |   6e0864cd071c4806a05b32b1f891d4e0    |
+        |     name    |             service                   |
+        +-------------+---------------------------------------+
+
+::
+
+Once you have it create the user and add the role:
+
+
+::
+
+        root@auth-node:~# keystone user-create --name=glance --pass=glanceServ --tenant-id 6e0864cd071c4806a05b32b1f891d4e0
+        +----------+----------------------------------+
+        | Property |              Value               |
+        +----------+----------------------------------+
+        |  email   |                                  |
+        | enabled  |               True               |
+        |    id    | fc71fbf5814d434097d2f873db364797 |
+        |   name   |              glance              |
+        | tenantId | 6e0864cd071c4806a05b32b1f891d4e0 |
+        +----------+----------------------------------+        
+        
+        root@auth-node:~# keystone user-role-add keystone user-role-add --tenant service --user glance --role admin
+
+* Create the endpoint:
+
+First get the glance service id:
+
+::
+
+        root@auth-node:~# keystone service-list
+        +----------------------------------+--------+-------+----------------------------+
+        |                id                |  name  |  type |        description         |
+        +----------------------------------+--------+-------+----------------------------+
+        | 4edbbac249de4cd7914fde693b0f404c | glance | image | Image Service of OpenStack |
+        +----------------------------------+--------+-------+----------------------------+
+        
+Once you have it add the new end-point:
+
+::
+
+        root@auth-node:~# keystone endpoint-create --region $KEYSTONE_REGION --service-id 4edbbac249de4cd7914fde693b0f404c 
+        --publicurl 'http://10.0.0.5:9292/v2' --adminurl 'http://10.0.0.5:9292/v2' --internalurl 'http://10.0.0.5:9292/v2'
+        +-------------+----------------------------------+
+        |   Property  |              Value               |
+        +-------------+----------------------------------+
+        |   adminurl  |     http://10.0.0.5:9292/v2      |
+        |      id     | baafe80022984f2c84159a3d6612f00a |
+        | internalurl |     http://10.0.0.5:9292/v2      |
+        |  publicurl  |     http://10.0.0.5:9292/v2      |
+        |    region   |            RegionOne             |
+        |  service_id | 4edbbac249de4cd7914fde693b0f404c |
+        +-------------+----------------------------------+
+
+
+Turn back to the **image-node** and follow the next steps:
+
+
+* Open /etc/glance/glance-api-paste.ini file and edit the **filter:authtoken** section:
+
+::
+
+
+        [filter:authtoken]
+        paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
+        delay_auth_decision = true
+        auth_host = 10.0.0.4
+        auth_port = 35357
+        auth_protocol = http
+        admin_tenant_name = service
+        admin_user = glance
+        admin_password = glanceServ
+
+* Open /etc/glance/glance-registry-paste.ini file and edit the **filter:authtoken** section:
+
+::
+
+
+        [filter:authtoken]
+        paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
+        auth_host = 10.0.0.4
+        auth_port = 35357
+        auth_protocol = http
+        admin_tenant_name = service
+        admin_user = glance
+        admin_password = serviceServ
+
+* Open /etc/glance/glance-api.conf file and edit:
+
+::
+
+        sql_connection = mysql://glanceUser:glancePass@10.0.0.4/glance
+
+and
+
+::
+
+
+        [paste_deploy]
+        flavor = keystone
+
+* Open /etc/glance/glance-registry.conf file and edit:
+
+::
+
+
+        sql_connection = mysql://glanceUser:glancePass@10.0.0.4/glance
+
+and
+
+::
+
+        [paste_deploy]
+        flavor = keystone
+
+* Restart the glance-* services:
+
+::
+
+
+        service glance-api restart; service glance-registry restart
+
+* Sync the glance database:
+
+::
+
+
+        glance-manage db_sync
+
+* Restart again the services:
+
+::
+
+
+        service glance-registry restart; service glance-api restart
+
+* Test glance
 
 Nova
 ++++
