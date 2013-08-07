@@ -342,6 +342,9 @@ Now we have to create keystone service and enpoint:
         
 * After that create the keystone endpoint by doing:
 
+::
+
+
         keystone endpoint-create --region $KEYSTONE_REGION --service-id a92e4230026d4e0a9f16c538781f85a4
         --publicurl 'http://10.0.0.4:5000/v2.0' --adminurl 'http://10.0.0.4:35357/v2.0'
         --internalurl 'http://10.0.0.4:5000/v2.0'
@@ -357,7 +360,7 @@ Now we have to create keystone service and enpoint:
         |  service_id | a92e4230026d4e0a9f16c538781f85a4 |
         +-------------+----------------------------------+
 
-where the *--service-id* is the one corrisponding to the keystone service created just in the previous step. 
+where the **--service-id** is the one corrisponding to the keystone service created just in the previous step. 
 
 
 * Restart the keystone servce:
