@@ -346,7 +346,7 @@ Go **back to the image-node** and install glance then:
 
         apt-get install glance
         
-Create endpoint:
+Create glance service and endpoint:
 
 We have to create an endpoint for the imageing service. This is to be done on the **auth-node**,
 so please login there and follow the steps:
@@ -371,12 +371,6 @@ so please login there and follow the steps:
 ::
 
         export KEYSTONE_REGION=RegionOne
-        
-* Create the image service by doing:
-
-::
-
-        keystone service-create --name glance --type image --description 'Image Service of OpenStack'
         
         
 * Create the glance user and add the role by doing.
@@ -415,6 +409,13 @@ Once you have it create the user and add the role:
         +----------+----------------------------------+        
         
         root@auth-node:~# keystone user-role-add keystone user-role-add --tenant service --user glance --role admin
+
+* Create the image service by doing:
+
+::
+
+        keystone service-create --name glance --type image --description 'Image Service of OpenStack'
+
 
 * Create the endpoint:
 
@@ -530,8 +531,157 @@ and
 
 * Test glance
 
+``api-node``
+++++++++++++
+
 Nova
 ++++
+
+In this section we are going to install and configure the OpenStack 
+nova-api and nova-scheduler services. 
+
+First move to the **db-node** and create the database:
+
+::
+
+
+        mysql -u root -p
+
+        mysql> CREATE DATABASE nova;
+        mysql> GRANT ALL ON nova.* TO 'novaUser'@'%' IDENTIFIED BY 'novaPass';
+
+Go **back to the api-node** and install:
+
+::
+
+        apt-get install nova-api nova-cert novnc nova-consoleauth nova-scheduler nova-novncproxy nova-doc nova-conductor
+
+which are the nova components.
+
+Create nova service and endpoint:
+
+We have to create an endpoint for the OpenStack nova service. This is to be done on the **auth-node**,
+so please login there and follow the steps:
+
+* Setup the environment:
+
+::   
+
+        export MYSQL_USER=keystoneUser
+        export MYSQL_DATABASE=keystone
+        export MYSQL_HOST=10.0.0.3
+        export MYSQL_PASSWORD=keystonePass
+        
+* Source the kyestone_creds file you've created previously:
+
+::
+
+        source keystone_creds
+        
+* Export the Keystone region variable:
+
+::
+
+        export KEYSTONE_REGION=RegionOne
+        
+        
+* Create the glance user and add the role by doing.
+
+First get the service tenant id:
+
+::
+
+
+        root@auth-node:~# keystone tenant-get service
+        +-------------+---------------------------------------+
+        |   Property  |              Value                    |
+        +-------------+---------------------------------------+
+        | description |                                       |
+        |   enabled   |               True                    |
+        |      id     |   6e0864cd071c4806a05b32b1f891d4e0    |
+        |     name    |             service                   |
+        +-------------+---------------------------------------+
+
+::
+
+Once you have it create the user and add the role:
+
+
+::
+
+        root@auth-node:~# keystone user-create --name=nova --pass=novaServ --tenant-id 6e0864cd071c4806a05b32b1f891d4e0
+        +----------+----------------------------------+
+        | Property |              Value               |
+        +----------+----------------------------------+
+        |  email   |                                  |
+        | enabled  |               True               |
+        |    id    | 1313793a3d1b452ca9558f53fe0db69c |
+        |   name   |               nova               |
+        | tenantId | 6e0864cd071c4806a05b32b1f891d4e0 |
+        +----------+----------------------------------+
+        
+        root@auth-node:~# keystone user-role-add keystone user-role-add --tenant service --user nova --role admin
+        
+        
+* Create the nova and ec2 services by doing:
+
+::
+
+
+        keystone service-create --name nova --type compute --description 'Compute Service of OpenStack'
+        +-------------+----------------------------------+
+        |   Property  |              Value               |
+        +-------------+----------------------------------+
+        | description |    OpenStack Compute Service     |
+        |      id     | 175320193f8e4122b8f21bd2b454b672 |
+        |     name    |               nova               |
+        |     type    |             compute              |
+        +-------------+----------------------------------+
+
+        
+        keystone service-create --name ec2 --type ec2 --description 'EC2 service of OpenStack'
+        +-------------+----------------------------------+
+        |   Property  |              Value               |
+        +-------------+----------------------------------+
+        | description |     EC2 service of OpenStack     |
+        |      id     | 5e362e6bf75642259276d6c29a2b6749 |
+        |     name    |               ec2                |
+        |     type    |               ec2                |
+        +-------------+----------------------------------+
+
+
+* Create the endpoint:
+
+First get the glance service id:
+
+::
+
+        root@auth-node:~# keystone service-list
+        +----------------------------------+--------+-------+----------------------------+
+        |                id                |  name  |  type |        description         |
+        +----------------------------------+--------+-------+----------------------------+
+        | 4edbbac249de4cd7914fde693b0f404c | glance | image | Image Service of OpenStack |
+        +----------------------------------+--------+-------+----------------------------+
+        
+Once you have it add the new end-point:
+
+::
+
+        root@auth-node:~# keystone endpoint-create --region $KEYSTONE_REGION --service-id 4edbbac249de4cd7914fde693b0f404c 
+        --publicurl 'http://10.0.0.5:9292/v2' --adminurl 'http://10.0.0.5:9292/v2' --internalurl 'http://10.0.0.5:9292/v2'
+        +-------------+----------------------------------+
+        |   Property  |              Value               |
+        +-------------+----------------------------------+
+        |   adminurl  |     http://10.0.0.5:9292/v2      |
+        |      id     | baafe80022984f2c84159a3d6612f00a |
+        | internalurl |     http://10.0.0.5:9292/v2      |
+        |  publicurl  |     http://10.0.0.5:9292/v2      |
+        |    region   |            RegionOne             |
+        |  service_id | 4edbbac249de4cd7914fde693b0f404c |
+        +-------------+----------------------------------+
+
+
+
 
 * apt-get install ...
 * Needs two endpoints: EC2 and compute
