@@ -235,7 +235,8 @@ Keystone
 
         mysql> CREATE DATABASE keystone;
         mysql> GRANT ALL ON keystone.* TO 'keystoneUser'@'%' IDENTIFIED BY 'keystonePass';
-        
+
+Go back to the **auth-node** and start configuring keystone.
         
 * Install keystone by doing:
 
@@ -320,8 +321,52 @@ keystone_creds and load it.
 
         export SERVICE_TOKEN="ADMIN_TOKEN"
         export SERVICE_ENDPOINT="http://10.0.0.4:35357/v2.0"
+
+Now we have to create keystone service and enpoint:
+
+* First create the keystone service:
+
+::
+
+
+        keystone service-create --name keystone --type identity --description 'OpenStack Identity'
         
+        +-------------+----------------------------------+
+        |   Property  |              Value               |
+        +-------------+----------------------------------+
+        | description |        OpenStack Identity        |
+        |      id     | a92e4230026d4e0a9f16c538781f85a4 |
+        |     name    |             keystone             |
+        |     type    |             identity             |
+        +-------------+----------------------------------+
         
+* After that create the keystone endpoint by doing:
+
+        keystone endpoint-create --region $KEYSTONE_REGION --service-id a92e4230026d4e0a9f16c538781f85a4
+        --publicurl 'http://10.0.0.4:5000/v2.0' --adminurl 'http://10.0.0.4:35357/v2.0'
+        --internalurl 'http://10.0.0.4:5000/v2.0'
+
+        +-------------+----------------------------------+
+        |   Property  |              Value               |
+        +-------------+----------------------------------+
+        |   adminurl  |    http://10.0.0.4:35357/v2.0    |
+        |      id     | 597a9a3db82148bdbb56a9f43360a95f |
+        | internalurl |    http://10.0.0.4:5000/v2.0     |
+        |  publicurl  |    http://10.0.0.4:5000/v2.0     |
+        |    region   |            RegionOne             |
+        |  service_id | a92e4230026d4e0a9f16c538781f85a4 |
+        +-------------+----------------------------------+
+
+where the *--service-id* is the one corrisponding to the keystone service created just in the previous step. 
+
+
+* Restart the keystone servce:
+
+:: 
+
+        service keystone restart  
+        
+
 ``image-node``
 -------------
 
