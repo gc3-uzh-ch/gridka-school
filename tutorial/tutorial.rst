@@ -744,6 +744,7 @@ Configuration.
         rootwrap_config=/etc/cinder/rootwrap.conf
         sql_connection = mysql://cinderUser:cinderPass@10.0.0.3/cinder
         api_paste_config = /etc/cinder/api-paste.ini
+        rabbit_host=10.0.0.3
         iscsi_helper=ietadm
         volume_name_template = volume-%s
         volume_group = cinder-volume
@@ -799,7 +800,45 @@ Configure volume space services.
 
 * Verify they are running.
 
-* Test glance services??
+* Test glance:
+
+::
+
+
+        cinder --os-username admin --os-password keystoneAdmin
+        --os-tenant-name admin --os-auth-url http://10.0.0.4:5000/v2.0 create --display-name test 1
+        +---------------------+--------------------------------------+
+        |       Property      |                Value                 |
+        +---------------------+--------------------------------------+
+        |     attachments     |                  []                  |
+        |  availability_zone  |                 nova                 |
+        |       bootable      |                false                 |
+        |      created_at     |      2013-08-08T15:05:56.983964      |
+        | display_description |                 None                 |
+        |     display_name    |                 test                 |
+        |          id         | 4a811e1a-28cc-4354-b8fd-d8857b8e2667 |  
+        |       metadata      |                  {}                  |
+        |         size        |                  1                   |
+        |     snapshot_id     |                 None                 |
+        |     source_volid    |                 None                 |
+        |        status       |               creating               |
+        |     volume_type     |                 None                 |
+        +---------------------+--------------------------------------+
+        
+        
+        cinder --os-username admin --os-password keystoneAdmin
+        --os-tenant-name admin --os-auth-url http://10.0.0.4:5000/v2.0 list
+        +--------------------------------------+-----------+--------------+------+-------------+----------+-------------+
+        |                  ID                  |   Status  | Display Name | Size | Volume Type | Bootable | Attached to |
+        +--------------------------------------+-----------+--------------+------+-------------+----------+-------------+
+        | 4a811e1a-28cc-4354-b8fd-d8857b8e2667 | available |     test     |  1   |     None    |  false   |             |
+        +--------------------------------------+-----------+--------------+------+-------------+----------+-------------+
+        
+        
+        cinder --os-username admin --os-password keystoneAdmin
+        --os-tenant-name admin --os-auth-url http://10.0.0.4:5000/v2.0 delete 4a811e1a-28cc-4354-b8fd-d8857b8e2667
+
+
 
 
 
