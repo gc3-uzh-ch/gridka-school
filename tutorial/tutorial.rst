@@ -396,8 +396,9 @@ Go **back to the image-node** and install glance then:
         
 Create glance service and endpoint:
 
-We have to create an endpoint for the imageing service. This is to be done on the **auth-node**,
-so please login there and follow the steps:
+We have to create an endpoint for the imaging service. 
+This is to be done on the **auth-node**, so please login 
+there and follow the steps:
 
 * Setup the environment:
 
@@ -456,7 +457,7 @@ Once you have it create the user and add the role:
         | tenantId | 6e0864cd071c4806a05b32b1f891d4e0 |
         +----------+----------------------------------+        
         
-        keystone user-role-add keystone user-role-add --tenant service --user glance --role admin
+        keystone user-role-add --tenant service --user glance --role admin
 
 * Create the image service by doing:
 
@@ -578,6 +579,143 @@ and
         service glance-registry restart; service glance-api restart
 
 * Test glance
+
+``volume-node``
+++++++++++++++++
+
+Cinder
+++++++
+
+The OpenStack Block Storage API allows manipulation of volumes, volume types (similar to compute flavors) and
+volume snapshots. Bellow you can find the information on how to install and configure cinder using a local VG.
+
+First move to the **db-node** and create the database:
+
+::
+
+
+        mysql -u root -p
+
+        mysql> CREATE DATABASE cinder;
+        mysql> GRANT ALL ON cinder.* TO 'cinderUser'@'%' IDENTIFIED BY 'cinderPass';
+
+
+* Install cinder packages then::
+
+        # apt-get install -y cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms
+        
+We have to create an endpoint for the volume service. This is to be done on the **auth-node**, 
+so please login there and follow the steps:
+
+* Setup the environment:
+
+::   
+
+        export MYSQL_USER=keystoneUser
+        export MYSQL_DATABASE=keystone
+        export MYSQL_HOST=10.0.0.3
+        export MYSQL_PASSWORD=keystonePass
+        
+* Source the keystone_creds file you've created previously:
+
+::
+
+        source keystone_creds
+        
+* Export the Keystone region variable:
+
+::
+
+        export KEYSTONE_REGION=RegionOne
+        
+        
+* Create the cinder user and add the role by doing.
+
+First get the service tenant id:
+
+::
+
+
+        keystone tenant-get service
+        +-------------+---------------------------------------+
+        |   Property  |              Value                    |
+        +-------------+---------------------------------------+
+        | description |                                       |
+        |   enabled   |               True                    |
+        |      id     |   6e0864cd071c4806a05b32b1f891d4e0    |
+        |     name    |             service                   |
+        +-------------+---------------------------------------+
+
+::
+
+Once you have it create the user and add the role:
+
+
+::
+
+        keystone user-create --name=glance --pass=glanceServ --tenant-id 6e0864cd071c4806a05b32b1f891d4e0
+        +----------+----------------------------------+
+        | Property |              Value               |
+        +----------+----------------------------------+
+        |  email   |                                  |
+        | enabled  |               True               |
+        |    id    | 3cbe0aab435c435490c200b94908aab2 |
+        |   name   |              cinder              |
+        | tenantId | 6e0864cd071c4806a05b32b1f891d4e0 |
+        +----------+----------------------------------+
+        
+        keystone user-role-add --tenant service --user cinder --role admin
+
+* Create the volume service by doing:
+
+::
+
+        keystone service-create --name cinder --type volume --description 'Volume Service of OpenStack'
+        +-------------+----------------------------------+
+        |   Property  |              Value               |
+        +-------------+----------------------------------+
+        | description |   Volume Service of OpenStack    |
+        |      id     | 2b6252b673d84019aa6b75e702d1b0ab |
+        |     name    |              cinder              |
+        |     type    |              volume              |
+        +-------------+----------------------------------+
+
+
+* Create the endpoint:
+
+First get the volume service id:
+
+::
+
+        keystone service-list
+        +----------------------------------+----------+----------+-----------------------------+
+        |                id                |   name   |   type   |         description         |
+        +----------------------------------+----------+----------+-----------------------------+
+        | 2b6252b673d84019aa6b75e702d1b0ab |  cinder  |  volume  | Volume Service of OpenStack |
+        ........................................................................................
+        
+Once you have it add the new end-point:
+
+::
+
+
+         keystone endpoint-create --region $KEYSTONE_REGION --service-id 2b6252b673d84019aa6b75e702d1b0ab
+         --publicurl 'http://10.0.0.8:8776/v1/$(tenant_id)s' --adminurl 'http://10.0.0.8:8776/v1/$(tenant_id)s' 
+         --internalurl 'http://10.0.0.8:8776/v1/$(tenant_id)s'
+        +-------------+---------------------------------------+
+        |   Property  |                 Value                 |
+        +-------------+---------------------------------------+
+        |   adminurl  | http://10.0.0.8:8776/v1/$(tenant_id)s |
+        |      id     |    afc967da2a1b400792dc9c51c4fa728a   |
+        | internalurl | http://10.0.0.8:8776/v1/$(tenant_id)s |
+        |  publicurl  | http://10.0.0.8:8776/v1/$(tenant_id)s |
+        |    region   |               RegionOne               |
+        |  service_id |    2b6252b673d84019aa6b75e702d1b0ab   |
+        +-------------+---------------------------------------+
+
+Once you are done please go back to the volume-node.
+
+
 
 ``api-node``
 ++++++++++++
@@ -974,31 +1112,7 @@ Enable the security groups for ssh and icmp on (needed for the public network)::
 
        # nova secgroup-add-role default icmp -1 -1 0.0.0.0/0
        # nova secgroup-add-rule default tcp 22 22 0.0.0.0/0
-
-Cinder
-++++++
-
-The OpenStack Block Storage API allows manipulation of volumes, volume types (similar to compute flavors) and volume snapshots. Bellow you can find the information on how to install and configure cinder using a local VG.
-
-* Create storage space for Cinder (TO BE DEFINES)
-
-* Install the needed packages::
-
-        # apt-get install -y cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms
-
-* Create User and enable it in the admin tenant::
-
-        # keystone --os-username=admin --os-tenant-name=admin --os-password=keystoneqwerty --os-auth url=http://192.168.160.45:35357/v2.0 user-create --name=cinder --pass=cinderqwerty --tenant-id=a908ccc0bafe4c40a4cb060e20897a75 --email=info@gc3.uzh.ch 
-        # keystone --os-username=admin --os-tenant-name=admin --os-password=keystoneqwerty --os-auth-url=http://192.168.160.45:35357/v2.0 user-role-add --tenant-id a908ccc0bafe4c40a4cb060e20897a75 --user-id c41e0a304e0345b5babe2105734ef929 --role-id 677543c6020844788ec3b232798a1390
-
-* Add the cinder service and create and end point::
-
-        # keystone --os-username=admin --os-tenant-name=admin --os-password=keystoneqwerty --os-auth-url=http://192.168.160.45:35357/v2.0 service-create --name cinder --type volume --description 'OpenStack Volume Service'
-        # keystone --os-username=admin --os-tenant-name=admin --os-password=keystoneqwerty --os-auth-url=http://192.168.160.45:35357/v2.0 endpoint-create --region RegionOne --service-id=6ef7129fb15c46b79e70160dca99f3dc --publicurl 'http://192.168.160.45:8776/v1/$(tenant_id)s' --adminurl 'http://192.168.160.45:8776/v1/$(tenant_id)s' --internalurl 'http://192.168.160.45:8776/v1/$(tenant_id)s' 
-
-* Enable iSCSI and restart iSCSI services 
-
-* Create Cinder DB, modify api-paste.ini and enable access to keystone, configure end-point
+       
 
 Horizon
 +++++++
