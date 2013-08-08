@@ -602,7 +602,7 @@ First move to the **db-node** and create the database:
 
 * Install cinder packages then::
 
-        # apt-get install -y cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms
+        # apt-get install -y cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms python-mysqldb  python-cinderclient tgt
         
 We have to create an endpoint for the volume service. This is to be done on the **auth-node**, 
 so please login there and follow the steps:
@@ -714,6 +714,93 @@ Once you have it add the new end-point:
         +-------------+---------------------------------------+
 
 Once you are done please go back to the volume-node.
+
+Configuration.
+
+* Open the /etc/cinder/api-paste.ini file and edit the **filter:authtoken** section like:
+
+::
+
+
+        [filter:authtoken]
+        paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
+        service_protocol = http
+        service_host = 10.0.0.6
+        service_port = 5000
+        auth_host = 10.0.0.4
+        auth_port = 35357
+        auth_protocol = http
+        admin_tenant_name = service
+        admin_user = cinder
+        admin_password = cinderServ
+        signing_dir = /var/lib/cinder
+        
+* Open then the  /etc/cinder/cinder.conf and edit the **[DEFAULT]** section like this
+
+::
+
+
+        [DEFAULT]
+        rootwrap_config=/etc/cinder/rootwrap.conf
+        sql_connection = mysql://cinderUser:cinderPass@10.0.0.3/cinder
+        api_paste_config = /etc/cinder/api-paste.ini
+        iscsi_helper=ietadm
+        volume_name_template = volume-%s
+        volume_group = cinder-volume
+        verbose = True
+        auth_strategy = keystone
+        iscsi_ip_address=10.0.0.8
+        
+* Sync the database
+
+::
+
+
+        cinder-manage db sync 
+        
+Configure volume space services.
+
+* Edit the  /etc/default/iscsitarget to 'True'.
+
+* Start the services:
+
+::
+
+        service iscsitarget start
+        service open-iscsi start
+
+* Create a volumegroup and name it cinder-volume
+
+::
+
+
+        dd if=/dev/zero of=cinder-volumes bs=1 count=0 seek=2G
+        fdisk /dev/vdb
+        #Type as follows:
+        n
+        p
+        1
+        ENTER
+        ENTER
+        w
+        
+* Create the pyhsical and after that volume groups:
+
+::
+
+
+         pvcreate /dev/vdb1
+            Physical volume "/dev/vdb1" successfully created
+         vgcreate cinder-volume /dev/vdb1
+            Volume group "cinder-volume" successfully created
+            
+
+* Restart cinder-{api,scheduler,volume} services
+
+* Verify they are running.
+
+* Test glance services??
+
 
 
 
