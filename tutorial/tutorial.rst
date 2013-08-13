@@ -42,7 +42,7 @@ nova-scheduler
 nova-network
     OpenStack service used to configure the network of the VMs and to
     optionally provide the so-called *Floating IPs*. IPs that can be
-    *attached* and *detachted* from a virtual machine while it is
+    *attached* and *detached* from a virtual machine while it is
     already running.
 
 nova-compute
@@ -143,12 +143,12 @@ virtual machines.
 ``all nodes installation``
 --------------------------
 
-Repoistories, NTP, system update
+Repositories, NTP, system update
 ++++++++++++++++++++++++++++++++
 
-Before starting you have to perform some common operation on all the hosts. This turnes to be
-usefull as it can easily identify problems on some of the nodes, e.g.: missing connectivity 
-or down of the host. 
+Before starting you have to perform some common operation on all the hosts. This is
+useful as it can easily identify problems on some of the nodes, e.g.: missing connectivity 
+or a host being down. 
 
 * Go in sudo mode on all the nodes
 
@@ -189,7 +189,7 @@ MySQL installation
 ++++++++++++++++++
 
 Now please move on the db-node where we have to install the MySQL server.
-In oder to do that please execute: 
+In order to do that please execute: 
 
 ::
 
@@ -198,8 +198,8 @@ In oder to do that please execute:
 
 you will be promped for a password, use: **mysql**. This will help us in debugging issues in the future. 
 
-mysqld listens on the 3306 but the IP is set to 127.0.0.1. This has to be changes in order
-to make the server accessible from nodes one private network (10.0.0.0/24)
+mysqld listens on the 3306 but the IP is set to 127.0.0.1. This has to be changed in order
+to make the server accessible from nodes on the private network (10.0.0.0/24)
 
 ::
  
@@ -251,24 +251,24 @@ For doing that you have to replace the connection starting string with:
 
         connection = mysql://keystoneUser:keystonePass@10.0.0.3/keystone
         
-* Restart the keystone servce:
+* Restart the keystone service:
 
 :: 
 
         service keystone restart
         
-* Popolate the keystone database:
+* Populate the keystone database:
 
 ::
 
         keystone-manage db_sync
     
-which will popolate the database with the needed information. 
+which will populate the database with the needed information. 
 
 * Create Tenants, Roles and Users
 
-Before starting you have to setup two environment virables 
-needed for correct functionallity of the keystone service:
+Before starting you have to setup two environment variables 
+needed for the correct functionality of the keystone service:
 
 :: 
 
@@ -276,14 +276,14 @@ needed for correct functionallity of the keystone service:
         export SERVICE_ENDPOINT="http://10.0.0.4:35357/v2.0"
 
 
-Now create the following tenatns: **admin** and **service**
+Now create the following tenants: **admin** and **service**
 
 ::
 
         keystone tenant-create --name=admin
         keystone tenant-create --name=service
 
-Create the user then:
+Create the user next:
 
 ::
 
@@ -309,12 +309,12 @@ Assign Roles:
 
         
 
-You can change the TOKEN string defined in the */etc/keystone/keystone.conf* to and arbitrary random
+You can change the TOKEN string defined in the */etc/keystone/keystone.conf* to an arbitrary random
 string. We will use: "ADMIN_TOKEN". Please restart keystone when done. 
 
 
 For not having to export the credential variables each time you can create a file called 
-keystone_creds and load it. 
+*keystone_creds* and source it. 
 
 
 :: 
@@ -322,7 +322,7 @@ keystone_creds and load it.
         export SERVICE_TOKEN="ADMIN_TOKEN"
         export SERVICE_ENDPOINT="http://10.0.0.4:35357/v2.0"
 
-Now we have to create keystone service and enpoint:
+Now we have to create keystone service and endpoint:
 
 * First create the keystone service:
 
@@ -360,10 +360,10 @@ Now we have to create keystone service and enpoint:
         |  service_id | a92e4230026d4e0a9f16c538781f85a4 |
         +-------------+----------------------------------+
 
-where the **--service-id** is the one corrisponding to the keystone service created just in the previous step. 
+where the **--service-id** is the one corresponding to the keystone service created in the previous step. 
 
 
-* Restart the keystone servce:
+* Restart the keystone service:
 
 :: 
 
@@ -391,8 +391,6 @@ First move to the **db-node** and create the database:
 Go **back to the image-node** and install glance then:
 
 ::
-
-        apt-get install glance
         
 Create glance service and endpoint:
 
@@ -409,7 +407,7 @@ there and follow the steps:
         export MYSQL_HOST=10.0.0.3
         export MYSQL_PASSWORD=keystonePass
         
-* Source the kyestone_creds file you've created previously:
+* Source the keystone_creds file you've created previously:
 
 ::
 
@@ -441,7 +439,7 @@ First get the service tenant id:
 
 ::
 
-Once you have it create the user and add the role:
+Once you have it, create the user and add the role:
 
 
 ::
@@ -479,7 +477,7 @@ First get the glance service id:
         | 4edbbac249de4cd7914fde693b0f404c | glance | image | Image Service of OpenStack |
         +----------------------------------+--------+-------+----------------------------+
         
-Once you have it add the new end-point:
+Once you have it, add the new end-point:
 
 ::
 
@@ -571,7 +569,7 @@ and
 
         glance-manage db_sync
 
-* Restart again the services:
+* Restart the services one more time:
 
 ::
 
@@ -581,7 +579,7 @@ and
 * Test glance
 
 ``volume-node``
-++++++++++++++++
++++++++++++++++
 
 Cinder
 ++++++
@@ -600,7 +598,9 @@ First move to the **db-node** and create the database:
         mysql> GRANT ALL ON cinder.* TO 'cinderUser'@'%' IDENTIFIED BY 'cinderPass';
 
 
-* Install cinder packages then::
+* Install the cinder packages:
+
+::
 
         # apt-get install -y cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms python-mysqldb  python-cinderclient tgt
         
@@ -785,7 +785,7 @@ Configure volume space services.
         ENTER
         w
         
-* Create the pyhsical and after that volume groups:
+* Create the physical volume first and then the volume groups:
 
 ::
 
@@ -849,6 +849,9 @@ Configure volume space services.
 Nova
 ++++
 
+Now that he have installed a lot of infrastructure, it is time to actually get the 
+compute part of our cloud up and running - otherwise, what good would it be?
+
 In this section we are going to install and configure
 the OpenStack nova services. 
 
@@ -902,7 +905,7 @@ Get the service tenant id:
 ::
 
 
-        rkeystone tenant-get service
+        keystone tenant-get service
         +-------------+---------------------------------------+
         |   Property  |              Value                    |
         +-------------+---------------------------------------+
@@ -1248,7 +1251,7 @@ After an "apt-get install..." the service should work out of the box by accessin
 Workflow for a VM Creation
 --------------------------
 
-Horizon asks Keyston for an authorization.
+Horizon asks Keystone for an authorization.
 Keystone is then checking on what the users/tenants are "supposed" to see (in terms of images, quotes, etc). Working nodes are periodically writing their status in the nova-database. When a new request arrives it is processed by the nova-scheduler which writes in the nova-database when a matchmaking with a free resource has been accomplished. On the next poll when the resource reads the nova-database it "realises" that it is supposed to start a new VM. nova-compute writes then the status inside the nova database.
 
 Different sheduling policy and options can be set in the nova's configuration file.
