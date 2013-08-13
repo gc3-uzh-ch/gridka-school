@@ -153,6 +153,7 @@ or a host being down.
 * Go in sudo mode on all the nodes
 
 ::
+
     root@all-nodes # sudo su - 
 
 
@@ -168,7 +169,7 @@ or a host being down.
     root@all-nodes # apt-get upgrade -y 
     root@all-nodes # apt-get dist-upgrade -y    
 
-* Install the NTP servic::
+* Install the NTP service::
 
     root@all-nodes # apt-get install -y ntp 
 
@@ -194,6 +195,7 @@ be changes in order to make the server accessible from nodes one
 private network (10.0.0.0/24)
 
 ::
+
     root@all-nodes # sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mysql/my.cnf
     root@all-nodes # service mysql restart
 
@@ -380,7 +382,7 @@ there and follow the steps:
         
 * Create the glance user and add the role by doing.
 
-First get the service tenant id::
+  First get the service tenant id::
 
     root@image-node # keystone tenant-get service
     +-------------+---------------------------------------+
@@ -393,7 +395,7 @@ First get the service tenant id::
     +-------------+---------------------------------------+
 
 
-Once you have it create the user and add the role::
+  Once you have it create the user and add the role::
 
     root@image-node # keystone user-create --name=glance --pass=glanceServ --tenant-id 6e0864cd071c4806a05b32b1f891d4e0
     +----------+----------------------------------+
@@ -415,7 +417,7 @@ Once you have it create the user and add the role::
 
 * Create the endpoint:
 
-First get the glance service id::
+  First get the glance service id::
 
     root@image-node # keystone service-list
     +----------------------------------+--------+-------+----------------------------+
@@ -424,9 +426,7 @@ First get the glance service id::
     | 4edbbac249de4cd7914fde693b0f404c | glance | image | Image Service of OpenStack |
     +----------------------------------+--------+-------+----------------------------+
         
-Once you have it, add the new end-point:
-
-::
+  Once you have it, add the new end-point::
 
     root@image-node # keystone endpoint-create --region $KEYSTONE_REGION --service-id 4edbbac249de4cd7914fde693b0f404c 
         --publicurl 'http://10.0.0.5:9292/v2' --adminurl 'http://10.0.0.5:9292/v2' --internalurl 'http://10.0.0.5:9292/v2'
@@ -442,7 +442,7 @@ Once you have it, add the new end-point:
     +-------------+----------------------------------+
 
 
-Turn back to the **image-node** and follow the next steps:
+  Turn back to the **image-node** and follow the next steps:
 
 
 * Open ``/etc/glance/glance-api-paste.ini`` file and edit the
@@ -476,7 +476,7 @@ Turn back to the **image-node** and follow the next steps:
 
     sql_connection = mysql://glanceUser:glancePass@10.0.0.4/glance
 
-and
+  and
 
 ::
 
@@ -488,7 +488,7 @@ and
 
     sql_connection = mysql://glanceUser:glancePass@10.0.0.4/glance
 
-and
+  and
 
 ::
 
@@ -540,8 +540,8 @@ First move to the **db-node** and create the database:
 
     root@volume-node # apt-get install -y cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms python-mysqldb  python-cinderclient tgt
         
-We have to create an endpoint for the volume service. This is to be
-done on the **auth-node**, so please login there and follow the steps:
+  We have to create an endpoint for the volume service. This is to be
+  done on the **auth-node**, so please login there and follow the steps:
 
 * Setup the environment:
 
@@ -567,7 +567,7 @@ done on the **auth-node**, so please login there and follow the steps:
         
 * Create the cinder user and add the role by doing.
 
-First get the service tenant id::
+  First get the service tenant id::
 
     root@auth-node # keystone tenant-get service
     +-------------+---------------------------------------+
@@ -579,7 +579,7 @@ First get the service tenant id::
     |     name    |             service                   |
     +-------------+---------------------------------------+
 
-Once you have it create the user and add the role::
+  Once you have it create the user and add the role::
 
     root@auth-node # keystone user-create --name=cinder --pass=cinderServ --tenant-id 6e0864cd071c4806a05b32b1f891d4e0
     +----------+----------------------------------+
@@ -594,9 +594,7 @@ Once you have it create the user and add the role::
     
     root@auth-node # keystone user-role-add --tenant service --user cinder --role admin
 
-* Create the volume service by doing:
-
-::
+* Create the volume service by doing::
 
     root@auth-node # keystone service-create --name cinder --type volume --description 'Volume Service of OpenStack'
     +-------------+----------------------------------+
@@ -611,9 +609,7 @@ Once you have it create the user and add the role::
 
 * Create the endpoint:
 
-First get the volume service id:
-
-::
+  First get the volume service id::
 
     root@auth-node # keystone service-list
     +----------------------------------+----------+----------+-----------------------------+
@@ -622,7 +618,7 @@ First get the volume service id:
     | 2b6252b673d84019aa6b75e702d1b0ab |  cinder  |  volume  | Volume Service of OpenStack |
     ........................................................................................
         
-Once you have it add the new end-point::
+  Once you have it add the new end-point::
 
 
     root@auth-node # keystone endpoint-create --region $KEYSTONE_REGION --service-id 2b6252b673d84019aa6b75e702d1b0ab
@@ -639,7 +635,7 @@ Once you have it add the new end-point::
     |  service_id |    2b6252b673d84019aa6b75e702d1b0ab   |
     +-------------+---------------------------------------+
 
-Once you are done please go back to the **volume-node**.
+  Once you are done please go back to the **volume-node**.
 
 Configuration.
 
@@ -674,9 +670,7 @@ Configuration.
     auth_strategy = keystone
     iscsi_ip_address=10.0.0.8
         
-* Sync the database
-
-::
+* Sync the database::
 
     root@volume-node # cinder-manage db sync
         
@@ -684,16 +678,12 @@ Configure volume space services.
 
 * Edit the  ``/etc/default/iscsitarget`` to 'True'.
 
-* Start the services:
-
-::
+* Start the services::
 
     root@volume-node # service iscsitarget start
     root@volume-node # service open-iscsi start
 
-* Create a volumegroup and name it cinder-volume
-
-::
+* Create a volumegroup and name it cinder-volume::
 
     root@volume-node # dd if=/dev/zero of=cinder-volumes bs=1 count=0 seek=2G
     root@volume-node # fdisk /dev/vdb
@@ -705,9 +695,7 @@ Configure volume space services.
     ENTER
     w
         
-* Create the physical volume first and then the volume groups:
-
-::
+* Create the physical volume first and then the volume groups::
 
     root@volume-node # pvcreate /dev/vdb1
         Physical volume "/dev/vdb1" successfully created
@@ -719,9 +707,7 @@ Configure volume space services.
 
 * Verify they are running.
 
-* Test glance:
-
-::
+* Test glance::
 
     root@volume-node # cinder --os-username admin --os-password keystoneAdmin
         --os-tenant-name admin --os-auth-url http://10.0.0.4:5000/v2.0 create --display-name test 1
@@ -774,9 +760,7 @@ First move to the **db-node** and create the database::
     mysql> CREATE DATABASE nova;
     mysql> GRANT ALL ON nova.* TO 'novaUser'@'%' IDENTIFIED BY 'novaPass';
 
-Go **back to the api-node** and install:
-
-::
+Go **back to the api-node** and install::
 
     root@api-node # apt-get install nova-api nova-cert novnc nova-consoleauth nova-scheduler nova-novncproxy nova-doc nova-conductor
 
@@ -830,7 +814,6 @@ After that create the user and add the role using the service id::
     +----------+----------------------------------+
     
     root@auth-node # keystone user-role-add keystone user-role-add --tenant service --user nova --role admin
-
 
 * Create the nova and ec2 services by doing::
 
