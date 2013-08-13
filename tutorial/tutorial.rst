@@ -42,7 +42,7 @@ nova-scheduler
 nova-network
     OpenStack service used to configure the network of the VMs and to
     optionally provide the so-called *Floating IPs*. IPs that can be
-    *attached* and *detachted* from a virtual machine while it is
+    *attached* and *detached* from a virtual machine while it is
     already running.
 
 nova-compute
@@ -143,12 +143,12 @@ virtual machines.
 ``all nodes installation``
 --------------------------
 
-Repoistories, NTP, system update
+Repositories, NTP, system update
 ++++++++++++++++++++++++++++++++
 
-Before starting you have to perform some common operation on all the hosts. This turnes to be
-usefull as it can easily identify problems on some of the nodes, e.g.: missing connectivity 
-or down of the host. 
+Before starting you have to perform some common operation on all the hosts. This is
+useful as it can easily identify problems on some of the nodes, e.g.: missing connectivity 
+or a host being down. 
 
 * Go in sudo mode on all the nodes
 
@@ -243,7 +243,7 @@ Go back to the **auth-node** and start configuring keystone.
 
     root@auth-node # keystone-manage db_sync
     
-which will popolate the database with the needed information. 
+which will populate the database with the needed information. 
 
 * Create Tenants, Roles and Users
 
@@ -284,14 +284,14 @@ will use: "ADMIN_TOKEN". Please restart keystone when done.
 
 
 For not having to export the credential variables each time you can create a file called 
-keystone_creds and load it. 
+*keystone_creds* and source it. 
 
 ::
 
     root@auth-node # export SERVICE_TOKEN="ADMIN_TOKEN"
     root@auth-node # export SERVICE_ENDPOINT="http://10.0.0.4:35357/v2.0"
 
-Now we have to create keystone service and enpoint:
+Now we have to create keystone service and endpoint:
 
 * First create the keystone service:
 
@@ -328,7 +328,7 @@ Now we have to create keystone service and enpoint:
     |  service_id | a92e4230026d4e0a9f16c538781f85a4 |
     +-------------+----------------------------------+
 
-where the **--service-id** is the one corrisponding to the keystone service created just in the previous step. 
+where the **--service-id** is the one corresponding to the keystone service created in the previous step. 
 
 
 * Restart the keystone servce::
@@ -424,7 +424,7 @@ First get the glance service id::
     | 4edbbac249de4cd7914fde693b0f404c | glance | image | Image Service of OpenStack |
     +----------------------------------+--------+-------+----------------------------+
         
-Once you have it add the new end-point:
+Once you have it, add the new end-point:
 
 ::
 
@@ -515,7 +515,7 @@ and
 * Test glance
 
 ``volume-node``
-++++++++++++++++
++++++++++++++++
 
 Cinder
 ++++++
@@ -534,7 +534,9 @@ First move to the **db-node** and create the database:
     mysql> GRANT ALL ON cinder.* TO 'cinderUser'@'%' IDENTIFIED BY 'cinderPass';
 
 
-* Install cinder packages then::
+* Install the cinder packages:
+
+::
 
     root@volume-node # apt-get install -y cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms python-mysqldb  python-cinderclient tgt
         
@@ -703,7 +705,7 @@ Configure volume space services.
     ENTER
     w
         
-* Create the pyhsical and after that volume groups:
+* Create the physical volume first and then the volume groups:
 
 ::
 
@@ -758,6 +760,9 @@ Configure volume space services.
 
 Nova
 ++++
+
+Now that he have installed a lot of infrastructure, it is time to actually get the 
+compute part of our cloud up and running - otherwise, what good would it be?
 
 In this section we are going to install and configure
 the OpenStack nova services. 
@@ -965,9 +970,7 @@ And for the ec2 service instead:
     volume_api_class=nova.volume.cinder.API
     osapi_volume_listen_port=5900
 
-* Sync the nova database:  
-
-::
+* Sync the nova database::
 
     root@api-node # nova-manage db sync 
       
@@ -1284,7 +1287,7 @@ After an "apt-get install..." the service should work out of the box by accessin
 Workflow for a VM Creation
 --------------------------
 
-Horizon asks Keyston for an authorization.
+Horizon asks Keystone for an authorization.
 Keystone is then checking on what the users/tenants are "supposed" to see (in terms of images, quotes, etc). Working nodes are periodically writing their status in the nova-database. When a new request arrives it is processed by the nova-scheduler which writes in the nova-database when a matchmaking with a free resource has been accomplished. On the next poll when the resource reads the nova-database it "realises" that it is supposed to start a new VM. nova-compute writes then the status inside the nova database.
 
 Different sheduling policy and options can be set in the nova's configuration file.
