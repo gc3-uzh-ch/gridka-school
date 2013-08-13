@@ -9,10 +9,12 @@ running the various VMs which will host the OpenStack services.
 
 * Install the needed software:
 
+::
         # yum install kvm virt-manager libvirt
 
 * Start the libvirt daemon:
- 
+
+ :: 
         # /etc/init.d/libvirtd start
 
 Install OpenStack Services VMs
@@ -21,6 +23,7 @@ Install OpenStack Services VMs
 Once you are done you can start setting up the VMs needed for the Openstack Services.
 You will need an Ubuntu 12.04 Server iso on the host, which you can get by doing:
 
+::
         # wget http://releases.ubuntu.com/precise/ubuntu-12.04.2-server-amd64.iso
 
 
@@ -29,6 +32,7 @@ Create bridges between the two hosts
 
 * Install the needed software: 'bridge-utils' and 'tunctl'
 
+ ::
         # yum install bridge-utils tunctl 
 
 * Create the bridge and add the eth1 interface to it:: 
@@ -56,7 +60,7 @@ It should look like this::
         NM_CONTROLLED=no          
 
 
-Bridge interface probably needed also for the public interface eth0.  
+The bridge interface is probably also needed for the public interface eth0.  
 
 * Change the ifcfg-eth1 configuration file in /etc/sysconfig/network-scripts/ 
 
