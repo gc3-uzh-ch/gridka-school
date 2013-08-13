@@ -276,6 +276,49 @@
                     </section>
                 </section>
 
+
+                <section>
+                    <section>
+                        <h2>Helpful Commands</h2>
+                    </section>
+                    <section>
+                        <h2>Status of OpenStack</h2>
+                        <pre><code class="big">
+# nova-manage service list
+Binary           Host     Zone    Status     State Updated_At
+nova-consoleauth ineri    nova    enabled    :-)   2013-06-26 07:56:46
+nova-scheduler   ineri    nova    enabled    :-)   2013-06-26 07:56:43
+nova-cert        ineri    nova    enabled    :-)   2013-06-26 07:56:43
+nova-compute     s2       nova    enabled    :-)   2013-06-26 07:56:43
+nova-compute     s3       nova    disabled   XXX   2013-06-04 11:42:09
+nova-compute     s1       nova    enabled    :-)   2013-06-26 07:56:46
+nova-compute     s0       nova    enabled    :-)   2013-06-26 07:56:38
+nova-compute     s4       nova    enabled    :-)   2013-06-26 07:56:38
+nova-compute     h2       nova    enabled    :-)   2013-06-26 07:56:40
+nova-compute     h0       nova    enabled    :-)   2013-06-26 07:56:39
+nova-compute     h1       nova    enabled    :-)   2013-06-26 07:56:40
+nova-compute     h3       nova    enabled    :-)   2013-06-26 07:56:39
+nova-compute     h4       nova    enabled    :-)   2013-06-26 07:56:47
+nova-network     ineri    nova    enabled    :-)   2013-06-26 07:56:44
+nova-compute     h5       nova    enabled    :-)   2013-06-26 07:56:42
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <h2>Check an image file</h2>
+                        <pre><code class="big">
+root@s0:~# file /var/lib/nova/instances/instance-00000008/disk*
+/var/lib/nova/instances/instance-00000008/disk:       QEMU QCOW Image
+    (v2), has backing file (path /var/lib/nova/instances/
+    _base/2764feb602a5921c1efb3434a5a0616c4), 10737418240 bytes
+/var/lib/nova/instances/instance-00000008/disk.local: QEMU QCOW Image
+    (v2), has backing file (path /var/lib/nova/instances/
+    _base/ephemeral_0_80_None_80), 85899345920 bytes
+
+                        </code></pre>
+                    </section>
+
+                </section>
 			</div>
 
 		</div>
@@ -291,7 +334,20 @@
 				controls: true,
 				progress: true,
 				history: true,
-				center: true,
+				center: false,
+
+                // The "normal" size of the presentation, aspect ratio will be preserved
+                // when the presentation is scaled to fit different resolutions. Can be
+                // specified using percentage units.
+                width: 960,
+                height: 700,
+
+                // Factor of the display size that should remain empty around the content
+                margin: 0.1,
+
+                // Bounds for smallest/largest possible scale to apply to content
+                minScale: 0.2,
+                maxScale: 1.0,
 
 				theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
 				transition: Reveal.getQueryHash().transition || 'linear', // default/cube/page/concave/zoom/linear/fade/none
