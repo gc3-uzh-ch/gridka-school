@@ -873,91 +873,75 @@ which are the nova components needed.
 We have to create now an endpoint for the OpenStack nova service. This is to be
 done on the **auth-node**, so please login there and follow the steps:
 
-* Setup the environment:
+* Setup the environment::
 
-::   
-
-        export MYSQL_USER=keystoneUser
-        export MYSQL_DATABASE=keystone
-        export MYSQL_HOST=10.0.0.3
-        export MYSQL_PASSWORD=keystonePass
+    root@auth-node # export MYSQL_USER=keystoneUser
+    root@auth-node # export MYSQL_DATABASE=keystone
+    root@auth-node # export MYSQL_HOST=10.0.0.3
+    root@auth-node # export MYSQL_PASSWORD=keystonePass
         
-* Source the kyestone_creds file you've created previously:
+* Source the kyestone_creds file you've created previously::
 
-::
-
-        source keystone_creds
+    root@auth-node # source keystone_creds
         
-* Export the Keystone region variable:
+* Export the Keystone region variable::
 
-::
+    root@auth-node # export KEYSTONE_REGION=RegionOne
 
-        export KEYSTONE_REGION=RegionOne
-        
-        
 * Create the glance user and add the role by doing.
 
-Get the service tenant id:
+Get the service tenant id::
 
-::
-
-
-        rkeystone tenant-get service
-        +-------------+---------------------------------------+
-        |   Property  |              Value                    |
-        +-------------+---------------------------------------+
-        | description |                                       |
-        |   enabled   |               True                    |
-        |      id     |   6e0864cd071c4806a05b32b1f891d4e0    |
-        |     name    |             service                   |
-        +-------------+---------------------------------------+
-
-::
-
-After that create the user and add the role using the service id:
+    root@auth-node # keystone tenant-get service
+    +-------------+---------------------------------------+
+    |   Property  |              Value                    |
+    +-------------+---------------------------------------+
+    | description |                                       |
+    |   enabled   |               True                    |
+    |      id     |   6e0864cd071c4806a05b32b1f891d4e0    |
+    |     name    |             service                   |
+    +-------------+---------------------------------------+
 
 
-::
+After that create the user and add the role using the service id::
 
-        keystone user-create --name=nova --pass=novaServ --tenant-id 6e0864cd071c4806a05b32b1f891d4e0
-        +----------+----------------------------------+
-        | Property |              Value               |
-        +----------+----------------------------------+
-        |  email   |                                  |
-        | enabled  |               True               |
-        |    id    | 1313793a3d1b452ca9558f53fe0db69c |
-        |   name   |               nova               |
-        | tenantId | 6e0864cd071c4806a05b32b1f891d4e0 |
-        +----------+----------------------------------+
-        
-        keystone user-role-add keystone user-role-add --tenant service --user nova --role admin
-        
-        
-* Create the nova and ec2 services by doing:
-
-::
+    root@auth-node # keystone user-create --name=nova --pass=novaServ --tenant-id 6e0864cd071c4806a05b32b1f891d4e0
+    +----------+----------------------------------+
+    | Property |              Value               |
+    +----------+----------------------------------+
+    |  email   |                                  |
+    | enabled  |               True               |
+    |    id    | 1313793a3d1b452ca9558f53fe0db69c |
+    |   name   |               nova               |
+    | tenantId | 6e0864cd071c4806a05b32b1f891d4e0 |
+    +----------+----------------------------------+
+    
+    root@auth-node # keystone user-role-add keystone user-role-add --tenant service --user nova --role admin
 
 
-        keystone service-create --name nova --type compute --description 'Compute Service of OpenStack'
-        +-------------+----------------------------------+
-        |   Property  |              Value               |
-        +-------------+----------------------------------+
-        | description |    OpenStack Compute Service     |
-        |      id     | 175320193f8e4122b8f21bd2b454b672 |
-        |     name    |               nova               |
-        |     type    |             compute              |
-        +-------------+----------------------------------+
+* Create the nova and ec2 services by doing::
 
-        
-        keystone service-create --name ec2 --type ec2 --description 'EC2 service of OpenStack'
-        +-------------+----------------------------------+
-        |   Property  |              Value               |
-        +-------------+----------------------------------+
-        | description |     EC2 service of OpenStack     |
-        |      id     | 5e362e6bf75642259276d6c29a2b6749 |
-        |     name    |               ec2                |
-        |     type    |               ec2                |
-        +-------------+----------------------------------+
+
+    root@auth-node # keystone service-create --name nova --type compute --description 'Compute Service of OpenStack'
+    +-------------+----------------------------------+
+    |   Property  |              Value               |
+    +-------------+----------------------------------+
+    | description |    OpenStack Compute Service     |
+    |      id     | 175320193f8e4122b8f21bd2b454b672 |
+    |     name    |               nova               |
+    |     type    |             compute              |
+    +-------------+----------------------------------+
+    
+    
+    root@auth-node # keystone service-create --name ec2 --type ec2 --description 'EC2 service of OpenStack'
+    +-------------+----------------------------------+
+    |   Property  |              Value               |
+    +-------------+----------------------------------+
+    | description |     EC2 service of OpenStack     |
+    |      id     | 5e362e6bf75642259276d6c29a2b6749 |
+    |     name    |               ec2                |
+    |     type    |               ec2                |
+    +-------------+----------------------------------+
 
 
 * Create the endpoint:
@@ -966,133 +950,127 @@ First get the nova and ec2 service ids:
 
 ::
 
-        keystone service-list
-        +----------------------------------+--------+---------+----------------------------+
-        |                id                |  name  |   type  |        description         |
-        +----------------------------------+--------+---------+----------------------------+
-        | 5e362e6bf75642259276d6c29a2b6749 |  ec2   |   ec2   |  EC2 service of OpenStack  |
-        | 4edbbac249de4cd7914fde693b0f404c | glance |  image  | Image Service of OpenStack |
-        | 175320193f8e4122b8f21bd2b454b672 |  nova  | compute | OpenStack Compute Service  |
-        +----------------------------------+--------+---------+----------------------------+
-        
-we have to create two end-points: ec2 and compute
+    root@auth-node # keystone service-list
+    +----------------------------------+--------+---------+----------------------------+
+    |                id                |  name  |   type  |        description         |
+    +----------------------------------+--------+---------+----------------------------+
+    | 5e362e6bf75642259276d6c29a2b6749 |  ec2   |   ec2   |  EC2 service of OpenStack  |
+    | 4edbbac249de4cd7914fde693b0f404c | glance |  image  | Image Service of OpenStack |
+    | 175320193f8e4122b8f21bd2b454b672 |  nova  | compute | OpenStack Compute Service  |
+    +----------------------------------+--------+---------+----------------------------+
 
+we have to create two end-points: ec2 and compute
         
 In order to do that for the nova service please do:
 
 ::
 
-
-        keystone endpoint-create --region $KEYSTONE_REGION --service-id 175320193f8e4122b8f21bd2b454b672
-        --publicurl 'http://10.0.0.6:8774/v2/$(tenant_id)s' --adminurl 'http://10.0.0.6:8774/v2/$(tenant_id)s' 
-        --internalurl 'http://10.0.0.6:8774/v2/$(tenant_id)s'
-        
-        +-------------+---------------------------------------+
-        |   Property  |                 Value                 |
-        +-------------+---------------------------------------+
-        |   adminurl  | http://10.0.0.6:8774/v2/$(tenant_id)s |
-        |      id     |    24cd124974e7441da4557143865ea6de   |
-        | internalurl | http://10.0.0.6:8774/v2/$(tenant_id)s |
-        |  publicurl  | http://10.0.0.6:8774/v2/$(tenant_id)s |
-        |    region   |               RegionOne               |
-        |  service_id |    175320193f8e4122b8f21bd2b454b672   |
-        +-------------+---------------------------------------+
+    root@auth-node # keystone endpoint-create --region $KEYSTONE_REGION --service-id 175320193f8e4122b8f21bd2b454b672
+      --publicurl 'http://10.0.0.6:8774/v2/$(tenant_id)s' --adminurl 'http://10.0.0.6:8774/v2/$(tenant_id)s' 
+      --internalurl 'http://10.0.0.6:8774/v2/$(tenant_id)s'
+    
+    +-------------+---------------------------------------+
+    |   Property  |                 Value                 |
+    +-------------+---------------------------------------+
+    |   adminurl  | http://10.0.0.6:8774/v2/$(tenant_id)s |
+    |      id     |    24cd124974e7441da4557143865ea6de   |
+    | internalurl | http://10.0.0.6:8774/v2/$(tenant_id)s |
+    |  publicurl  | http://10.0.0.6:8774/v2/$(tenant_id)s |
+    |    region   |               RegionOne               |
+    |  service_id |    175320193f8e4122b8f21bd2b454b672   |
+    +-------------+---------------------------------------+
 
 And for the ec2 service instead:
 
 ::
 
+    root@auth-node # keystone endpoint-create --region $KEYSTONE_REGION --service-id 5e362e6bf75642259276d6c29a2b6749 \
+       --publicurl 'http://10.0.0.6:8773/services/Cloud' --adminurl 'http://10.0.0.6:8773/services/Admin'
+       --internalurl 'http://10.0.0.6:8773/services/Cloud'
+       
+    +-------------+-------------------------------------+
+    |   Property  |                Value                |
+    +-------------+-------------------------------------+
+    |   adminurl  | http://10.0.0.6:8773/services/Admin |
+    |      id     |   f6df5c37d2644d5498dd81ddbc70882b  |
+    | internalurl | http://10.0.0.6:8773/services/Cloud |
+    |  publicurl  | http://10.0.0.6:8773/services/Cloud |
+    |    region   |              RegionOne              |
+    |  service_id |   5e362e6bf75642259276d6c29a2b6749  |
+    +-------------+-------------------------------------+
 
-         keystone endpoint-create --region $KEYSTONE_REGION --service-id 5e362e6bf75642259276d6c29a2b6749 
-         --publicurl 'http://10.0.0.6:8773/services/Cloud' --adminurl 'http://10.0.0.6:8773/services/Admin'
-         --internalurl 'http://10.0.0.6:8773/services/Cloud'
-         
-        +-------------+-------------------------------------+
-        |   Property  |                Value                |
-        +-------------+-------------------------------------+
-        |   adminurl  | http://10.0.0.6:8773/services/Admin |
-        |      id     |   f6df5c37d2644d5498dd81ddbc70882b  |
-        | internalurl | http://10.0.0.6:8773/services/Cloud |
-        |  publicurl  | http://10.0.0.6:8773/services/Cloud |
-        |    region   |              RegionOne              |
-        |  service_id |   5e362e6bf75642259276d6c29a2b6749  |
-        +-------------+-------------------------------------+
-
-* Adapt the /etc/nova/api-paste.ini file with:
-
-::
-
-
-        [filter:authtoken]
-        paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
-        auth_host = 10.0.0.4
-        auth_port = 35357
-        auth_protocol = http
-        admin_tenant_name = service
-        admin_user = nova
-        admin_password = novaServ
-        signing_dir = /tmp/keystone-signing
-        # Workaround for https://bugs.launchpad.net/nova/+bug/1154809
-        auth_version = v2.0
-
-* Adapt the /etc/nova/nova.conf file with:
+* Adapt the ``/etc/nova/api-paste.ini`` file on the **api-node** with:
 
 ::
 
+    [filter:authtoken]
+    paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
+    auth_host = 10.0.0.4
+    auth_port = 35357
+    auth_protocol = http
+    admin_tenant_name = service
+    admin_user = nova
+    admin_password = novaServ
+    signing_dir = /tmp/keystone-signing
+    # Workaround for https://bugs.launchpad.net/nova/+bug/1154809
+    auth_version = v2.0
 
-        [DEFAULT]
-        logdir=/var/log/nova
-        state_path=/var/lib/nova
-        lock_path=/run/lock/nova
-        verbose=True
-        api_paste_config=/etc/nova/api-paste.ini
-        compute_scheduler_driver=nova.scheduler.simple.SimpleScheduler
-        rabbit_host=10.0.0.3
-        nova_url=http://10.0.0.6:8774/v1.1/
-        sql_connection=mysql://novaUser:novaPass@10.0.0.3/nova
-        root_helper=sudo nova-rootwrap /etc/nova/rootwrap.conf
+* Adapt the ``/etc/nova/nova.conf`` file with:
 
-        # Auth
-        use_deprecated_auth=false
-        auth_strategy=keystone
+::
 
-        # Imaging service
-        glance_api_servers=10.0.0.5:9292
-        image_service=nova.image.glance.GlanceImageService
+    [DEFAULT]
+    logdir=/var/log/nova
+    state_path=/var/lib/nova
+    lock_path=/run/lock/nova
+    verbose=True
+    api_paste_config=/etc/nova/api-paste.ini
+    compute_scheduler_driver=nova.scheduler.simple.SimpleScheduler
+    rabbit_host=10.0.0.3
+    nova_url=http://10.0.0.6:8774/v1.1/
+    sql_connection=mysql://novaUser:novaPass@10.0.0.3/nova
+    root_helper=sudo nova-rootwrap /etc/nova/rootwrap.conf
 
-        # Vnc configuration
-        novnc_enabled=true
-        novncproxy_base_url=http://10.0.0.6:6080/vnc_auto.html
-        novncproxy_port=6080
-        vncserver_proxyclient_address=10.0.0.6
-        vncserver_listen=0.0.0.0
+    # Auth
+    use_deprecated_auth=false
+    auth_strategy=keystone
 
-        #Metadata
-        service_quantum_metadata_proxy = True
-        quantum_metadata_proxy_shared_secret = helloOpenStack
+    # Imaging service
+    glance_api_servers=10.0.0.5:9292
+    image_service=nova.image.glance.GlanceImageService
 
-        # Compute #
-        compute_driver=libvirt.LibvirtDriver
+    # Vnc configuration
+    novnc_enabled=true
+    novncproxy_base_url=http://10.0.0.6:6080/vnc_auto.html
+    novncproxy_port=6080
+    vncserver_proxyclient_address=10.0.0.6
+    vncserver_listen=0.0.0.0
 
-        # Cinder #
-        volume_api_class=nova.volume.cinder.API
-        osapi_volume_listen_port=5900
+    #Metadata
+    service_quantum_metadata_proxy = True
+    quantum_metadata_proxy_shared_secret = helloOpenStack
+
+    # Compute #
+    compute_driver=libvirt.LibvirtDriver
+
+    # Cinder #
+    volume_api_class=nova.volume.cinder.API
+    osapi_volume_listen_port=5900
 
 * Sync the nova database:  
 
 ::
 
-
-       nova-manage db sync 
+    root@api-node # nova-manage db sync 
       
       
-* Restart all the nova services in /etc/init.d/nova-*
+* Restart all the nova services in ``/etc/init.d/nova-*``
 
 * Check nova services:
 
 ::
 
-       nova-manage service list
+    root@api-node # nova-manage service list
 
 
 Nova-compute (does not need an endpoint)
@@ -1103,8 +1081,158 @@ Install grizzly repository on the compute node. Install and configure KVM
 * Edit the qemu.conf with the needed options as specified in the tutorial (uncomment cgrout, ... )
 * Edit libvirt.conf (follow the tutorial)
 * Edit libvirt-bin.conf (follow the tutorial)
-* apt-get install nova-compute-kvm
 * Modify l'API in api-paste.ini in order to abilitate access to keystone.
+
+Software installation
+~~~~~~~~~~~~~~~~~~~~~
+
+Since we cannot use KVM because our compute nodes are virtualized and
+the host node does not support *nested virtualization*, we install
+**qemu** instead of **kvm**::
+
+    root@compute-1 # apt-get install -y nova-compute-qemu
+
+This will also install the **nova-compute** package.
+
+..
+   Check that the ``ebtables`` package is installed::
+
+       root@compute-1 # dpkg -l ebtables
+
+Network configuration
+~~~~~~~~~~~~~~~~~~~~~
+
+Configure the internal bridge. In order to do that you will need to
+login using the console. 
+
+Open virt-manager, login as root and shutdown the *network*::
+
+    root@compute-1 # /etc/init.d/networking stop
+
+From the ``/etc/network/interfaces`` file you have to remove the old
+lines related to the internal ``eth1`` network and replace them with
+the following lines, which will configure a bridge called **br100**
+and attach the **eth1** physical interface to it::
+
+    #auto eth1
+    #iface eth1 inet static
+    # address 10.0.0.20
+    # netmask 255.255.255.0
+
+    auto br100
+    iface br100 inet static
+        address      10.0.0.20
+        netmask      255.255.255.0
+        pre-up ifconfig eth1 0.0.0.0 
+        bridge-ports eth1
+        bridge_stp   off
+        bridge_fd    0
+
+(This is valid for **compute-1**, please update the IP address when configuring **compute-2**)
+
+Now you can setup again the network::
+
+    root@compute-1 # /etc/init.d/networking start
+
+The **br100** interface should now be up&running::
+
+    root@compute-1 # ifconfig br100
+    br100     Link encap:Ethernet  HWaddr 52:54:00:c7:1a:7b  
+              inet addr:10.0.0.20  Bcast:0.0.0.0  Mask:255.255.255.255
+              inet6 addr: fe80::5054:ff:fec7:1a7b/64 Scope:Link
+              UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+              RX packets:6 errors:0 dropped:0 overruns:0 frame:0
+              TX packets:6 errors:0 dropped:0 overruns:0 carrier:0
+              collisions:0 txqueuelen:0 
+              RX bytes:272 (272.0 B)  TX bytes:468 (468.0 B)
+
+The following command will show you the physical interfaces associated
+to the **br100** bridge::
+
+    root@compute-1 # brctl show
+    bridge name	bridge id		STP enabled	interfaces
+    br100		8000.525400c71a7b	no		eth1
+
+nova configuration
+~~~~~~~~~~~~~~~~~~
+
+The **nova-compute** daemon must be able to connect to the RabbitMQ
+and MySQL servers. The minimum information you have to provide in the
+``/etc/nova/nova.conf`` file are::
+
+    [DEFAULT]
+    logdir=/var/log/nova
+    state_path=/var/lib/nova
+    lock_path=/run/lock/nova
+    verbose=True
+    # api_paste_config=/etc/nova/api-paste.ini
+    # compute_scheduler_driver=nova.scheduler.simple.SimpleScheduler
+    rabbit_host=10.0.0.3
+    # nova_url=http://10.0.0.6:8774/v1.1/
+    sql_connection=mysql://novaUser:novaPass@10.0.0.3/nova
+    root_helper=sudo nova-rootwrap /etc/nova/rootwrap.conf
+
+    # Auth
+    use_deprecated_auth=false
+    auth_strategy=keystone
+
+    # Imaging service
+    glance_api_servers=10.0.0.5:9292
+    image_service=nova.image.glance.GlanceImageService
+
+    # Vnc configuration
+    novnc_enabled=true
+    # novncproxy_base_url=http://10.0.0.6:6080/vnc_auto.html
+    # novncproxy_port=6080
+    vncserver_proxyclient_address=10.0.0.20
+    vncserver_listen=0.0.0.0
+
+    # Compute #
+    compute_driver=libvirt.LibvirtDriver
+
+..
+   On the ``/etc/nova/api-paste.conf`` we have to put the information
+   on how to access the keystone authentication service. Ensure then that
+   the following information are present in this file::
+
+       [filter:authtoken]
+       paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
+       auth_host = 10.0.0.4
+       auth_port = 35357
+       auth_protocol = http
+       admin_tenant_name = service
+       admin_user = nova
+       admin_password = novaServ
+
+
+
+nova-compute configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Ensure that the the ``/etc/nova/nova-compute.conf`` has the correct
+libvirt type. For our setup this file should only contain::
+
+    [DEFAULT]
+    libvirt_type=qemu
+
+Final check
+~~~~~~~~~~~
+
+After restarting the **nova-compute** service::
+
+    root@compute-1 # /etc/init.d/nova-compute restart
+
+you should be able to see the compute node from the **api-node**::
+
+    root@api-node # nova-manage service list
+    Binary           Host                                 Zone             Status     State Updated_At
+    nova-cert        api-node                             internal         enabled    :-)   2013-08-13 13:43:35
+    nova-conductor   api-node                             internal         enabled    :-)   2013-08-13 13:43:31
+    nova-consoleauth api-node                             internal         enabled    :-)   2013-08-13 13:43:35
+    nova-scheduler   api-node                             internal         enabled    :-)   2013-08-13 13:43:35
+    nova-compute     compute-1                            nova             enabled    :-)   None      
+
+
 
 Nova and Nova-compute: network configuration
 ++++++++++++++++++++++++++++++++++++++++++++
@@ -1153,7 +1281,7 @@ Enable IP_Forwarding::
 
     # sysctl net.ipv4.ip_forward=1
 
-Add the network bridge in /etc/network/interfaces::
+Add the network bridge in ``/etc/network/interfaces``::
 
     auto br100
     iface br100 inet static
