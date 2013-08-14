@@ -82,45 +82,62 @@ while the other will run 2 VMs hosting the compute nodes for your stack:
 * ``compute-2``: runs *nova-compute*
 
 
+**FIXME: how to assign the machines to the teams?**
+
 How to access the physical nodes
 ++++++++++++++++++++++++++++++++
 
 In order to access the different virtual machines and start working on the 
 configuration of OpenStack services listed above you will have to first login 
-on one of the nodes assigned to your group by doing:
+on one of the nodes assigned to your group by doing::
 
-::
+        ssh user@gks-NNN.scc.kit.edu -p 24
 
-        ssh user@gks-number.domain.example.com -p NUMBER
-
+where NNN is one of the numbers assigned to you.
 
 Virtual Machines
 ++++++++++++++++
 
-From that bastion node you can now login to the variuos VMs by doing:
+The physical nodes already have the KVM virtual machines we will use
+for the tutorial. These are Ubuntu 12.04 LTS machines with very basic
+configuration, including the internal IP address and the correct
+hostname.
 
-:: 
+You can connect to them from each one of the physical machines (the
+**gks-NNN** ones) using **ssh**, or start the ``virt-manager`` program
+on the physical node hosting the virtual machine. The name of the
+virtual machine matches the hostname, as described in the *Tutorial
+overview* section:
 
-        ssh gridka@<service-name>
-
-The *service-name* string has to be replaced with one of the following values:
-
-* **db-node**, 
-* **auth-node**, 
-* **api-node**, 
-* **network-node**, 
-* **image-node**, 
-* **volume-node**, 
-* **compute-1-node**, 
+* **db-node**
+* **auth-node**
+* **api-node**
+* **network-node**
+* **image-node**
+* **volume-node**
+* **compute-1-node**
 * **compute-2-node**
 
-where each of the listed values corresponds to a specific VM hosting the OpenStack
-services as explained in the Tutorial Overview section. 
+You can start and stop them using the ``virt-manager`` graphical
+interface or the ``virsh`` command line tool.
 
 Network Setup
 +++++++++++++
 
-TODO: explain the network configuration of the VMs etc 
+Each virtual machine is already configured with two network
+interfaces. One (eth0) is a private interface with a dynamic ip
+address automatically assigned by KVM in the range 192.168.122.0/24,
+and it is only accessible from whitin the same physical node, while
+the other (eth1) is the *"public"* interface in the range 10.0.0.0/24
+and it is accessible from both physical nodes.
+
+The network node, however, needs one more network interface which will
+be completely managed by the **nova-network** service and is thus left
+unconfigured at the beginning.
+
+On the compute node, moreover, we will need to manually create a
+*bridge* which will allow the OpenStack virtual machines to access the
+network which connects the two physical nodes.
 
 
 Installation:
@@ -140,7 +157,7 @@ virtual machines.
 * ``compute-2``: nova-compute,
 
 
-``all nodes installation``
+all nodes installation
 --------------------------
 
 Repositories, NTP, system update
@@ -191,10 +208,8 @@ you will be promped for a password, use: **mysql**. This will help us
 in debugging issues in the future.
 
 mysqld listens on the 3306 but the IP is set to 127.0.0.1. This has to
-be changes in order to make the server accessible from nodes one
-private network (10.0.0.0/24)
-
-::
+be changes in order to make the server accessible from nodes on the
+public network (10.0.0.0/24)::
 
     root@all-nodes # sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mysql/my.cnf
     root@all-nodes # service mysql restart
@@ -203,10 +218,9 @@ private network (10.0.0.0/24)
 RabbitMQ
 ++++++++
 
-Install the RabbitMQ software:
+Install the RabbitMQ software::
 
-::
-    root@db-node # apt-get install -y rabbitmq-server
+    root@db-node:~# apt-get install -y rabbitmq-server
         
 
 RabbitMQ does not need any specific configuration. Please keep the
@@ -217,89 +231,153 @@ briefly.
 ``auth-node``
 -------------
 
+*(Remember to add the cloud repository and to install the **ntp** package.)*
+
 Keystone
 ++++++++
 
-* Create the Keystone Databese on the **db-node** by doing::
+On the **db-node** you need to create a database and a pair of user
+and password for the keystone service::
 
-    root@db-node # mysql -u root -p
+    root@db-node:~# mysql -u root -p
     mysql> CREATE DATABASE keystone;
     mysql> GRANT ALL ON keystone.* TO 'keystoneUser'@'%' IDENTIFIED BY 'keystonePass';
 
-Go back to the **auth-node** and start configuring keystone.
-        
-* Install keystone by doing::
+Please note that almost every OpenStack service will need a private
+database, which means that we are going to run commands similar to the
+previous one a lot of times.
 
-    root@auth-node # apt-get install keystone python-mysqldb -y
+Go to the **auth-node** and install the keystone package::
+
+    root@auth-node:~# apt-get install keystone python-mysqldb -y
         
-* Change the DB reference in the ``/etc/keystone/keystone.conf``. For
-  doing that you have to replace the connection starting string with::
+Update the value of the ``connection`` option in the
+``/etc/keystone/keystone.conf`` file, in order to match the hostname,
+database name, user and password you just created. The syntax of this
+option is::
+
+    connection = <protocol>://<user>:<password>@<host>/<db_name>
+
+so in our case you need to replace the default option with::
 
     connection = mysql://keystoneUser:keystonePass@10.0.0.3/keystone
-        
-* Restart the keystone servce::
 
-    root@auth-node # service keystone restart
-        
-* Popolate the keystone database::
+Now you are ready to bootstrap the keystone database using the
+following command::
 
-    root@auth-node # keystone-manage db_sync
-    
-which will populate the database with the needed information. 
+    root@auth-node:~# keystone-manage db_sync
 
-* Create Tenants, Roles and Users
+Now we can restart the keystone service::
 
-Before starting you have to setup two environment virables 
-needed for correct functionallity of the keystone service::
+    root@auth-node:~# service keystone restart
 
-    root@auth-node # export SERVICE_TOKEN="ADMIN"
-    root@auth-node # export SERVICE_ENDPOINT="http://10.0.0.4:35357/v2.0"
 
-Now create the following tenants: **admin** and **service**::
+Note on keystone authentication
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    root@auth-node # keystone tenant-create --name=admin
-    root@auth-node # keystone tenant-create --name=service
+In order to create users, projects or roles in keystone you need to
+access it using an administrative user (which is not automatically
+created at the beginning), or you can also use the "*admin token*", a
+shared secret that is stored in the keystone configuration file and
+can be used to create the initial administrator password.
+
+The default admin token is ``ADMIN``, but you can (and you **should**,
+in a production environment) update it by changing the ``admin_token``
+option in the ``/etc/keystone/keystone.conf`` file.
+
+Keystone listens on two different ports, one (5000) is for public access,
+while the other (35357) is for administrative access. You will usually access
+the public one but when using the admin token you can only use the
+administrative one.
+
+To specify the admin token and endpoint (or user, password and
+endpoint) you can either use the keystone command line options or set
+some environment variables. Please note that this behavior is common
+to all OpenStack command line tools, although the syntax and the
+command line options may change.
+
+In our case, since we don't have an admin user yet and we need to use
+the admin token, we will set the following environment variables::
+
+    root@auth-node:~# export SERVICE_TOKEN="ADMIN"
+    root@auth-node:~# export SERVICE_ENDPOINT="http://10.0.0.4:35357/v2.0"
+
+Creation of the admin user
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to work with keystone we will need to create an admin user
+and to create a few basic projects and roles.
+
+Please note that we will sometimes use the word ``tenant`` instead of
+``project``, since the latter is actually the new name of the former,
+and while the web interface uses ``project`` most of the commands
+still use ``tenant``.
+
+We will now create two tenants: **admin** and **service**. The first
+one is used for the admin user, while the second one is used for the
+users we will create for the various services (image, volume, nova
+etc...). The following commands will work assuming you already set the
+correct environment variables::
+
+    root@auth-node:~# keystone tenant-create --name=admin
+    root@auth-node:~# keystone tenant-create --name=service
 
 Create the **admin** user::
 
-    root@auth-node # keystone user-create --name=admin --pass=keystoneAdmin
-        
+    root@auth-node:~# keystone user-create --name=admin --pass=keystoneAdmin
+
 Go on by creating the different roles::
 
-    root@auth-node # keystone role-create --name=admin
-    root@auth-node # keystone role-create --name=KeystoneAdmin
-    root@auth-node # keystone role-create --name=KeystoneServiceAdmin
-    root@auth-node # # It is used by Horizon and Swift
-    root@auth-node # keystone role-create --name=Member
-        
-Assign Roles::
+    root@auth-node:~# keystone role-create --name=admin
+    root@auth-node:~# keystone role-create --name=KeystoneAdmin
+    root@auth-node:~# keystone role-create --name=KeystoneServiceAdmin
+    root@auth-node:~# keystone role-create --name=Member
 
-    root@auth-node # keystone user-role-add --user admin --role admin --tenant admin 
-    root@auth-node # keystone user-role-add --user admin --role KeystoneAdmin --tenant admin 
-    root@auth-node # keystone user-role-add --user admin --role KeystoneServiceAdmin --tenant admin
+This roles are checked by different services. It is not really easy
+to know which service checks for which role, but on a very basic
+installation you can just live with ``Member`` (to be used for all the
+standard users) and ``admin`` (to be used for the OpenStack
+administrators).
 
-        
+Roles are assigned to an user **per-tenant**. However, if you have the
+admin role on just one tenant **you actually are the administrator of
+the whole OpenStack installation!**
 
-You can change the TOKEN string defined in the
-``/etc/keystone/keystone.conf`` to and arbitrary random string. We
-will use: "ADMIN_TOKEN". Please restart keystone when done.
+Assign administrative roles to the admin user::
+
+    root@auth-node:~# keystone user-role-add --user admin --role admin --tenant admin 
+    root@auth-node:~# keystone user-role-add --user admin --role KeystoneAdmin --tenant admin 
+    root@auth-node:~# keystone user-role-add --user admin --role KeystoneServiceAdmin --tenant admin
+
+From now on, you can access keystone using the admin user either by
+using the following command line options::
+
+    root@any-host:~# keystone --os-user admin --os-tenant-name admin --os-password keystoneAdmin --os-auth-url http://10.0.0.4:5000/v2.0
+
+or by setting the following environment variables and run keystone
+without the previous options::
+
+    root@any-host:~# export OS_USERNAME=admin
+    root@any-host:~# export OS_PASSWORD=keystoneAdmin
+    root@any-host:~# export OS_TENANT_NAME=admin
+    root@any-host:~# export OS_AUTH_URL=http://10.0.0.4/5000/v2.0
 
 
-For not having to export the credential variables each time you can create a file called 
-*keystone_creds* and source it. 
+Creation of the endpoint
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-::
+Keystone is not only used to store information about users, passwords
+and projects, but also to store a catalog of the availables services
+the OpenStack cloud is offering. To each service is then assigned an
+*endpoint* which basically consists of a set of three urls (public,
+internal, administrative) and a region.
 
-    root@auth-node # export SERVICE_TOKEN="ADMIN_TOKEN"
-    root@auth-node # export SERVICE_ENDPOINT="http://10.0.0.4:35357/v2.0"
+Of course keystone itself is a service ("identity") so it needs its
+own service and endpoint.
 
-Now we have to create keystone service and endpoint:
+The "**identity**" service is created with the following command::
 
-* First create the keystone service:
-
-::
-
-    root@auth-node #         keystone service-create --name keystone --type identity --description 'OpenStack Identity'
+    root@auth-node:~# keystone service-create --name keystone --type identity --description 'Keystone Identity Service'
 
     +-------------+----------------------------------+
     |   Property  |              Value               |
@@ -309,13 +387,15 @@ Now we have to create keystone service and endpoint:
     |     name    |             keystone             |
     |     type    |             identity             |
     +-------------+----------------------------------+
-        
-* After that create the keystone endpoint by doing:
 
-::
+The output will print the **id** associated with this service. This is
+needed by the next command, and is passed as argument of the
+``--service-id`` option.
 
+The following command will create an endpoint associated to this
+service::
 
-    root@auth-node # keystone endpoint-create --region $KEYSTONE_REGION --service-id a92e4230026d4e0a9f16c538781f85a4
+    root@auth-node:~# keystone endpoint-create --region RegionOne --service-id a92e4230026d4e0a9f16c538781f85a4
         --publicurl 'http://10.0.0.4:5000/v2.0' --adminurl 'http://10.0.0.4:35357/v2.0'
         --internalurl 'http://10.0.0.4:5000/v2.0'
 
@@ -330,61 +410,60 @@ Now we have to create keystone service and endpoint:
     |  service_id | a92e4230026d4e0a9f16c538781f85a4 |
     +-------------+----------------------------------+
 
-where the **--service-id** is the one corresponding to the keystone service created in the previous step. 
+The argument of the ``--region`` option is the region name. For
+semplicity we will always use the name ``RegionOne`` since we are
+doing a very simple installation with one availability region only.
 
+To get a listing of the available services the command is::
 
-* Restart the keystone servce::
+    root@auth-node:~# keystone service-list
+    +----------------------------------+----------+--------------+------------------------------+
+    |                id                |   name   |     type     |         description          |
+    +----------------------------------+----------+--------------+------------------------------+
+    | a92e4230026d4e0a9f16c538781f85a4 | keystone |   identity   |  Keystone Identity Service   |
+    +----------------------------------+----------+--------------+------------------------------+
 
-    root@auth-node # service keystone restart  
-        
+while a list of endpoints is shown by the command::
+
+    root@auth-node:~# keystone endpoint-list
+    +----------------------------------+-----------+------------------------------------+------------------------------------+------------------------------------+
+    |                id                |   region  |             publicurl              |            internalurl             |              adminurl              |
+    +----------------------------------+-----------+------------------------------------+------------------------------------+------------------------------------+
+    | 597a9a3db82148bdbb56a9f43360a95f | RegionOne |     http://10.0.0.4:5000/v2.0      |     http://10.0.0.4:5000/v2.0      |     http://10.0.0.4:35357/v2.0     |
+    +----------------------------------+-----------+------------------------------------+------------------------------------+------------------------------------+
+
 
 ``image-node``
--------------
+--------------
+
+*(Remember to add the cloud repository and to install the **ntp** package.)*
 
 Glance
 ++++++
 
-In this section we are going to install and configure the glance imaging service. 
+Glance is the name of the image service of OpenStack. It is
+responsible to store the images that will be used as templates to
+start the virtual machines. We will use the default configuration and
+only do the minimal changes to match our configuration.
 
-First move to the **db-node** and create the database::
+Similarly to what we did for the keystone service, also for the glance
+service we need to create a database and a pair of user and password
+for it.
 
-    root@image-node # mysql -u root -p
+Move then to the **db-node** and run::
+
+    root@image-node:~# mysql -u root -p
     mysql> CREATE DATABASE glance;
     mysql> GRANT ALL ON glance.* TO 'glanceUser'@'%' IDENTIFIED BY 'glancePass';
 
-Go **back to the image-node** and install glance then:
+On the **auth-node** instead we need to create an **image** service
+and an endpoint associated with it. The following commands assume you
+already set the environment variables needed to run keystone without
+specifying login, password and endpoint all the times.
 
-::
+First of all, we need to get the **id** of the **service** tenant::
 
-    root@image-node # apt-get install glance
-        
-Create glance service and endpoint:
-
-We have to create an endpoint for the imaging service. 
-This is to be done on the **auth-node**, so please login 
-there and follow the steps:
-
-* Setup the environment::
-
-    root@image-node # export MYSQL_USER=keystoneUser
-    root@image-node # export MYSQL_DATABASE=keystone
-    root@image-node # export MYSQL_HOST=10.0.0.3
-    root@image-node # export MYSQL_PASSWORD=keystonePass
-        
-* Source the kyestone_creds file you've created previously::
-
-    root@image-node # source keystone_creds
-        
-* Export the Keystone region variable::
-
-    root@image-node # export KEYSTONE_REGION=RegionOne
-        
-        
-* Create the glance user and add the role by doing.
-
-  First get the service tenant id::
-
-    root@image-node # keystone tenant-get service
+    root@image-node:~# keystone tenant-get service
     +-------------+---------------------------------------+
     |   Property  |              Value                    |
     +-------------+---------------------------------------+
@@ -394,10 +473,10 @@ there and follow the steps:
     |     name    |             service                   |
     +-------------+---------------------------------------+
 
+then we need to create a keystone user for the glance service,
+associated with the **service** tenant::
 
-  Once you have it create the user and add the role::
-
-    root@image-node # keystone user-create --name=glance --pass=glanceServ --tenant-id 6e0864cd071c4806a05b32b1f891d4e0
+    root@image-node:~# keystone user-create --name=glance --pass=glanceServ --tenant-id 6e0864cd071c4806a05b32b1f891d4e0
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
@@ -407,28 +486,31 @@ there and follow the steps:
     |   name   |              glance              |
     | tenantId | 6e0864cd071c4806a05b32b1f891d4e0 |
     +----------+----------------------------------+        
-    
-    root@image-node # keystone user-role-add --tenant service --user glance --role admin
 
-* Create the image service by doing::
+FIXME: is this really needed???
 
-    root@image-node # keystone service-create --name glance --type image --description 'Image Service of OpenStack'
+Then we need to give admin permissions to it::
 
+    root@image-node:~# keystone user-role-add --tenant service --user glance --role admin
 
-* Create the endpoint:
+Please note that we could have created only one user for all the
+services, but this is a cleaner solution.
 
-  First get the glance service id::
+We need then to create the **image** service::
 
-    root@image-node # keystone service-list
-    +----------------------------------+--------+-------+----------------------------+
-    |                id                |  name  |  type |        description         |
-    +----------------------------------+--------+-------+----------------------------+
-    | 4edbbac249de4cd7914fde693b0f404c | glance | image | Image Service of OpenStack |
-    +----------------------------------+--------+-------+----------------------------+
-        
-  Once you have it, add the new end-point::
+    root@image-node:~# keystone service-create --name glance --type image --description 'Glance Image Service'
+    +-------------+----------------------------------+
+    |   Property  |              Value               |
+    +-------------+----------------------------------+
+    | description |       Glance Image Service       |
+    |      id     | 4edbbac249de4cd7914fde693b0f404c |
+    |     name    |             glance               |
+    |     type    |              image               |
+    +-------------+----------------------------------+
 
-    root@image-node # keystone endpoint-create --region $KEYSTONE_REGION --service-id 4edbbac249de4cd7914fde693b0f404c 
+and the related endpoint::
+
+    root@image-node:~# keystone endpoint-create --region RegionOne --service-id 4edbbac249de4cd7914fde693b0f404c 
         --publicurl 'http://10.0.0.5:9292/v2' --adminurl 'http://10.0.0.5:9292/v2' --internalurl 'http://10.0.0.5:9292/v2'
     +-------------+----------------------------------+
     |   Property  |              Value               |
@@ -441,13 +523,15 @@ there and follow the steps:
     |  service_id | 4edbbac249de4cd7914fde693b0f404c |
     +-------------+----------------------------------+
 
+On the **image-node** install the **glance** package::
 
-  Turn back to the **image-node** and follow the next steps:
+    root@image-node:~# apt-get install glance
 
+To configure the glance service we need to edit a few files in ``/etc/glance``:
 
-* Open ``/etc/glance/glance-api-paste.ini`` file and edit the
-  **filter:authtoken** section::
-
+On the ``/etc/glance/glance-api-paste.ini`` file, we need to adjust
+the **filter:authtoken** section so that it matches the values we used
+when we created the keystone **glance** user::
 
     [filter:authtoken]
     paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
@@ -459,9 +543,7 @@ there and follow the steps:
     admin_user = glance
     admin_password = glanceServ
 
-* Open ``/etc/glance/glance-registry-paste.ini`` file and edit the
-  **filter:authtoken** section::
-
+Similar changes have to be done on the ``/etc/glance/glance-registry-paste.ini`` file::
 
     [filter:authtoken]
     paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
@@ -472,47 +554,60 @@ there and follow the steps:
     admin_user = glance
     admin_password = serviceServ
 
-* Open ``/etc/glance/glance-api.conf`` file and edit::
+Information on how to connect to the mysql database are stored in the
+``/etc/glance/glance-api.conf`` file. The syntax is similar to the one
+used in the``/etc/keystone/keystone.conf`` file,  but the name of the
+option is ``sql_connection`` instead::
 
     sql_connection = mysql://glanceUser:glancePass@10.0.0.4/glance
 
-  and
+We also need to specify the rabbitmq host. The other rabbit parameters
+should be fine::
 
-::
+    rabbit_host = 10.0.0.3
 
+Finally, we need to specify which paste pipeline we are using. We are not
+entering in details here, just check that the following option is present::
 
     [paste_deploy]
     flavor = keystone
 
-* Open ``/etc/glance/glance-registry.conf`` file and edit::
+Similar changes need to be done in the
+``/etc/glance/glance-registry.conf``, both for the mysql connection::
 
     sql_connection = mysql://glanceUser:glancePass@10.0.0.4/glance
 
-  and
-
-::
+and for the paste pipeline::
 
     [paste_deploy]
     flavor = keystone
 
-* Restart the glance-* services:
+Like we did with keystone, we need to populate the glance database::
 
-::
+    root@image-node:~# glance-manage db_sync
+
+Now we are ready to restart the glance services::
+
+    root@image-node:~# service glance-api restart
+    root@image-node:~# service glance-registry restart
+
+FIXME: missing how to test glance and upload the first image
 
 
-    root@image-node # service glance-api restart
-    root@image-node # service glance-registry restart
+Further improvements
+~~~~~~~~~~~~~~~~~~~~
 
-* Sync the glance database::
+By default glance will store all the images as files in
+``/var/lib/glance/images``, but other options are available. You can
+store the images on a s3 or swift object storage, for instance, or on
+a RDB (gluster) storage. This is changed by the option
+``default_store`` in the ``/etc/glance/glance-api.conf`` configuration
+file, and depending on the type of store you will have various other
+options, like the path for the *filesystem* store, or the access and
+secret keys for the s3 store, or rdb configuration options.
 
-    root@image-node # glance-manage db_sync
+Please refer to the official documentation to change these values.
 
-* Restart again the services::
-
-    root@image-node # service glance-registry restart
-    root@image-node #  service glance-api restart
-
-* Test glance
 
 ``volume-node``
 +++++++++++++++
@@ -529,7 +624,7 @@ First move to the **db-node** and create the database:
 
 ::
 
-    root@db-node # mysql -u root -p
+    root@db-node:~# mysql -u root -p
     mysql> CREATE DATABASE cinder;
     mysql> GRANT ALL ON cinder.* TO 'cinderUser'@'%' IDENTIFIED BY 'cinderPass';
 
@@ -538,7 +633,7 @@ First move to the **db-node** and create the database:
 
 ::
 
-    root@volume-node # apt-get install -y cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms python-mysqldb  python-cinderclient tgt
+    root@volume-node:~# apt-get install -y cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms python-mysqldb  python-cinderclient tgt
         
   We have to create an endpoint for the volume service. This is to be
   done on the **auth-node**, so please login there and follow the steps:
@@ -547,29 +642,29 @@ First move to the **db-node** and create the database:
 
 ::   
 
-    root@auth-node # export MYSQL_USER=keystoneUser
-    root@auth-node # export MYSQL_DATABASE=keystone
-    root@auth-node # export MYSQL_HOST=10.0.0.3
-    root@auth-node # export MYSQL_PASSWORD=keystonePass
+    root@auth-node:~# export MYSQL_USER=keystoneUser
+    root@auth-node:~# export MYSQL_DATABASE=keystone
+    root@auth-node:~# export MYSQL_HOST=10.0.0.3
+    root@auth-node:~# export MYSQL_PASSWORD=keystonePass
         
 * Source the keystone_creds file you've created previously:
 
 ::
 
-    root@auth-node # source keystone_creds
+    root@auth-node:~# source keystone_creds
         
 * Export the Keystone region variable:
 
 ::
 
-    root@auth-node # export KEYSTONE_REGION=RegionOne
+    root@auth-node:~# export KEYSTONE_REGION=RegionOne
         
         
 * Create the cinder user and add the role by doing.
 
   First get the service tenant id::
 
-    root@auth-node # keystone tenant-get service
+    root@auth-node:~# keystone tenant-get service
     +-------------+---------------------------------------+
     |   Property  |              Value                    |
     +-------------+---------------------------------------+
@@ -581,7 +676,7 @@ First move to the **db-node** and create the database:
 
   Once you have it create the user and add the role::
 
-    root@auth-node # keystone user-create --name=cinder --pass=cinderServ --tenant-id 6e0864cd071c4806a05b32b1f891d4e0
+    root@auth-node:~# keystone user-create --name=cinder --pass=cinderServ --tenant-id 6e0864cd071c4806a05b32b1f891d4e0
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
@@ -592,11 +687,11 @@ First move to the **db-node** and create the database:
     | tenantId | 6e0864cd071c4806a05b32b1f891d4e0 |
     +----------+----------------------------------+
     
-    root@auth-node # keystone user-role-add --tenant service --user cinder --role admin
+    root@auth-node:~# keystone user-role-add --tenant service --user cinder --role admin
 
 * Create the volume service by doing::
 
-    root@auth-node # keystone service-create --name cinder --type volume --description 'Volume Service of OpenStack'
+    root@auth-node:~# keystone service-create --name cinder --type volume --description 'Volume Service of OpenStack'
     +-------------+----------------------------------+
     |   Property  |              Value               |
     +-------------+----------------------------------+
@@ -611,7 +706,7 @@ First move to the **db-node** and create the database:
 
   First get the volume service id::
 
-    root@auth-node # keystone service-list
+    root@auth-node:~# keystone service-list
     +----------------------------------+----------+----------+-----------------------------+
     |                id                |   name   |   type   |         description         |
     +----------------------------------+----------+----------+-----------------------------+
@@ -621,7 +716,7 @@ First move to the **db-node** and create the database:
   Once you have it add the new end-point::
 
 
-    root@auth-node # keystone endpoint-create --region $KEYSTONE_REGION --service-id 2b6252b673d84019aa6b75e702d1b0ab
+    root@auth-node:~# keystone endpoint-create --region RegionOne --service-id 2b6252b673d84019aa6b75e702d1b0ab
          --publicurl 'http://10.0.0.8:8776/v1/$(tenant_id)s' --adminurl 'http://10.0.0.8:8776/v1/$(tenant_id)s' 
          --internalurl 'http://10.0.0.8:8776/v1/$(tenant_id)s'
     +-------------+---------------------------------------+
@@ -672,7 +767,7 @@ Configuration.
         
 * Sync the database::
 
-    root@volume-node # cinder-manage db sync
+    root@volume-node:~# cinder-manage db sync
         
 Configure volume space services.
 
@@ -680,13 +775,13 @@ Configure volume space services.
 
 * Start the services::
 
-    root@volume-node # service iscsitarget start
-    root@volume-node # service open-iscsi start
+    root@volume-node:~# service iscsitarget start
+    root@volume-node:~# service open-iscsi start
 
 * Create a volumegroup and name it cinder-volume::
 
-    root@volume-node # dd if=/dev/zero of=cinder-volumes bs=1 count=0 seek=2G
-    root@volume-node # fdisk /dev/vdb
+    root@volume-node:~# dd if=/dev/zero of=cinder-volumes bs=1 count=0 seek=2G
+    root@volume-node:~# fdisk /dev/vdb
     #Type as follows:
     n
     p
@@ -697,9 +792,9 @@ Configure volume space services.
         
 * Create the physical volume first and then the volume groups::
 
-    root@volume-node # pvcreate /dev/vdb1
+    root@volume-node:~# pvcreate /dev/vdb1
         Physical volume "/dev/vdb1" successfully created
-    root@volume-node # vgcreate cinder-volume /dev/vdb1
+    root@volume-node:~# vgcreate cinder-volume /dev/vdb1
         Volume group "cinder-volume" successfully created
             
 
@@ -709,7 +804,7 @@ Configure volume space services.
 
 * Test glance::
 
-    root@volume-node # cinder --os-username admin --os-password keystoneAdmin
+    root@volume-node:~# cinder --os-username admin --os-password keystoneAdmin
         --os-tenant-name admin --os-auth-url http://10.0.0.4:5000/v2.0 create --display-name test 1
     +---------------------+--------------------------------------+
     |       Property      |                Value                 |
@@ -729,7 +824,7 @@ Configure volume space services.
     |     volume_type     |                 None                 |
     +---------------------+--------------------------------------+
         
-    root@volume-node # cinder --os-username admin --os-password keystoneAdmin
+    root@volume-node:~# cinder --os-username admin --os-password keystoneAdmin
         --os-tenant-name admin --os-auth-url http://10.0.0.4:5000/v2.0 list
     +--------------------------------------+-----------+--------------+------+-------------+----------+-------------+
     |                  ID                  |   Status  | Display Name | Size | Volume Type | Bootable | Attached to |
@@ -737,7 +832,7 @@ Configure volume space services.
     | 4a811e1a-28cc-4354-b8fd-d8857b8e2667 | available |     test     |  1   |     None    |  false   |             |
     +--------------------------------------+-----------+--------------+------+-------------+----------+-------------+
                 
-    root@volume-node # cinder --os-username admin --os-password keystoneAdmin
+    root@volume-node:~# cinder --os-username admin --os-password keystoneAdmin
         --os-tenant-name admin --os-auth-url http://10.0.0.4:5000/v2.0 delete 4a811e1a-28cc-4354-b8fd-d8857b8e2667
 
 
@@ -755,14 +850,14 @@ the OpenStack nova services.
 
 First move to the **db-node** and create the database::
 
-    root@db-node # mysql -u root -p
+    root@db-node:~# mysql -u root -p
     
     mysql> CREATE DATABASE nova;
     mysql> GRANT ALL ON nova.* TO 'novaUser'@'%' IDENTIFIED BY 'novaPass';
 
 Go **back to the api-node** and install::
 
-    root@api-node # apt-get install nova-api nova-cert novnc nova-consoleauth nova-scheduler nova-novncproxy nova-doc nova-conductor
+    root@api-node:~# apt-get install nova-api nova-cert novnc nova-consoleauth nova-scheduler nova-novncproxy nova-doc nova-conductor
 
 which are the nova components needed.
 
@@ -772,24 +867,24 @@ done on the **auth-node**, so please login there and follow the steps:
 
 * Setup the environment::
 
-    root@auth-node # export MYSQL_USER=keystoneUser
-    root@auth-node # export MYSQL_DATABASE=keystone
-    root@auth-node # export MYSQL_HOST=10.0.0.3
-    root@auth-node # export MYSQL_PASSWORD=keystonePass
+    root@auth-node:~# export MYSQL_USER=keystoneUser
+    root@auth-node:~# export MYSQL_DATABASE=keystone
+    root@auth-node:~# export MYSQL_HOST=10.0.0.3
+    root@auth-node:~# export MYSQL_PASSWORD=keystonePass
         
 * Source the kyestone_creds file you've created previously::
 
-    root@auth-node # source keystone_creds
+    root@auth-node:~# source keystone_creds
         
 * Export the Keystone region variable::
 
-    root@auth-node # export KEYSTONE_REGION=RegionOne
+    root@auth-node:~# export KEYSTONE_REGION=RegionOne
 
 * Create the glance user and add the role by doing.
 
 Get the service tenant id::
 
-    root@auth-node # keystone tenant-get service
+    root@auth-node:~# keystone tenant-get service
     +-------------+---------------------------------------+
     |   Property  |              Value                    |
     +-------------+---------------------------------------+
@@ -802,7 +897,7 @@ Get the service tenant id::
 
 After that create the user and add the role using the service id::
 
-    root@auth-node # keystone user-create --name=nova --pass=novaServ --tenant-id 6e0864cd071c4806a05b32b1f891d4e0
+    root@auth-node:~# keystone user-create --name=nova --pass=novaServ --tenant-id 6e0864cd071c4806a05b32b1f891d4e0
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
@@ -813,12 +908,12 @@ After that create the user and add the role using the service id::
     | tenantId | 6e0864cd071c4806a05b32b1f891d4e0 |
     +----------+----------------------------------+
     
-    root@auth-node # keystone user-role-add keystone user-role-add --tenant service --user nova --role admin
+    root@auth-node:~# keystone user-role-add keystone user-role-add --tenant service --user nova --role admin
 
 * Create the nova and ec2 services by doing::
 
 
-    root@auth-node # keystone service-create --name nova --type compute --description 'Compute Service of OpenStack'
+    root@auth-node:~# keystone service-create --name nova --type compute --description 'Compute Service of OpenStack'
     +-------------+----------------------------------+
     |   Property  |              Value               |
     +-------------+----------------------------------+
@@ -829,7 +924,7 @@ After that create the user and add the role using the service id::
     +-------------+----------------------------------+
     
     
-    root@auth-node # keystone service-create --name ec2 --type ec2 --description 'EC2 service of OpenStack'
+    root@auth-node:~# keystone service-create --name ec2 --type ec2 --description 'EC2 service of OpenStack'
     +-------------+----------------------------------+
     |   Property  |              Value               |
     +-------------+----------------------------------+
@@ -846,7 +941,7 @@ First get the nova and ec2 service ids:
 
 ::
 
-    root@auth-node # keystone service-list
+    root@auth-node:~# keystone service-list
     +----------------------------------+--------+---------+----------------------------+
     |                id                |  name  |   type  |        description         |
     +----------------------------------+--------+---------+----------------------------+
@@ -861,7 +956,7 @@ In order to do that for the nova service please do:
 
 ::
 
-    root@auth-node # keystone endpoint-create --region $KEYSTONE_REGION --service-id 175320193f8e4122b8f21bd2b454b672
+    root@auth-node:~# keystone endpoint-create --region RegionOne --service-id 175320193f8e4122b8f21bd2b454b672
       --publicurl 'http://10.0.0.6:8774/v2/$(tenant_id)s' --adminurl 'http://10.0.0.6:8774/v2/$(tenant_id)s' 
       --internalurl 'http://10.0.0.6:8774/v2/$(tenant_id)s'
     
@@ -880,7 +975,7 @@ And for the ec2 service instead:
 
 ::
 
-    root@auth-node # keystone endpoint-create --region $KEYSTONE_REGION --service-id 5e362e6bf75642259276d6c29a2b6749 \
+    root@auth-node:~# keystone endpoint-create --region RegionOne --service-id 5e362e6bf75642259276d6c29a2b6749 \
        --publicurl 'http://10.0.0.6:8773/services/Cloud' --adminurl 'http://10.0.0.6:8773/services/Admin'
        --internalurl 'http://10.0.0.6:8773/services/Cloud'
        
@@ -955,7 +1050,7 @@ And for the ec2 service instead:
 
 * Sync the nova database::
 
-    root@api-node # nova-manage db sync 
+    root@api-node:~# nova-manage db sync 
       
       
 * Restart all the nova services in ``/etc/init.d/nova-*``
@@ -964,7 +1059,7 @@ And for the ec2 service instead:
 
 ::
 
-    root@api-node # nova-manage service list
+    root@api-node:~# nova-manage service list
 
 
 Nova-compute (does not need an endpoint)
@@ -1118,7 +1213,7 @@ After restarting the **nova-compute** service::
 
 you should be able to see the compute node from the **api-node**::
 
-    root@api-node # nova-manage service list
+    root@api-node:~# nova-manage service list
     Binary           Host                                 Zone             Status     State Updated_At
     nova-cert        api-node                             internal         enabled    :-)   2013-08-13 13:43:35
     nova-conductor   api-node                             internal         enabled    :-)   2013-08-13 13:43:31
@@ -1150,38 +1245,34 @@ On the Main Node
 
 Ensure yourself the installation of all the nova components has been done correctly (nova user creation, database, etc) an easy check can be done by issuing::
 
-      # nova service-list 
+      root@network-node:~# nova service-list 
 
 Check if the "nova-network" component is installed::
 
-      # root@grizzly:/etc/nova# dpkg -l | grep nova-network
+      root@network-node:~ dpkg -l nova-network
       # ii  nova-network                     1:2013.1-0ubuntu2~cloud1             OpenStack Compute - Network manager.
 
-Check if the "vlan bridge-utils" are installed.
+In order get the issues working you have to install also the
+"ebtables" software package which administrates the ethernet bridge
+frame table::
 
-::
+    root@network-node:~# apt-get install ebtables 
 
-    ebtables
+Enable IP Forwarding::
 
-In order get the issues working you have to install also the "ebtables" software package which administrates the ethernet bridge frame table::
+    root@network-node:~# sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
 
-    # apt-get install ebtables 
+To save you from rebooting, perform the following::
 
-Enable IP_Forwarding::
-
-    # sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
-
- To save you from rebooting, perform the following::
-
-    # sysctl net.ipv4.ip_forward=1
+    root@network-node:~# sysctl net.ipv4.ip_forward=1
 
 Add the network bridge in ``/etc/network/interfaces``::
 
     auto br100
     iface br100 inet static
         address      0.0.0.0
-        pre-up ifconfig eth1 0.0.0.0 
-        bridge-ports eth1
+        pre-up ifconfig eth2 0.0.0.0 
+        bridge-ports eth2
         bridge_stp   off
         bridge_fd    0
 
@@ -1201,32 +1292,30 @@ Add the following lines to the ``/etc/nova/nova.conf`` file for the network setu
       firewall_driver=nova.virt.libvirt.firewall.IptablesFirewallDriver
       flat_network_bridge=br100
       fixed_range=10.65.4.0/22
-
-
+      
       # Not sure it's needed
       # libvirt_use_virtio_for_bridges=True
-      vlan_interface=eth1
-      flat_interface=eth1
+      vlan_interface=eth2
+      flat_interface=eth2
       flat_network_dhcp_start=10.65.4.20
-
-
+      
       connection_type=libvirt
       network_size=1022
-
-
+      
       # For floating IPs
       auto_assign_floating_ip=true
       default_floating_pool=public
-      public_interface=eth2
+      public_interface=eth1
+
 
 On the Compute Node
 ~~~~~~~~~~~~~~~~~~~
 
 Check if "nova-compute-kvm" has been installed on the compute node::
 
-      root@node-08-01-02:~# dpkg -l | grep nova-compute
+      root@compute-1:~# dpkg -l | grep nova-compute
       ii  nova-compute                     1:2013.1-0ubuntu2~cloud1                   OpenStack Compute - compute node
-      ii  nova-compute-kvm                 1:2013.1-0ubuntu2~cloud1                   OpenStack Compute - compute node (KVM)
+      ii  nova-compute-qemu                 1:2013.1-0ubuntu2~cloud1                   OpenStack Compute - compute node (KVM)
 
 Configure the br100 interface by deleting the part related to the eth0 interface and adding the following lines::
 
@@ -1250,22 +1339,22 @@ Nova network creation
 
 You have to create manually a private internal network on the main node::
 
-       # nova-manage network create --fixed_range_v4 10.65.4.0/22 --num_networks 1 --network_size 1000 --bridge br100 --bridge_interface eth1 net1
+       root@network-node:~# nova-manage network create --fixed_range_v4 10.65.4.0/22 --num_networks 1 --network_size 1000 --bridge br100 --bridge_interface eth1 net1
 
 Create a floating public network::
 
-       # nova-manage floating create --ip_range <Public_IP>/NetMask --pool=public
+       root@network-node:~# nova-manage floating create --ip_range <Public_IP>/NetMask --pool=public
 
 Enable the security groups for ssh and icmp on (needed for the public network)::
 
-       # nova secgroup-add-role default icmp -1 -1 0.0.0.0/0
-       # nova secgroup-add-rule default tcp 22 22 0.0.0.0/0
+       root@network-node:~# nova secgroup-add-role default icmp -1 -1 0.0.0.0/0
+       root@network-node:~# nova secgroup-add-rule default tcp 22 22 0.0.0.0/0
        
 
 Horizon
 +++++++
 
-After an "apt-get install..." the service should work out of the box by accessing: http://IP/horizon
+After an "apt-get install..." the service should work out of the box by accessing: http://api-node/horizon
 
 Workflow for a VM Creation
 --------------------------
