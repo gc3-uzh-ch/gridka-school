@@ -360,7 +360,7 @@ without the previous options::
     root@any-host:~# export OS_USERNAME=admin
     root@any-host:~# export OS_PASSWORD=keystoneAdmin
     root@any-host:~# export OS_TENANT_NAME=admin
-    root@any-host:~# export OS_AUTH_URL=http://10.0.0.4/5000/v2.0
+    root@any-host:~# export OS_AUTH_URL=http://10.0.0.4:5000/v2.0
 
 
 Creation of the endpoint
@@ -441,7 +441,7 @@ while a list of endpoints is shown by the command::
 Glance
 ++++++
 
-Glance is the name of the image service of OpenStack. It is
+**Glance** is the name of the image service of OpenStack. It is
 responsible to store the images that will be used as templates to
 start the virtual machines. We will use the default configuration and
 only do the minimal changes to match our configuration.
@@ -450,7 +450,10 @@ Similarly to what we did for the keystone service, also for the glance
 service we need to create a database and a pair of user and password
 for it.
 
-Move then to the **db-node** and run::
+glance database and keystone setup
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On the **db-node** create the database and the mysql user::
 
     root@image-node:~# mysql -u root -p
     mysql> CREATE DATABASE glance;
@@ -523,6 +526,9 @@ and the related endpoint::
     |  service_id | 4edbbac249de4cd7914fde693b0f404c |
     +-------------+----------------------------------+
 
+glance installation and configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 On the **image-node** install the **glance** package::
 
     root@image-node:~# apt-get install glance
@@ -588,8 +594,8 @@ Like we did with keystone, we need to populate the glance database::
 
 Now we are ready to restart the glance services::
 
-    root@image-node:~# service glance-api restart
-    root@image-node:~# service glance-registry restart
+    root@image-node:~# restart glance-api
+    root@image-node:~# restart glance-registry
 
 FIXME: missing how to test glance and upload the first image
 
@@ -615,54 +621,66 @@ Please refer to the official documentation to change these values.
 Cinder
 ++++++
 
-The OpenStack Block Storage API allows manipulation of volumes, volume
-types (similar to compute flavors) and volume snapshots. Bellow you
-can find the information on how to install and configure cinder using
-a local VG.
+**Cinder** is the name of the openstack block storage. It allows
+manipulation of volumes, volume types (similar to compute flavors) and
+volume snapshots. 
 
-First move to the **db-node** and create the database:
+Note that a volume may only be attached to one instance at a
+time. This is not a *shared storage* solution like a SAN of NFS on
+which multiple servers can attach to.
 
-::
+Volumes created by cinder are served via iSCSI to the compute node,
+which will provide them to the VM as regular sata disk. These volumes
+can be stored on different backends: LVM (the default one), Ceph,
+GlusterFS, NFS or various appliances from IBM, NetApp etc.
+
+Cinder is actually split in different services:
+
+**cinder-api** The cinder-api service is a WSGI app that authenticates
+    and routes requests throughout the Block Storage system. It
+    supports the OpenStack API's only, although there is a translation
+    that can be done via Nova's EC2 interface which calls in to the
+    cinderclient.
+
+**cinder-scheduler** The cinder-scheduler is responsible for
+    scheduling/routing requests to the appropriate volume service. As
+    of Grizzly; depending upon your configuration this may be simple
+    round-robin scheduling to the running volume services, or it can
+    be more sophisticated through the use of the Filter Scheduler. The
+    Filter Scheduler is the default in Grizzly and enables filter on
+    things like Capacity, Availability Zone, Volume Types and
+    Capabilities as well as custom filters.
+
+**cinder-volume** The cinder-volume service is responsible for
+    managing Block Storage devices, specifically the back-end devices
+    themselves.
+
+In our setup, we will run all the cinder services on the same machine,
+although you can, in principle, spread them over multiple servers.
+
+The **volume-node** has one more disk (``/dev/vdb``) which will use to
+create a LVM volume group to store the logical volumes created by
+cinder and served via iSCSI.
+
+cinder database and keystone setup
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As usual, we need to create a database on the **db-node** and an user
+in keystone.
+
+On the **db-node** create the database and the mysql user::
 
     root@db-node:~# mysql -u root -p
     mysql> CREATE DATABASE cinder;
     mysql> GRANT ALL ON cinder.* TO 'cinderUser'@'%' IDENTIFIED BY 'cinderPass';
 
+On the **auth-node** create a keystone user, a "volume" service and
+its endpoint, like we did for the *glance* service. The following
+commands assume you already set the environment variables needed to
+run keystone without specifying login, password and endpoint all the
+times.
 
-* Install the cinder packages:
-
-::
-
-    root@volume-node:~# apt-get install -y cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms python-mysqldb  python-cinderclient tgt
-        
-  We have to create an endpoint for the volume service. This is to be
-  done on the **auth-node**, so please login there and follow the steps:
-
-* Setup the environment:
-
-::   
-
-    root@auth-node:~# export MYSQL_USER=keystoneUser
-    root@auth-node:~# export MYSQL_DATABASE=keystone
-    root@auth-node:~# export MYSQL_HOST=10.0.0.3
-    root@auth-node:~# export MYSQL_PASSWORD=keystonePass
-        
-* Source the keystone_creds file you've created previously:
-
-::
-
-    root@auth-node:~# source keystone_creds
-        
-* Export the Keystone region variable:
-
-::
-
-    root@auth-node:~# export KEYSTONE_REGION=RegionOne
-        
-        
-* Create the cinder user and add the role by doing.
-
-  First get the service tenant id::
+First of all, we need to get the **id** of the **service** tenant::
 
     root@auth-node:~# keystone tenant-get service
     +-------------+---------------------------------------+
@@ -674,7 +692,8 @@ First move to the **db-node** and create the database:
     |     name    |             service                   |
     +-------------+---------------------------------------+
 
-  Once you have it create the user and add the role::
+then we need to create a keystone user for the cinder service, 
+associated with the **service** tenant::
 
     root@auth-node:~# keystone user-create --name=cinder --pass=cinderServ --tenant-id 6e0864cd071c4806a05b32b1f891d4e0
     +----------+----------------------------------+
@@ -686,10 +705,14 @@ First move to the **db-node** and create the database:
     |   name   |              cinder              |
     | tenantId | 6e0864cd071c4806a05b32b1f891d4e0 |
     +----------+----------------------------------+
-    
-    root@auth-node:~# keystone user-role-add --tenant service --user cinder --role admin
 
-* Create the volume service by doing::
+FIXME: is this really needed???
+
+Then we need to give admin permissions to it::
+
+       root@auth-node:~# keystone user-role-add --tenant service --user cinder --role admin
+
+We need then to create the **volume** service::
 
     root@auth-node:~# keystone service-create --name cinder --type volume --description 'Volume Service of OpenStack'
     +-------------+----------------------------------+
@@ -702,16 +725,7 @@ First move to the **db-node** and create the database:
     +-------------+----------------------------------+
 
 
-* Create the endpoint:
-
-  First get the volume service id::
-
-    root@auth-node:~# keystone service-list
-    +----------------------------------+----------+----------+-----------------------------+
-    |                id                |   name   |   type   |         description         |
-    +----------------------------------+----------+----------+-----------------------------+
-    | 2b6252b673d84019aa6b75e702d1b0ab |  cinder  |  volume  | Volume Service of OpenStack |
-    ........................................................................................
+and the related endpoint, using the service id we just got::
         
   Once you have it add the new end-point::
 
@@ -730,12 +744,26 @@ First move to the **db-node** and create the database:
     |  service_id |    2b6252b673d84019aa6b75e702d1b0ab   |
     +-------------+---------------------------------------+
 
-  Once you are done please go back to the **volume-node**.
+Please note that the urls need to be quoted using the (') character
+(single quote) otherwise the shell will interpret the dollar sign ($).
 
-Configuration.
+cinder installation and configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Open the ``/etc/cinder/api-paste.ini`` file and edit the
-  **filter:authtoken** section like::
+Let's now go back to the  **volume-node** and install the cinder
+pachages::
+
+    root@volume-node:~# apt-get install -y cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms python-mysqldb  python-cinderclient
+
+Ensure that the iscsi module has been installed by the
+iscsitarget-dkms package::
+
+    root@volume-node:~# dkms status
+    iscsitarget, 1.4.20.2, 3.5.0-37-generic, x86_64: installed
+
+In file ``/etc/cinder/api-paste.ini`` edit the **filter:authtoken**
+section and ensure that information about the keystone user and
+endpoint are corret::
 
     [filter:authtoken]
     paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
@@ -749,9 +777,10 @@ Configuration.
     admin_user = cinder
     admin_password = cinderServ
     signing_dir = /var/lib/cinder
-        
-* Open then the ``/etc/cinder/cinder.conf`` and edit the **[DEFAULT]**
-  section like this::
+
+The  ``/etc/cinder/cinder.conf`` file instead contains information
+about the MySQL and RabbitMQ host, and information about the iscsi and
+LVM configuration. A minimal configuration file will contain::
 
     [DEFAULT]
     rootwrap_config=/etc/cinder/rootwrap.conf
@@ -764,58 +793,109 @@ Configuration.
     verbose = True
     auth_strategy = keystone
     iscsi_ip_address=10.0.0.8
-        
-* Sync the database::
+
+Populate the cinder database::
 
     root@volume-node:~# cinder-manage db sync
-        
-Configure volume space services.
 
-* Edit the  ``/etc/default/iscsitarget`` to 'True'.
+Restart cinder services::
 
-* Start the services::
+    root@volume-node:~# restart cinder-api
+    cinder-api start/running, process 1625
+
+    root@volume-node:~# restart cinder-volume
+    cinder-volume start/running, process 1636
+
+    root@volume-node:~# restart cinder-scheduler
+    cinder-scheduler start/running, process 1655
+
+The file  ``/etc/default/iscsitarget`` controls the startup of the
+iscsi daemon, it has to contain this line::
+
+    ISCSITARGET_ENABLE=true
+
+(please note that it is case sensitive)
+
+Ensure that the iscsi services are running::
 
     root@volume-node:~# service iscsitarget start
     root@volume-node:~# service open-iscsi start
 
-* Create a volumegroup and name it cinder-volume::
+In our configuration (cfr. ``/etc/cinder/cinder.conf`` file) cinder
+will provide iscsi volumes starting from LVM volumes created within
+the volume group called ``cinder-volume``. Cinder is able to create
+LVM volumes by itself, but we have to provide a volume group with this
+name.
 
-    root@volume-node:~# dd if=/dev/zero of=cinder-volumes bs=1 count=0 seek=2G
-    root@volume-node:~# fdisk /dev/vdb
-    #Type as follows:
-    n
-    p
-    1
-    ENTER
-    ENTER
-    w
-        
-* Create the physical volume first and then the volume groups::
+The virtual machine we created has one more disk (``/dev/vdb``) which
+we will use. You can either partition this disk and use those
+partitions to create the volume group, or use the whole disk. In our
+setup, to keep things simple, we will use the whole disk, so we are
+going to:
 
-    root@volume-node:~# pvcreate /dev/vdb1
-        Physical volume "/dev/vdb1" successfully created
-    root@volume-node:~# vgcreate cinder-volume /dev/vdb1
-        Volume group "cinder-volume" successfully created
+Create a physical device on the ``/dev/vdb`` disk::
+
+    root@volume-node:~# pvcreate /dev/vdb
+      Physical volume "/dev/vdb" successfully created
+
+create a volume group called **cinder-volume** on it::
+
+    root@volume-node:~# vgcreate cinder-volume /dev/vdb 
+      Volume group "cinder-volume" successfully created
+
+check that the volume group has been created::
+
+    root@volume-node:~# vgdisplay 
+      --- Volume group ---
+      VG Name               cinder-volume
+      System ID             
+      Format                lvm2
+      Metadata Areas        1
+      Metadata Sequence No  1
+      VG Access             read/write
+      VG Status             resizable
+      MAX LV                0
+      Cur LV                0
+      Open LV               0
+      Max PV                0
+      Cur PV                1
+      Act PV                1
+      VG Size               1.95 GiB
+      PE Size               4.00 MiB
+      Total PE              499
+      Alloc PE / Size       0 / 0   
+      Free  PE / Size       499 / 1.95 GiB
+      VG UUID               NGrgtl-thWL-4icP-r42k-vLnk-PjDV-mHmEkR
             
+Testing cinder
+~~~~~~~~~~~~~~
 
-* Restart cinder-{api,scheduler,volume} services
+Cinder command line tool also allow you to pass user, password, tenant
+name and authentication url both via command line options or
+environment variables. In order to make the commands easier to read we
+are going to set the environment variables and run cinder without
+options::
 
-* Verify they are running.
+    root@volume-node:~# export OS_USERNAME=cinder
+    root@volume-node:~# export OS_PASSWORD=cinderServ
+    root@volume-node:~# export OS_TENANT_NAME=service
+    root@volume-node:~# export OS_AUTH_URL=http://10.0.0.4:5000/v2.0
 
-* Test glance::
+As usual you can set the environment variables OS_USERNAME
 
-    root@volume-node:~# cinder --os-username admin --os-password keystoneAdmin
-        --os-tenant-name admin --os-auth-url http://10.0.0.4:5000/v2.0 create --display-name test 1
+Test cinder by creating a volume::
+
+    root@volume-node:~# cinder create --display-name test 1
     +---------------------+--------------------------------------+
     |       Property      |                Value                 |
     +---------------------+--------------------------------------+
     |     attachments     |                  []                  |
     |  availability_zone  |                 nova                 |
     |       bootable      |                false                 |
-    |      created_at     |      2013-08-08T15:05:56.983964      |
+    |      created_at     |      2013-08-15T11:48:13.409780      |
     | display_description |                 None                 |
     |     display_name    |                 test                 |
-    |          id         | 4a811e1a-28cc-4354-b8fd-d8857b8e2667 |  
+    |          id         | 1d1a75eb-1493-4fda-8eba-fa851cfd5040 |
     |       metadata      |                  {}                  |
     |         size        |                  1                   |
     |     snapshot_id     |                 None                 |
@@ -823,24 +903,56 @@ Configure volume space services.
     |        status       |               creating               |
     |     volume_type     |                 None                 |
     +---------------------+--------------------------------------+
-        
-    root@volume-node:~# cinder --os-username admin --os-password keystoneAdmin
-        --os-tenant-name admin --os-auth-url http://10.0.0.4:5000/v2.0 list
+
+Shortly after, a ``cinder list`` command should show you the newly
+created volume::
+
+    root@volume-node:~# cinder list
     +--------------------------------------+-----------+--------------+------+-------------+----------+-------------+
     |                  ID                  |   Status  | Display Name | Size | Volume Type | Bootable | Attached to |
     +--------------------------------------+-----------+--------------+------+-------------+----------+-------------+
-    | 4a811e1a-28cc-4354-b8fd-d8857b8e2667 | available |     test     |  1   |     None    |  false   |             |
+    | 1d1a75eb-1493-4fda-8eba-fa851cfd5040 | available |     test     |  1   |     None    |  false   |             |
     +--------------------------------------+-----------+--------------+------+-------------+----------+-------------+
-                
-    root@volume-node:~# cinder --os-username admin --os-password keystoneAdmin
-        --os-tenant-name admin --os-auth-url http://10.0.0.4:5000/v2.0 delete 4a811e1a-28cc-4354-b8fd-d8857b8e2667
+
+You can easily check that a new LVM volume has been created::
+
+    root@volume-node:~# lvdisplay 
+      --- Logical volume ---
+      LV Name                /dev/cinder-volume/volume-1d1a75eb-1493-4fda-8eba-fa851cfd5040
+      VG Name                cinder-volume
+      LV UUID                RRGmob-jMZC-4Mdm-kTBv-Qc6M-xVsC-gEGhOg
+      LV Write Access        read/write
+      LV Status              available
+      # open                 1
+      LV Size                1.00 GiB
+      Current LE             256
+      Segments               1
+      Allocation             inherit
+      Read ahead sectors     auto
+      - currently set to     256
+      Block device           252:0
+
+Since the volume is not used by any VM, we can delete it with the ``cinder delete`` command::
+
+    root@volume-node:~# cinder delete 1d1a75eb-1493-4fda-8eba-fa851cfd5040
+
+Deleting the volume can take some time::
+
+    root@volume-node:~# cinder list
+    +--------------------------------------+----------+--------------+------+-------------+----------+-------------+
+    |                  ID                  |  Status  | Display Name | Size | Volume Type | Bootable | Attached to |
+    +--------------------------------------+----------+--------------+------+-------------+----------+-------------+
+    | 1d1a75eb-1493-4fda-8eba-fa851cfd5040 | deleting |     test     |  1   |     None    |  false   |             |
+    +--------------------------------------+----------+--------------+------+-------------+----------+-------------+
 
 
 ``api-node``
-++++++++++++
+------------
 
 Nova
 ++++
+
+Nova is composed to a variety of services
 
 Now that he have installed a lot of infrastructure, it is time to actually get the 
 compute part of our cloud up and running - otherwise, what good would it be?
@@ -865,22 +977,7 @@ which are the nova components needed.
 We have to create now an endpoint for the OpenStack nova service. This is to be
 done on the **auth-node**, so please login there and follow the steps:
 
-* Setup the environment::
-
-    root@auth-node:~# export MYSQL_USER=keystoneUser
-    root@auth-node:~# export MYSQL_DATABASE=keystone
-    root@auth-node:~# export MYSQL_HOST=10.0.0.3
-    root@auth-node:~# export MYSQL_PASSWORD=keystonePass
-        
-* Source the kyestone_creds file you've created previously::
-
-    root@auth-node:~# source keystone_creds
-        
-* Export the Keystone region variable::
-
-    root@auth-node:~# export KEYSTONE_REGION=RegionOne
-
-* Create the glance user and add the role by doing.
+* Create the nova user and add the role by doing.
 
 Get the service tenant id::
 
@@ -1061,6 +1158,143 @@ And for the ec2 service instead:
 
     root@api-node:~# nova-manage service list
 
+``netowrk-node``
+----------------
+
+nova-network
+++++++++++++
+
+Networking in OpenStack is quite complex, you have multiple options
+and you currently have two different implementation to get the network
+working.
+
+The newer, feature rich but still unstable is called **Neutron**
+(previously known as **Quantum**, they renamed it because of Trademark
+issues). We are not going to implement this solution because it is:
+
+1) very complex
+2) quite unstable
+3) not actually needed for a basic setup
+
+The old, stable, very well working solution is **nova-network**, which
+is the solution we are going to implement.
+
+Let's just recap how the networking works in OpenStack
+
+FIXME: add a blablabla on networking
+
+Let's start by installing the needed software::
+
+    root@network-node:~# apt-get install -y nova-network
+
+Network configuration on the **network-node** will look like:
+
++-------+------------------+-----------------------------------------------------+
+| iface | network          | usage                                               |
++=======+==================+=====================================================+
+| eth0  | 192.168.122.0/24 | ip assigned by kvm, to access the internet          |
++-------+------------------+-----------------------------------------------------+
+| eth1  | 10.0.0.0/24      | internal network                                    |
++-------+------------------+-----------------------------------------------------+
+| eth2  |                  | public network                                      |
++-------+------------------+-----------------------------------------------------+
+| eth3  | 0.0.0.0          | bridge connected to the internal network of the VMs |
++-------+------------------+-----------------------------------------------------+
+
+The last interface (eth3) is managed by **nova-network** itself, so we
+only have to create a bridge and attach eth3 to it. This is done on
+ubuntu by editing the ``/etc/network/interface`` file and ensuring
+that the following content is there::
+
+    auto br100
+    iface br100 inet static
+        address      0.0.0.0
+        pre-up ifconfig eth3 0.0.0.0 
+        bridge-ports eth3
+        bridge_stp   off
+        bridge_fd    0
+
+This will ensure that the interface will be brought up after
+networking initialization, but if you want to bring it up right now
+you can just run::
+
+    root@network-node:~# ifup br100
+
+    Waiting for br100 to get ready (MAXWAIT is 2 seconds).
+    ssh stop/waiting
+    ssh start/running, process 1751
+
+..
+   In order get the issues working you have to install also the
+   "ebtables" software package which administrates the ethernet bridge
+   frame table::
+
+       root@network-node:~# apt-get install ebtables 
+
+The network node acts as gateway for the VMs, so we need to enable IP
+forwarding. This is done by ensuring that the following line is
+present in ``/etc/sysctl.conf`` file::
+
+    net.ipv4.ip_forward=1
+
+This file is read during the startup, but it is not read
+afterwards. To force linux to re-read the file you can run::
+
+    root@network-node:~# sysctl -p /etc/sysctl.conf
+    net.ipv4.ip_forward = 1
+
+Add the following lines to the ``/etc/nova/nova.conf`` file for the network setup::
+
+      # NETWORK
+      network_manager=nova.network.manager.FlatDHCPManager
+      force_dhcp_release=True
+      dhcpbridge=/usr/bin/nova-dhcpbridge
+      dhcpbridge_flagfile=/etc/nova/nova.conf
+      firewall_driver=nova.virt.libvirt.firewall.IptablesFirewallDriver
+
+      flat_network_bridge=br100
+      fixed_range=10.99.0.0/22
+      
+      flat_network_dhcp_start=10.99.0.10
+      
+      connection_type=libvirt
+      network_size=1022
+      
+      # For floating IPs
+      auto_assign_floating_ip=true
+      default_floating_pool=public
+      public_interface=eth2
+
+      ..
+         # Not sure it's needed
+         # libvirt_use_virtio_for_bridges=True
+         vlan_interface=eth2
+         flat_interface=eth2
+
+Restart the nova-network service with:
+
+    root@network-node:~# restart nova-network
+
+
+Nova network creation
+~~~~~~~~~~~~~~~~~~~~~
+
+You have to create manually a private internal network on the main node::
+
+       root@network-node:~# nova-manage network create --fixed_range_v4 10.99.0.0/22 --num_networks 1 --network_size 1000 --bridge br100 --bridge_interface eth3 net1
+
+FIXME: set the public ip range for the floating IPs
+
+Create a floating public network::
+
+       root@network-node:~# nova-manage floating create --ip_range <Public_IP>/NetMask --pool=public
+
+..
+   Enable the security groups for ssh and icmp on (needed for the public network)::
+
+          root@network-node:~# nova secgroup-add-role default icmp -1 -1 0.0.0.0/0
+          root@network-node:~# nova secgroup-add-rule default tcp 22 22 0.0.0.0/0
+       
 
 Nova-compute (does not need an endpoint)
 ++++++++++++++++++++++++++++++++++++++++
@@ -1179,6 +1413,8 @@ and MySQL servers. The minimum information you have to provide in the
     # Compute #
     compute_driver=libvirt.LibvirtDriver
 
+    network_host=10.0.0.7
+
 ..
    On the ``/etc/nova/api-paste.conf`` we have to put the information
    on how to access the keystone authentication service. Ensure then that
@@ -1209,7 +1445,7 @@ Final check
 
 After restarting the **nova-compute** service::
 
-    root@compute-1 # /etc/init.d/nova-compute restart
+    root@compute-1 # restart nova-compute
 
 you should be able to see the compute node from the **api-node**::
 
@@ -1240,116 +1476,6 @@ On the node running nova-network we need at least three physical network interfa
 
 A bridge is needed for the VMs. The host running nova-network manages: NATTING, DHCP, Floating IPs.
 
-On the Main Node
-~~~~~~~~~~~~~~~~
-
-Ensure yourself the installation of all the nova components has been done correctly (nova user creation, database, etc) an easy check can be done by issuing::
-
-      root@network-node:~# nova service-list 
-
-Check if the "nova-network" component is installed::
-
-      root@network-node:~ dpkg -l nova-network
-      # ii  nova-network                     1:2013.1-0ubuntu2~cloud1             OpenStack Compute - Network manager.
-
-In order get the issues working you have to install also the
-"ebtables" software package which administrates the ethernet bridge
-frame table::
-
-    root@network-node:~# apt-get install ebtables 
-
-Enable IP Forwarding::
-
-    root@network-node:~# sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
-
-To save you from rebooting, perform the following::
-
-    root@network-node:~# sysctl net.ipv4.ip_forward=1
-
-Add the network bridge in ``/etc/network/interfaces``::
-
-    auto br100
-    iface br100 inet static
-        address      0.0.0.0
-        pre-up ifconfig eth2 0.0.0.0 
-        bridge-ports eth2
-        bridge_stp   off
-        bridge_fd    0
-
-Once you're done bring up the br100 interface.
-
-::
-
-    # ifconfing br100 up
-
-Add the following lines to the ``/etc/nova/nova.conf`` file for the network setup::
-
-      # NETWORK
-      network_manager=nova.network.manager.FlatDHCPManager
-      force_dhcp_release=True
-      dhcpbridge=/usr/bin/nova-dhcpbridge
-      dhcpbridge_flagfile=/etc/nova/nova.conf
-      firewall_driver=nova.virt.libvirt.firewall.IptablesFirewallDriver
-      flat_network_bridge=br100
-      fixed_range=10.65.4.0/22
-      
-      # Not sure it's needed
-      # libvirt_use_virtio_for_bridges=True
-      vlan_interface=eth2
-      flat_interface=eth2
-      flat_network_dhcp_start=10.65.4.20
-      
-      connection_type=libvirt
-      network_size=1022
-      
-      # For floating IPs
-      auto_assign_floating_ip=true
-      default_floating_pool=public
-      public_interface=eth1
-
-
-On the Compute Node
-~~~~~~~~~~~~~~~~~~~
-
-Check if "nova-compute-kvm" has been installed on the compute node::
-
-      root@compute-1:~# dpkg -l | grep nova-compute
-      ii  nova-compute                     1:2013.1-0ubuntu2~cloud1                   OpenStack Compute - compute node
-      ii  nova-compute-qemu                 1:2013.1-0ubuntu2~cloud1                   OpenStack Compute - compute node (KVM)
-
-Configure the br100 interface by deleting the part related to the eth0 interface and adding the following lines::
-
-      # The primary network interface
-        auto br100
-        iface br100 inet dhcp
-           bridge_ports eth0
-           bridge_stp off
-           bridge_fd 0
-
-Once you're done bring up the br100 interface.
-
-::
-
-    # ifconfing br100 up
-
-No network inforamtion is needed in the ``/etc/nova/nova.conf`` file on the compute node.
-
-Nova network creation
-~~~~~~~~~~~~~~~~~~~~~
-
-You have to create manually a private internal network on the main node::
-
-       root@network-node:~# nova-manage network create --fixed_range_v4 10.65.4.0/22 --num_networks 1 --network_size 1000 --bridge br100 --bridge_interface eth1 net1
-
-Create a floating public network::
-
-       root@network-node:~# nova-manage floating create --ip_range <Public_IP>/NetMask --pool=public
-
-Enable the security groups for ssh and icmp on (needed for the public network)::
-
-       root@network-node:~# nova secgroup-add-role default icmp -1 -1 0.0.0.0/0
-       root@network-node:~# nova secgroup-add-rule default tcp 22 22 0.0.0.0/0
-       
 
 Horizon
 +++++++
