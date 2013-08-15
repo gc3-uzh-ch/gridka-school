@@ -441,7 +441,7 @@ while a list of endpoints is shown by the command::
 Glance
 ++++++
 
-Glance is the name of the image service of OpenStack. It is
+**Glance** is the name of the image service of OpenStack. It is
 responsible to store the images that will be used as templates to
 start the virtual machines. We will use the default configuration and
 only do the minimal changes to match our configuration.
@@ -450,7 +450,7 @@ Similarly to what we did for the keystone service, also for the glance
 service we need to create a database and a pair of user and password
 for it.
 
-Move then to the **db-node** and run::
+On the **db-node** create the database and the mysql user::
 
     root@image-node:~# mysql -u root -p
     mysql> CREATE DATABASE glance;
@@ -615,54 +615,66 @@ Please refer to the official documentation to change these values.
 Cinder
 ++++++
 
-The OpenStack Block Storage API allows manipulation of volumes, volume
-types (similar to compute flavors) and volume snapshots. Bellow you
-can find the information on how to install and configure cinder using
-a local VG.
+**Cinder** is the name of the openstack block storage. It allows
+manipulation of volumes, volume types (similar to compute flavors) and
+volume snapshots. 
 
-First move to the **db-node** and create the database:
+Note that a volume may only be attached to one instance at a
+time. This is not a *shared storage* solution like a SAN of NFS on
+which multiple servers can attach to.
 
-::
+Volumes created by cinder are served via iSCSI to the compute node,
+which will provide them to the VM as regular sata disk. These volumes
+can be stored on different backends: LVM (the default one), Ceph,
+GlusterFS, NFS or various appliances from IBM, NetApp etc.
+
+Cinder is actually split in different services:
+
+**cinder-api** The cinder-api service is a WSGI app that authenticates
+    and routes requests throughout the Block Storage system. It
+    supports the OpenStack API's only, although there is a translation
+    that can be done via Nova's EC2 interface which calls in to the
+    cinderclient.
+
+**cinder-scheduler** The cinder-scheduler is responsible for
+    scheduling/routing requests to the appropriate volume service. As
+    of Grizzly; depending upon your configuration this may be simple
+    round-robin scheduling to the running volume services, or it can
+    be more sophisticated through the use of the Filter Scheduler. The
+    Filter Scheduler is the default in Grizzly and enables filter on
+    things like Capacity, Availability Zone, Volume Types and
+    Capabilities as well as custom filters.
+
+**cinder-volume** The cinder-volume service is responsible for
+    managing Block Storage devices, specifically the back-end devices
+    themselves.
+
+In our setup, we will run all the cinder services on the same machine,
+although you can, in principle, spread them over multiple servers.
+
+The **volume-node** has one more disk (``/dev/vdb``) which will use to
+create a LVM volume group to store the logical volumes created by
+cinder and served via iSCSI.
+
+cinder database and users setup
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As usual, we need to create a database on the **db-node** and an user
+in keystone.
+
+On the **db-node** create the database and the mysql user::
 
     root@db-node:~# mysql -u root -p
     mysql> CREATE DATABASE cinder;
     mysql> GRANT ALL ON cinder.* TO 'cinderUser'@'%' IDENTIFIED BY 'cinderPass';
 
+On the **auth-node** create a keystone user, a "volume" service and
+its endpoint, like we did for the *glance* service. The following
+commands assume you already set the environment variables needed to
+run keystone without specifying login, password and endpoint all the
+times.
 
-* Install the cinder packages:
-
-::
-
-    root@volume-node:~# apt-get install -y cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms python-mysqldb  python-cinderclient tgt
-        
-  We have to create an endpoint for the volume service. This is to be
-  done on the **auth-node**, so please login there and follow the steps:
-
-* Setup the environment:
-
-::   
-
-    root@auth-node:~# export MYSQL_USER=keystoneUser
-    root@auth-node:~# export MYSQL_DATABASE=keystone
-    root@auth-node:~# export MYSQL_HOST=10.0.0.3
-    root@auth-node:~# export MYSQL_PASSWORD=keystonePass
-        
-* Source the keystone_creds file you've created previously:
-
-::
-
-    root@auth-node:~# source keystone_creds
-        
-* Export the Keystone region variable:
-
-::
-
-    root@auth-node:~# export KEYSTONE_REGION=RegionOne
-        
-        
-* Create the cinder user and add the role by doing.
-
-  First get the service tenant id::
+First of all, we need to get the **id** of the **service** tenant::
 
     root@auth-node:~# keystone tenant-get service
     +-------------+---------------------------------------+
@@ -674,7 +686,8 @@ First move to the **db-node** and create the database:
     |     name    |             service                   |
     +-------------+---------------------------------------+
 
-  Once you have it create the user and add the role::
+then we need to create a keystone user for the cinder service, 
+associated with the **service** tenant::
 
     root@auth-node:~# keystone user-create --name=cinder --pass=cinderServ --tenant-id 6e0864cd071c4806a05b32b1f891d4e0
     +----------+----------------------------------+
@@ -686,10 +699,14 @@ First move to the **db-node** and create the database:
     |   name   |              cinder              |
     | tenantId | 6e0864cd071c4806a05b32b1f891d4e0 |
     +----------+----------------------------------+
-    
-    root@auth-node:~# keystone user-role-add --tenant service --user cinder --role admin
 
-* Create the volume service by doing::
+FIXME: is this really needed???
+
+Then we need to give admin permissions to it::
+
+       root@auth-node:~# keystone user-role-add --tenant service --user cinder --role admin
+
+We need then to create the **volume** service::
 
     root@auth-node:~# keystone service-create --name cinder --type volume --description 'Volume Service of OpenStack'
     +-------------+----------------------------------+
@@ -729,6 +746,21 @@ First move to the **db-node** and create the database:
     |    region   |               RegionOne               |
     |  service_id |    2b6252b673d84019aa6b75e702d1b0ab   |
     +-------------+---------------------------------------+
+
+
+* Install the cinder packages:
+
+::
+
+    root@volume-node:~# apt-get install -y cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms python-mysqldb  python-cinderclient tgt
+        
+  We have to create an endpoint for the volume service. This is to be
+  done on the **auth-node**, so please login there and follow the steps:
+
+        
+        
+* Create the cinder user and add the role by doing.
+
 
   Once you are done please go back to the **volume-node**.
 
