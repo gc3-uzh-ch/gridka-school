@@ -1265,13 +1265,13 @@ Add the following lines to the ``/etc/nova/nova.conf`` file for the network setu
       default_floating_pool=public
       public_interface=eth2
 
-      ..
+..
          # Not sure it's needed
          # libvirt_use_virtio_for_bridges=True
          vlan_interface=eth2
          flat_interface=eth2
 
-Restart the nova-network service with:
+Restart the nova-network service with::
 
     root@network-node:~# restart nova-network
 
@@ -1294,7 +1294,10 @@ Create a floating public network::
 
           root@network-node:~# nova secgroup-add-role default icmp -1 -1 0.0.0.0/0
           root@network-node:~# nova secgroup-add-rule default tcp 22 22 0.0.0.0/0
-       
+
+
+``compute-1`` and ``compute-2``       
+-------------------------------
 
 Nova-compute (does not need an endpoint)
 ++++++++++++++++++++++++++++++++++++++++
