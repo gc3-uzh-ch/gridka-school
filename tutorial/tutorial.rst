@@ -1245,31 +1245,37 @@ afterwards. To force linux to re-read the file you can run::
 
 Add the following lines to the ``/etc/nova/nova.conf`` file for the network setup::
 
-      # NETWORK
-      network_manager=nova.network.manager.FlatDHCPManager
-      force_dhcp_release=True
-      dhcpbridge=/usr/bin/nova-dhcpbridge
-      dhcpbridge_flagfile=/etc/nova/nova.conf
-      firewall_driver=nova.virt.libvirt.firewall.IptablesFirewallDriver
+    # NETWORK
+    network_manager=nova.network.manager.FlatDHCPManager
+    force_dhcp_release=True
+    dhcpbridge=/usr/bin/nova-dhcpbridge
+    dhcpbridge_flagfile=/etc/nova/nova.conf
+    firewall_driver=nova.virt.libvirt.firewall.IptablesFirewallDriver
 
-      flat_network_bridge=br100
-      fixed_range=10.99.0.0/22
-      
-      flat_network_dhcp_start=10.99.0.10
-      
-      connection_type=libvirt
-      network_size=1022
-      
-      # For floating IPs
-      auto_assign_floating_ip=true
-      default_floating_pool=public
-      public_interface=eth2
+    rabbit_host=10.0.0.3
+    sql_connection=mysql://novaUser:novaPass@10.0.0.3/nova
+
+    flat_network_bridge=br100
+    fixed_range=10.99.0.0/22
+    
+    flat_network_dhcp_start=10.99.0.10
+    
+    connection_type=libvirt
+    network_size=1022
+    
+    # For floating IPs
+    auto_assign_floating_ip=true
+    default_floating_pool=public
+    public_interface=eth2
+
+FIXME: ``auto_assign_floating_ip`` will only work if floating IPs are
+configured and there are floating IPs free!
 
 ..
-         # Not sure it's needed
-         # libvirt_use_virtio_for_bridges=True
-         vlan_interface=eth2
-         flat_interface=eth2
+       # Not sure it's needed
+       # libvirt_use_virtio_for_bridges=True
+       vlan_interface=eth2
+       flat_interface=eth2
 
 Restart the nova-network service with::
 
@@ -1281,22 +1287,24 @@ Nova network creation
 
 You have to create manually a private internal network on the main node::
 
-       root@network-node:~# nova-manage network create --fixed_range_v4 10.99.0.0/22 --num_networks 1 --network_size 1000 --bridge br100 --bridge_interface eth3 net1
+    root@network-node:~# nova-manage network create --fixed_range_v4 10.99.0.0/22 --num_networks 1 --network_size 1000 --bridge br100 net1
+
+FIXME: TOCHECK: ``eth2`` is the interface **ON THE COMPUTE NODE**.
 
 FIXME: set the public ip range for the floating IPs
 
 Create a floating public network::
 
-       root@network-node:~# nova-manage floating create --ip_range <Public_IP>/NetMask --pool=public
+    root@network-node:~# nova-manage floating create --ip_range <Public_IP>/NetMask --pool=public
 
-..
-   Enable the security groups for ssh and icmp on (needed for the public network)::
+The default security group does not have any rule associated with it,
+so you may want to add default rules to at least allow ping and ssh connections::
 
-          root@network-node:~# nova secgroup-add-role default icmp -1 -1 0.0.0.0/0
-          root@network-node:~# nova secgroup-add-rule default tcp 22 22 0.0.0.0/0
+    root@network-node:~# nova secgroup-add-rule default icmp -1 -1 0.0.0.0/0
+    root@network-node:~# nova secgroup-add-rule default tcp 22 22 0.0.0.0/0
 
 
-``compute-1`` and ``compute-2``       
+``compute-1`` and ``compute-2``
 -------------------------------
 
 Nova-compute (does not need an endpoint)
@@ -1442,6 +1450,16 @@ libvirt type. For our setup this file should only contain::
 
     [DEFAULT]
     libvirt_type=qemu
+    libvirt_cpu_mode=none
+
+Please note that these are the lines needed on *our* setup because we
+have virtualized compute nodes without support for nested
+virtualization. On a production environment, using physical machines
+with full support for virtualization you would probably need to set::
+
+    [DEFAULT]
+    libvirt_type=kvm
+
 
 Final check
 ~~~~~~~~~~~
