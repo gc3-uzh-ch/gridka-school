@@ -1122,7 +1122,11 @@ LVM configuration. A minimal configuration file will contain::
     auth_strategy = keystone
     sql_connection = mysql://cinderUser:cinderPass@10.0.0.3/cinder
     rabbit_host=10.0.0.3
-    # iscsi_ip_address=10.0.0.8
+    iscsi_ip_address=10.0.0.8
+
+.. iscsi_ip_address is needed otherwise, in our case, it will try to
+   connect using 192.168. network which is not reachable from the
+   OpenStack VMs.
 
 it should differ from the standard one only for the options
 ``sql_connection``, ``rabbit_host``, ``iscsi_ip_address`` and
@@ -1580,13 +1584,17 @@ to create a keystone service and endpoint for it.
 
 Let's start by installing the needed software::
 
-    root@network-node:~# apt-get install -y nova-network ebtables
+    root@network-node:~# apt-get install -y nova-network ebtables nova-api-metadata
 
 
 .. Please note that if ebtables is not present, you will get a quite
    hard to understand error. The only way to understand that the
    ebtables command is needed is by using strace on the nova-network
    service!
+
+.. nova-api-metadata is needed since nova-network is not installed on
+   the same node as the nova-api, and the node running nova-api is not
+   connected to the internal network of the VMs.
 
 Network configuration on the **network-node** will look like:
 
@@ -1599,7 +1607,9 @@ Network configuration on the **network-node** will look like:
 +-------+------------------+-----------------------------------------------------+
 | eth2  | 172.16.0.0/24    | public network                                      |
 +-------+------------------+-----------------------------------------------------+
-| eth3  | 0.0.0.0          | bridge connected to the internal network of the VMs |
+| eth3  | 0.0.0.0          | slave network of the br100 bridge                   |
++-------+------------------+-----------------------------------------------------+
+| br100 | 10.99.0.0/22     | bridge connected to the internal network of the VMs |
 +-------+------------------+-----------------------------------------------------+
 
 The last interface (eth3) is managed by **nova-network** itself, so we
@@ -1872,8 +1882,8 @@ and MySQL servers. The minimum information you have to provide in the
 
     # Vnc configuration
     novnc_enabled=true
-    # novncproxy_base_url=http://10.0.0.6:6080/vnc_auto.html
-    # novncproxy_port=6080
+    novncproxy_base_url=http://10.0.0.6:6080/vnc_auto.html
+    novncproxy_port=6080
     vncserver_proxyclient_address=10.0.0.20
     vncserver_listen=0.0.0.0
 
