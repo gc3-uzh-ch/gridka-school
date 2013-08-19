@@ -150,6 +150,22 @@ machines. Connect to both your physical nodes and run::
 
 Using the graphical interface, start all the previous nodes.
 
+However, if you prefer to use the ``virsh`` command line interface,
+run on one of the physical nodes the following commands::
+
+    root@gks-001:[~] $ virsh start db-node
+    root@gks-001:[~] $ virsh start auth-node
+    root@gks-001:[~] $ virsh start image-node
+    root@gks-001:[~] $ virsh start volume-node
+    root@gks-001:[~] $ virsh start api-node
+    root@gks-001:[~] $ virsh start network-node
+
+and on the *other* physical node::
+
+    root@gks-002:[~] $ virsh start compute-1
+    root@gks-002:[~] $ virsh start compute-2
+
+
 Network Setup
 +++++++++++++
 
@@ -1962,9 +1978,16 @@ you should be able to see the compute node from the **api-node**::
 
 
 
-Workflow for a VM Creation
---------------------------
+Testing OpenStack
+-----------------
 
+We will test OpenStack first from the **api-node** using the command
+line interface, and then from the physical node connecting to the web
+interface.
+
+The first thing we need to do is to create a ssh keypair and upload
+the public key on OpenStack so that we can connect to the virtual
+machine. The command to create a ssh keypair is ``ssh-keygen``::
 
     root@api-node:~# ssh-keygen -t rsa -f ~/.ssh/id_rsa
     Generating public/private rsa key pair.
@@ -1986,13 +2009,23 @@ Workflow for a VM Creation
     |      ..+ o      |
     |       ...       |
     +-----------------+
-    root@api-node:~# nova keypair-add gridka --pub-key ~/.ssh/id_rsa.pub
+
+Then we have to create an OpenStack keypair and upload our *public*
+key. This is done using ``nova keypair-add`` command::
+
+    root@api-node:~# nova keypair-add gridka-api-node --pub-key ~/.ssh/id_rsa.pub
+
+you can check that the keypair has been created with::
+
     root@api-node:~# nova keypair-list
-    +--------+-------------------------------------------------+
-    | Name   | Fingerprint                                     |
-    +--------+-------------------------------------------------+
-    | gridka | fa:86:74:77:a2:55:29:d8:e7:06:4a:13:f7:ca:cb:12 |
-    +--------+-------------------------------------------------+
+    +-----------------+-------------------------------------------------+
+    | Name            | Fingerprint                                     |
+    +-----------------+-------------------------------------------------+
+    | gridka-api-node | fa:86:74:77:a2:55:29:d8:e7:06:4a:13:f7:ca:cb:12 |
+    +-----------------+-------------------------------------------------+
+
+Let's get the ID of the available images, flavors and security
+groups::
 
     root@api-node:~# nova image-list
     +--------------------------------------+--------------+--------+--------+
@@ -2000,6 +2033,7 @@ Workflow for a VM Creation
     +--------------------------------------+--------------+--------+--------+
     | 79af6953-6bde-463d-8c02-f10aca227ef4 | cirros-0.3.0 | ACTIVE |        |
     +--------------------------------------+--------------+--------+--------+
+
     root@api-node:~# nova flavor-list
     +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
     | ID | Name      | Memory_MB | Disk | Ephemeral | Swap | VCPUs | RXTX_Factor | Is_Public | extra_specs |
@@ -2010,13 +2044,17 @@ Workflow for a VM Creation
     | 4  | m1.large  | 8192      | 80   | 0         |      | 4     | 1.0         | True      | {}          |
     | 5  | m1.xlarge | 16384     | 160  | 0         |      | 8     | 1.0         | True      | {}          |
     +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
+
     root@api-node:~# nova secgroup-list
     +---------+-------------+
     | Name    | Description |
     +---------+-------------+
     | default | default     |
     +---------+-------------+
-    root@api-node:~# nova boot --image 79af6953-6bde-463d-8c02-f10aca227ef4 --flavor m1.tiny --key_name gridka server-1
+
+Now we are ready to start our first virtual machine::
+
+    root@api-node:~# nova boot --image 79af6953-6bde-463d-8c02-f10aca227ef4 --flavor m1.tiny --key_name gridka-api-node server-1
     +-------------------------------------+--------------------------------------+
     | Property                            | Value                                |
     +-------------------------------------+--------------------------------------+
@@ -2039,7 +2077,7 @@ Workflow for a VM Creation
     | updated                             | 2013-08-19T09:37:34Z                 |
     | hostId                              |                                      |
     | OS-EXT-SRV-ATTR:host                | None                                 |
-    | key_name                            | gridka                               |
+    | key_name                            | gridka-api-node                      |
     | OS-EXT-SRV-ATTR:hypervisor_hostname | None                                 |
     | name                                | server-1                             |
     | adminPass                           | k7cT4nnC6sJU                         |
@@ -2047,24 +2085,36 @@ Workflow for a VM Creation
     | created                             | 2013-08-19T09:37:34Z                 |
     | metadata                            | {}                                   |
     +-------------------------------------+--------------------------------------+
+
+This command returns immediately, also if the virtual machine is not
+yet started::
+
     root@api-node:~# nova list
     +--------------------------------------+----------+--------+----------+
     | ID                                   | Name     | Status | Networks |
     +--------------------------------------+----------+--------+----------+
     | 8e680a03-34ac-4292-a23c-d476b209aa62 | server-1 | BUILD  |          |
     +--------------------------------------+----------+--------+----------+
+
     root@api-node:~# nova list
     +--------------------------------------+----------+--------+----------------------------+
     | ID                                   | Name     | Status | Networks                   |
     +--------------------------------------+----------+--------+----------------------------+
     | d2ef7cbf-c506-4c67-a6b6-7bd9fecbe820 | server-1 | BUILD  | net1=10.99.0.2, 172.16.1.1 |
     +--------------------------------------+----------+--------+----------------------------+
+
     root@api-node:~# nova list
     +--------------------------------------+----------+--------+----------------------------+
     | ID                                   | Name     | Status | Networks                   |
     +--------------------------------------+----------+--------+----------------------------+
     | d2ef7cbf-c506-4c67-a6b6-7bd9fecbe820 | server-1 | ACTIVE | net1=10.99.0.2, 172.16.1.1 |
     +--------------------------------------+----------+--------+----------------------------+
+
+When the virtual machine is in ``ACTIVE`` it means that the virtual
+machine is being running on a compute node. However, the boot process
+can take some time, so don't worry if the following command will fail
+a few times before you can actually connect to the virtual machine::
+
     root@api-node:~# ssh 172.16.1.1
     The authenticity of host '172.16.1.1 (172.16.1.1)' can't be established.
     RSA key fingerprint is 38:d2:4c:ee:31:11:c1:1a:0f:b6:3b:dc:f2:d2:46:8f.
@@ -2073,23 +2123,32 @@ Workflow for a VM Creation
     # uname -a
     Linux cirros 3.0.0-12-virtual #20-Ubuntu SMP Fri Oct 7 18:19:02 UTC 2011 x86_64 GNU/Linux
 
+Testing cinder
+++++++++++++++
 
+You can attach a volume to a running virtual machine easily::
 
-root@api-node:~# nova volume-list
-+--------------------------------------+-----------+--------------+------+-------------+-------------+
-| ID                                   | Status    | Display Name | Size | Volume Type | Attached to |
-+--------------------------------------+-----------+--------------+------+-------------+-------------+
-| 180a081a-065b-497e-998d-aa32c7c295cc | available | test2        | 1    | None        |             |
-+--------------------------------------+-----------+--------------+------+-------------+-------------+
-root@api-node:~# nova volume-attach server-1 180a081a-065b-497e-998d-aa32c7c295cc /dev/vdb
-+----------+--------------------------------------+
-| Property | Value                                |
-+----------+--------------------------------------+
-| device   | /dev/vdb                             |
-| serverId | d2ef7cbf-c506-4c67-a6b6-7bd9fecbe820 |
-| id       | 180a081a-065b-497e-998d-aa32c7c295cc |
-| volumeId | 180a081a-065b-497e-998d-aa32c7c295cc |
-+----------+--------------------------------------+
+    root@api-node:~# nova volume-list
+    +--------------------------------------+-----------+--------------+------+-------------+-------------+
+    | ID                                   | Status    | Display Name | Size | Volume Type | Attached to |
+    +--------------------------------------+-----------+--------------+------+-------------+-------------+
+    | 180a081a-065b-497e-998d-aa32c7c295cc | available | test2        | 1    | None        |             |
+    +--------------------------------------+-----------+--------------+------+-------------+-------------+
+
+    root@api-node:~# nova volume-attach server-1 180a081a-065b-497e-998d-aa32c7c295cc /dev/vdb
+    +----------+--------------------------------------+
+    | Property | Value                                |
+    +----------+--------------------------------------+
+    | device   | /dev/vdb                             |
+    | serverId | d2ef7cbf-c506-4c67-a6b6-7bd9fecbe820 |
+    | id       | 180a081a-065b-497e-998d-aa32c7c295cc |
+    | volumeId | 180a081a-065b-497e-998d-aa32c7c295cc |
+    +----------+--------------------------------------+
+
+Inside the virtual machine, a new disk named ``/dev/vdb`` will
+appear. This disk is *persistent*, which means that if you terminate
+the instance and then you attach the disk to a new instance, the
+content of the volume is persisted.
 
 
 Horizon
@@ -2104,16 +2163,21 @@ update the ``OPENSTACK_HOST`` variable::
 
     OPENSTACK_HOST = "auth-node.example.org"
 
-Connect to the api-node from the physical node by opening the url
-http://172.16.0.6/horizon
+From the **physical node** you can connect to the api-node node by
+opening the url ``http://172.16.0.6/horizon`` on your web browser
 
 
+..
+   Keystone is then checking on what the users/tenants are "supposed" to
+   see (in terms of images, quotes, etc). Working nodes are periodically
+   writing their status in the nova-database. When a new request arrives
+   it is processed by the nova-scheduler which writes in the
+   nova-database when a matchmaking with a free resource has been
+   accomplished. On the next poll when the resource reads the
+   nova-database it "realises" that it is supposed to start a
+   new VM. nova-compute writes then the status inside the nova database.
 
-
-Horizon asks Keystone for an authorization.
-Keystone is then checking on what the users/tenants are "supposed" to see (in terms of images, quotes, etc). Working nodes are periodically writing their status in the nova-database. When a new request arrives it is processed by the nova-scheduler which writes in the nova-database when a matchmaking with a free resource has been accomplished. On the next poll when the resource reads the nova-database it "realises" that it is supposed to start a new VM. nova-compute writes then the status inside the nova database.
-
-Different sheduling policy and options can be set in the nova's configuration file.
+   Different sheduling policy and options can be set in the nova's configuration file.
 
 Recap
 -----
