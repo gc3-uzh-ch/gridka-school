@@ -18,7 +18,7 @@ This tutorial will show how to install the main components of
 OpenStack, specifically:
 
 MySQL
-    mysql databased is used together with the RabbitMQ messaging
+    MySQL database is used together with the RabbitMQ messaging
     system for storing and sharing information about the status of the
     cloud.
 
@@ -34,7 +34,7 @@ FIXME: mention that also zeromq can be used (and possibly others?)
 Keystone
     OpenStack service which provides the authentication service and
     works as a catalog of the various services available on the
-    cloud. Differenet backends can be used: in our setup we will store
+    cloud. Different backends can be used: in our setup we will store
     login, password and tokens in a MySQL db. 
 
 nova
@@ -82,7 +82,7 @@ Each team will have two physical machines to work with.
 One of the nodes will run 6 VMs running the various central services. 
 They are called as follows:
 
-* ``db-node``:  runs *mysql* and *rabbitmq*  
+* ``db-node``:  runs *MySQL* and *RabbitMQ*  
 * ``auth-node``: runs *keystone*
 * ``image-node``: runs *glance-api* and *glance-registry*
 * ``api-node``: runs *nova-api*, *horizon*, *nova-scheduler* and other
@@ -230,7 +230,7 @@ machines, but on a production environment you are likely to have only
    * ``db-node``: MySQL + RabbitMQ,
    * ``auth-node``: keystone,
    * ``image-node``: glance,
-   * ``api-node``: noda-api, nova-scheduler,
+   * ``api-node``: nova-api, nova-scheduler,
    * ``network-node``: nova-network,
    * ``volume-node``: cinder,
    * ``compute-1``: nova-compute,
@@ -283,11 +283,11 @@ MySQL installation
 ++++++++++++++++++
 
 Now please move on the db-node where we have to install the MySQL server.
-In oder to do that please execute::
+In order to do that please execute::
 
     root@db-node # apt-get install mysql-server python-mysqldb
 
-you will be promped for a password, it is safe to specify a good one,
+you will be prompted for a password, it is safe to specify a good one,
 since the MySQL server will be accessible also via internet, so please
 pick a password and remember it.
 
@@ -298,7 +298,7 @@ accessible from the all the OpenStack services. Edit the
 
     bind-address            = 0.0.0.0
 
-After changing this line you have to restart the mysql server::
+After changing this line you have to restart the MySQL server::
 
     root@db-node # service mysql restart
 
@@ -531,7 +531,7 @@ Creation of the endpoint
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Keystone is not only used to store information about users, passwords
-and projects, but also to store a catalog of the availables services
+and projects, but also to store a catalog of the available services
 the OpenStack cloud is offering. To each service is then assigned an
 *endpoint* which basically consists of a set of three urls (public,
 internal, administrative) and a region.
@@ -578,7 +578,7 @@ service::
     +-------------+-----------------------------------------+
 
 The argument of the ``--region`` option is the region name. For
-semplicity we will always use the name ``RegionOne`` since we are
+simplicity we will always use the name ``RegionOne`` since we are
 doing a very simple installation with one availability region only.
 
 To get a listing of the available services the command is::
@@ -649,7 +649,7 @@ FIXME: explain the difference between glance-api and glance-registry
 glance database and keystone setup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-On the **db-node** create the database and the mysql user::
+On the **db-node** create the database and the MySQL user::
 
     root@db-node:~# mysql -u root -p
     mysql> CREATE DATABASE glance;
@@ -770,19 +770,19 @@ Similar changes have to be done on the ``/etc/glance/glance-registry-paste.ini``
     admin_user = glance
     admin_password = glanceServ
 
-.. Very interesting: we mispelled the password here, but we only get
+.. Very interesting: we misspelled the password here, but we only get
    errors when getting the list of VM from horizon. Booting VM from
    nova actually worked!!!
 
 
-Information on how to connect to the mysql database are stored in the
+Information on how to connect to the MySQL database are stored in the
 ``/etc/glance/glance-api.conf`` file. The syntax is similar to the one
 used in the``/etc/keystone/keystone.conf`` file,  but the name of the
 option is ``sql_connection`` instead::
 
     sql_connection = mysql://glanceUser:glancePass@10.0.0.3/glance
 
-On this file, we also need to specify the rabbitmq host (default is
+On this file, we also need to specify the RabbitMQ host (default is
 ``localhost``). The other rabbit parameters should be fine::
 
     rabbit_host = 10.0.0.3
@@ -794,7 +794,7 @@ entering in details here, just check that the following option is present::
     flavor = keystone
 
 Similar changes need to be done in the
-``/etc/glance/glance-registry.conf``, both for the mysql connection::
+``/etc/glance/glance-registry.conf``, both for the MySQL connection::
 
     sql_connection = mysql://glanceUser:glancePass@10.0.0.3/glance
 
@@ -939,7 +939,7 @@ cinder database and keystone setup
 As usual, we need to create a database on the **db-node** and an user
 in keystone.
 
-On the **db-node** create the database and the mysql user::
+On the **db-node** create the database and the MySQL user::
 
     root@db-node:~# mysql -u root -p
     mysql> CREATE DATABASE cinder;
@@ -1012,7 +1012,7 @@ and the related endpoint, using the service id we just got::
     |  service_id |           2561a51dd7494651862a44e34d637e1e           |
     +-------------+------------------------------------------------------+
 
-Please note that the urls need to be quoted using the (') character
+Please note that the URLs need to be quoted using the (') character
 (single quote) otherwise the shell will interpret the dollar sign ($)
 present in the url.
 
@@ -1032,7 +1032,7 @@ basic configuration
 ~~~~~~~~~~~~~~~~~~~
 
 Let's now go back to the  **volume-node** and install the cinder
-pachages::
+packages::
 
     root@volume-node:~# apt-get install -y cinder-api cinder-scheduler cinder-volume \
       iscsitarget open-iscsi iscsitarget-dkms python-mysqldb  python-cinderclient
@@ -1047,7 +1047,7 @@ It is possible that the installation of the ``iscsitarget-dkms``
 module compiled the modules for a newer version of the kernel. If this
 is the case, just restart the machine and then run::
 
-    root@volume-node:~# dkms autoinstall iscsitarge
+    root@volume-node:~# dkms autoinstall iscsitarget
 
 ..
    This is the *wrong* output of ``dkms status``::
@@ -1121,7 +1121,7 @@ cinder configuration
 
 In file ``/etc/cinder/api-paste.ini`` edit the **filter:authtoken**
 section and ensure that information about the keystone user and
-endpoint are corret, specifically the options ``service_host``,
+endpoint are correct, specifically the options ``service_host``,
 ``admin_tenant_name``, ``admin_user`` and ``admin_password``::
 
     [filter:authtoken]
@@ -1184,7 +1184,7 @@ Testing cinder
 ~~~~~~~~~~~~~~
 
 Cinder command line tool also allow you to pass user, password, tenant
-name and authentication url both via command line options or
+name and authentication URL both via command line options or
 environment variables. In order to make the commands easier to read we
 are going to set the environment variables and run cinder without
 options::
@@ -1508,7 +1508,7 @@ Testing nova
 So far we cannot run a virtual machine yet, but we can check if nova
 is able to talk to the services already installed. As usual, you can
 set the environment variables to use the ``nova`` command line
-withouth having to specify the credentials via command line options::
+without having to specify the credentials via command line options::
 
     root@api-node:~# export OS_USERNAME=admin
     root@api-node:~# export OS_PASSWORD=keystoneAdmin
@@ -1607,7 +1607,7 @@ nova-network works.
 ``nova-network`` configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Please note that nova-network service will use the same user and mysql
+Please note that nova-network service will use the same user and MySQL
 database we used for the ``api-node`` node, and since the old
 ``nova-network`` service does not have any specific API we don't have
 to create a keystone service and endpoint for it.
@@ -1679,7 +1679,7 @@ present in ``/etc/sysctl.conf`` file::
     net.ipv4.ip_forward=1
 
 This file is read during the startup, but it is not read
-afterwards. To force linux to re-read the file you can run::
+afterwards. To force Linux to re-read the file you can run::
 
     root@network-node:~# sysctl -p /etc/sysctl.conf
     net.ipv4.ip_forward = 1
@@ -1728,7 +1728,7 @@ compute nodes and on the network node this is available through the
 ``br100`` bridge (although compute nodes does not have an IP address
 on this network), while other service nodes does not have any
 interface on that network. As a consequence, the internal IP address
-of the virtual machines is only reacheble by either the network node
+of the virtual machines is only reachable by either the network node
 or another VM.
 
 The command to create the internal network **10.99.0.0/22**, which we
@@ -1769,7 +1769,7 @@ commands has exactly the same effect of running::
 
 (but the latter it's quite slower!)
 
-A list of floating IPs defined in the network noda can be shown using
+A list of floating IPs defined in the network nova can be shown using
 ``nova-manage``::
 
     root@network-node:~# nova-manage floating list
@@ -1959,11 +1959,13 @@ with full support for virtualization you would probably need to set::
     [DEFAULT]
     libvirt_type=kvm
 
+..
+  Not needed:
 
-* Edit the qemu.conf with the needed options as specified in the tutorial (uncomment cgrout, ... )
-* Edit libvirt.conf (follow the tutorial)
-* Edit libvirt-bin.conf (follow the tutorial)
-* Modify l'API in api-paste.ini in order to abilitate access to keystone.
+   * Edit the qemu.conf with the needed options as specified in the tutorial (uncomment cgrout, ... )
+   * Edit libvirt.conf (follow the tutorial)
+   * Edit libvirt-bin.conf (follow the tutorial)
+   * Modify l'API in api-paste.ini in order to abilitate access to keystone.
 
 
 Final check
@@ -2095,7 +2097,7 @@ Now we are ready to start our first virtual machine::
     | metadata                            | {}                                   |
     +-------------------------------------+--------------------------------------+
 
-This command returns immediately, also if the virtual machine is not
+This command returns immediately, even if the virtual machine is not
 yet started::
 
     root@api-node:~# nova list
@@ -2173,7 +2175,7 @@ update the ``OPENSTACK_HOST`` variable::
     OPENSTACK_HOST = "auth-node.example.org"
 
 From the **physical node** you can connect to the api-node node by
-opening the url ``http://172.16.0.6/horizon`` on your web browser
+opening the URL ``http://172.16.0.6/horizon`` on your web browser
 
 
 ..
@@ -2183,15 +2185,15 @@ opening the url ``http://172.16.0.6/horizon`` on your web browser
    it is processed by the nova-scheduler which writes in the
    nova-database when a matchmaking with a free resource has been
    accomplished. On the next poll when the resource reads the
-   nova-database it "realises" that it is supposed to start a
+   nova-database it "realizes" that it is supposed to start a
    new VM. nova-compute writes then the status inside the nova database.
 
-   Different sheduling policy and options can be set in the nova's configuration file.
+   Different scheduling policy and options can be set in the nova's configuration file.
 
 Recap
 -----
 
-Small recap on what has to be done for a sevice installation:
+Small recap on what has to be done for a service installation:
 
 * create database,
 * create user for the this database in way that in can connects and configure the service.
@@ -2205,7 +2207,7 @@ References
 As starting reference has been used the following `tutorial
 <https://github.com/mseknibilel/OpenStack-Grizzly-Install-Guide/blob/master/OpenStack_Grizzly_Install_Guide.rst>`_.
 
-We adapated the tutorial above with what we cosidered necessary for our purpouses and for installing OpenStack on
+We adapted the tutorial above with what we considered necessary for our purposes and for installing OpenStack on
 6 hosts.
 
 The official Grizzly tutorial can be found `here
