@@ -1,3 +1,8 @@
+FIXME: we would probably need to rename "virtual machine" with
+"instance" or "openstack instance" when talking about OpenStack
+virtual machines, in order to avoid confusions with the virtual
+machines used to host the OpenStack services.
+
 GridKa School 2013 - Training Session on OpenStack
 ==================================================
 
@@ -737,7 +742,12 @@ Similar changes have to be done on the ``/etc/glance/glance-registry-paste.ini``
     auth_protocol = http
     admin_tenant_name = service
     admin_user = glance
-    admin_password = serviceServ
+    admin_password = glanceServ
+
+.. Very interesting: we mispelled the password here, but we only get
+   errors when getting the list of VM from horizon. Booting VM from
+   nova actually worked!!!
+
 
 Information on how to connect to the mysql database are stored in the
 ``/etc/glance/glance-api.conf`` file. The syntax is similar to the one
@@ -1521,6 +1531,7 @@ or create and manage cinder volumes::
 The ``nova`` command line tool also allow you to run instances, but we
 need to complete the OpenStack installation in order to test it.
 
+
 ``netowrk-node``
 ----------------
 
@@ -1531,8 +1542,7 @@ nova-network
 ++++++++++++
 
 Networking in OpenStack is quite complex, you have multiple options
-and you currently have two different implementation to get the network
-working.
+and you currently have two different, incompatible implementations.
 
 The newer, feature rich but still unstable is called **Neutron**
 (previously known as **Quantum**, they renamed it because of Trademark
@@ -1547,11 +1557,36 @@ is the solution we are going to implement.
 
 Let's just recap how the networking works in OpenStack
 
-FIXME: add a blablabla on networking
+OpenStack networking
+~~~~~~~~~~~~~~~~~~~~
+
+FIXME: complete this section
+
+* flat dhcp <= we use this
+* flat
+* ...
+
+FIXME: during the tutorial, it's probably better to install the
+package first, and then, during the installation, explain how
+nova-network works.
+
+``nova-network`` configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Please note that nova-network service will use the same user and mysql
+database we used for the ``api-node`` node, and since the old
+``nova-network`` service does not have any specific API we don't have
+to create a keystone service and endpoint for it.
 
 Let's start by installing the needed software::
 
-    root@network-node:~# apt-get install -y nova-network
+    root@network-node:~# apt-get install -y nova-network ebtables
+
+
+.. Please note that if ebtables is not present, you will get a quite
+   hard to understand error. The only way to understand that the
+   ebtables command is needed is by using strace on the nova-network
+   service!
 
 Network configuration on the **network-node** will look like:
 
@@ -1562,7 +1597,7 @@ Network configuration on the **network-node** will look like:
 +-------+------------------+-----------------------------------------------------+
 | eth1  | 10.0.0.0/24      | internal network                                    |
 +-------+------------------+-----------------------------------------------------+
-| eth2  |                  | public network                                      |
+| eth2  | 172.16.0.0/24    | public network                                      |
 +-------+------------------+-----------------------------------------------------+
 | eth3  | 0.0.0.0          | bridge connected to the internal network of the VMs |
 +-------+------------------+-----------------------------------------------------+
@@ -1570,7 +1605,7 @@ Network configuration on the **network-node** will look like:
 The last interface (eth3) is managed by **nova-network** itself, so we
 only have to create a bridge and attach eth3 to it. This is done on
 ubuntu by editing the ``/etc/network/interface`` file and ensuring
-that the following content is there::
+that it contains::
 
     auto br100
     iface br100 inet static
@@ -1609,27 +1644,22 @@ afterwards. To force linux to re-read the file you can run::
     root@network-node:~# sysctl -p /etc/sysctl.conf
     net.ipv4.ip_forward = 1
 
-Add the following lines to the ``/etc/nova/nova.conf`` file for the network setup::
+Update the configuration file ``/etc/nova/nova.conf`` and ensure the
+following options are defined::
 
-    # NETWORK
     network_manager=nova.network.manager.FlatDHCPManager
     force_dhcp_release=True
-    dhcpbridge=/usr/bin/nova-dhcpbridge
-    dhcpbridge_flagfile=/etc/nova/nova.conf
     firewall_driver=nova.virt.libvirt.firewall.IptablesFirewallDriver
 
     rabbit_host=10.0.0.3
     sql_connection=mysql://novaUser:novaPass@10.0.0.3/nova
 
     flat_network_bridge=br100
-    fixed_range=10.99.0.0/22
-    
+    fixed_range=10.99.0.0/22    
     flat_network_dhcp_start=10.99.0.10
-    
-    connection_type=libvirt
     network_size=1022
     
-    # For floating IPs
+    # Floating IPs
     auto_assign_floating_ip=true
     default_floating_pool=public
     public_interface=eth2
@@ -1651,28 +1681,84 @@ Restart the nova-network service with::
 Nova network creation
 ~~~~~~~~~~~~~~~~~~~~~
 
-You have to create manually a private internal network on the main node::
+You have to create manually a private internal network on the main
+node. This is the internal network used by the virtual machines within
+OpenStack, and usually it is a completely separated network. On the
+compute nodes and on the network node this is available through the
+``br100`` bridge (although compute nodes does not have an IP address
+on this network), while other service nodes does not have any
+interface on that network. As a consequence, the internal IP address
+of the virtual machines is only reacheble by either the network node
+or another VM.
 
-    root@network-node:~# nova-manage network create --fixed_range_v4 10.99.0.0/22 --num_networks 1 --network_size 1000 --bridge br100 net1
+The command to create the internal network **10.99.0.0/22**, which we
+are going to call "**net1**" is::
 
-FIXME: TOCHECK: ``eth2`` is the interface **ON THE COMPUTE NODE**.
+    root@network-node:~# nova-manage network create --fixed_range_v4 10.99.0.0/22 --num_networks 1 --network_size 1022 --bridge br100 net1
 
-FIXME: set the public ip range for the floating IPs
+..
+   FIXME: TOCHECK: ``eth2`` is the interface **ON THE COMPUTE NODE**.
+
+In order to allow the virtual machines to be reachable from the
+internet too (during this school, due to hardware limitations, this
+only means reachable by the physical nodes) we need to create a range
+of public IPs. These IP can be either automatically assigned when a
+virtual machine is started (using the option
+``auto_assign_floating_ip=true`` in ``/etc/nova/nova.conf`` on the
+``nova-network`` node, like we did), and/or assigned and removed from
+a virtual machine while the machine is up&running.
 
 Create a floating public network::
 
     root@network-node:~# nova-manage floating create --ip_range 172.16.1.0/24 --pool=public
 
+..
+   FIXME: TOCHECK: ``eth2`` is the interface **ON THE COMPUTE NODE**.
+
 We are going to use all the IP address of type **172.16.1.x** for the
 public IP of the VMs. Please note that this does not have to be a
 *real* network: the argument of the ``--ip_range`` option is used to
-allow passing multiple IP addresses at once.
+allow passing multiple IP addresses at once, so that the previous
+commands has exactly the same effect of running::
+
+    root@network-node:~# for i in {1..254}
+    do
+    nova-manage floating create --ip_range 172.16.1.$i --pool=public
+    done
+
+(but the latter it's quite slower!)
+
+A list of floating IPs defined in the network noda can be shown using
+``nova-manage``::
+
+    root@network-node:~# nova-manage floating list
+    None    172.16.1.1      None    public  eth2
+    None    172.16.1.2      None    public  eth2
+    ...
+    None    172.16.1.254    None    public  eth2
+
 
 The default security group does not have any rule associated with it,
-so you may want to add default rules to at least allow ping and ssh connections::
+so you may want to add default rules to at least allow ping and ssh
+connections::
 
-    root@network-node:~# nova secgroup-add-rule default icmp -1 -1 0.0.0.0/0
-    root@network-node:~# nova secgroup-add-rule default tcp 22 22 0.0.0.0/0
+    root@network-node:~# nova --os-user admin --os-tenant-name admin \
+      --os-password keystoneAdmin --os-auth-url http://auth-node.example.org:5000/v2.0 \
+      secgroup-add-rule default icmp -1 -1 0.0.0.0/0
+    +-------------+-----------+---------+-----------+--------------+
+    | IP Protocol | From Port | To Port | IP Range  | Source Group |
+    +-------------+-----------+---------+-----------+--------------+
+    | icmp        | -1        | -1      | 0.0.0.0/0 |              |
+    +-------------+-----------+---------+-----------+--------------+
+
+    root@network-node:~# nova --os-user admin --os-tenant-name admin \
+      --os-password keystoneAdmin  --os-auth-url http://auth-node.example.org:5000/v2.0 \
+      secgroup-add-rule default tcp 22 22 0.0.0.0/0
+    +-------------+-----------+---------+-----------+--------------+
+    | IP Protocol | From Port | To Port | IP Range  | Source Group |
+    +-------------+-----------+---------+-----------+--------------+
+    | tcp         | 22        | 22      | 0.0.0.0/0 |              |
+    +-------------+-----------+---------+-----------+--------------+
 
 
 ``compute-1`` and ``compute-2``
@@ -1684,12 +1770,7 @@ as described in the `all nodes installation`_ section)*
 Nova-compute (does not need an endpoint)
 ++++++++++++++++++++++++++++++++++++++++
 
-Install grizzly repository on the compute node. Install and configure KVM
-
-* Edit the qemu.conf with the needed options as specified in the tutorial (uncomment cgrout, ... )
-* Edit libvirt.conf (follow the tutorial)
-* Edit libvirt-bin.conf (follow the tutorial)
-* Modify l'API in api-paste.ini in order to abilitate access to keystone.
+FIXME: explain what happens on the compute node when you start a VM.
 
 Software installation
 ~~~~~~~~~~~~~~~~~~~~~
@@ -1700,12 +1781,9 @@ the host node does not support *nested virtualization*, we install
 
     root@compute-1 # apt-get install -y nova-compute-qemu
 
-This will also install the **nova-compute** package.
+This will also install the **nova-compute** package and all its
+dependencies.
 
-..
-   Check that the ``ebtables`` package is installed::
-
-       root@compute-1 # dpkg -l ebtables
 
 Network configuration
 ~~~~~~~~~~~~~~~~~~~~~
@@ -1717,36 +1795,39 @@ Open virt-manager, login as root and shutdown the *network*::
 
     root@compute-1 # /etc/init.d/networking stop
 
-From the ``/etc/network/interfaces`` file you have to remove the old
-lines related to the internal ``eth1`` network and replace them with
-the following lines, which will configure a bridge called **br100**
-and attach the **eth1** physical interface to it::
-
-    #auto eth1
-    #iface eth1 inet static
-    # address 10.0.0.20
-    # netmask 255.255.255.0
+Update the ``/etc/network/interfaces`` file and configure a new
+bridge, called **br100** attached to the network interface ``eth2``::
 
     auto br100
     iface br100 inet static
-        address      10.0.0.20
-        netmask      255.255.255.0
-        pre-up ifconfig eth1 0.0.0.0 
-        bridge-ports eth1
+        address      0.0.0.0
+        pre-up ifconfig eth2 0.0.0.0 
+        bridge-ports eth2
         bridge_stp   off
         bridge_fd    0
 
+This bridge must be on the same layer-2 network of the network node,
+and is used only for the communication among the OpenStack virtual
+machines.
+
+Since nova-compute only attach new virtual interface to this bridge
+but it does not change the IP configuration (as nova-network does),
+you can also assign the internal IP address of the **compute-1** node
+(in our case, the **10.0.0.20** ip address) on the **br100**
+interface. However, on a production environment, for security reasons,
+you want to have two physically separated network for the virtual
+machines and for the OpenStack services.
+
 (This is valid for **compute-1**, please update the IP address when configuring **compute-2**)
 
-Now you can setup again the network::
+Start the bridge::
 
-    root@compute-1 # /etc/init.d/networking start
+    root@compute-1 # ifup br100
 
 The **br100** interface should now be up&running::
 
     root@compute-1 # ifconfig br100
     br100     Link encap:Ethernet  HWaddr 52:54:00:c7:1a:7b  
-              inet addr:10.0.0.20  Bcast:0.0.0.0  Mask:255.255.255.255
               inet6 addr: fe80::5054:ff:fec7:1a7b/64 Scope:Link
               UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
               RX packets:6 errors:0 dropped:0 overruns:0 frame:0
@@ -1758,8 +1839,9 @@ The following command will show you the physical interfaces associated
 to the **br100** bridge::
 
     root@compute-1 # brctl show
-    bridge name	bridge id		STP enabled	interfaces
-    br100		8000.525400c71a7b	no		eth1
+    bridge name bridge id       STP enabled interfaces
+    br100       8000.525400c71a7b   no      eth2
+
 
 nova configuration
 ~~~~~~~~~~~~~~~~~~
@@ -1798,7 +1880,10 @@ and MySQL servers. The minimum information you have to provide in the
     # Compute #
     compute_driver=libvirt.LibvirtDriver
 
-    network_host=10.0.0.7
+    # network_host=10.0.0.7
+
+You can just replace the ``/etc/nova/nova.conf`` file with the content
+displayed above.
 
 ..
    On the ``/etc/nova/api-paste.conf`` we have to put the information
@@ -1813,7 +1898,6 @@ and MySQL servers. The minimum information you have to provide in the
        admin_tenant_name = service
        admin_user = nova
        admin_password = novaServ
-
 
 
 nova-compute configuration
@@ -1835,6 +1919,12 @@ with full support for virtualization you would probably need to set::
     libvirt_type=kvm
 
 
+* Edit the qemu.conf with the needed options as specified in the tutorial (uncomment cgrout, ... )
+* Edit libvirt.conf (follow the tutorial)
+* Edit libvirt-bin.conf (follow the tutorial)
+* Modify l'API in api-paste.ini in order to abilitate access to keystone.
+
+
 Final check
 ~~~~~~~~~~~
 
@@ -1850,35 +1940,158 @@ you should be able to see the compute node from the **api-node**::
     nova-conductor   api-node                             internal         enabled    :-)   2013-08-13 13:43:31
     nova-consoleauth api-node                             internal         enabled    :-)   2013-08-13 13:43:35
     nova-scheduler   api-node                             internal         enabled    :-)   2013-08-13 13:43:35
+    nova-network     network-node                         internal         enabled    :-)   2013-08-19 09:28:42
     nova-compute     compute-1                            nova             enabled    :-)   None      
 
 
 
-Nova and Nova-compute: network configuration
-++++++++++++++++++++++++++++++++++++++++++++
-
-Networking inside OpenStack / Grizzly is provided by the nova-network component. Here bellow is what has to be done in order to configure networking properly on OpenStack.
-
-General
-~~~~~~~
+Workflow for a VM Creation
+--------------------------
 
 
-On the node running nova-network we need at least three physical network interfaces. In our current testing configuration we have:
+    root@api-node:~# ssh-keygen -t rsa -f ~/.ssh/id_rsa
+    Generating public/private rsa key pair.
+    Enter passphrase (empty for no passphrase): 
+    Enter same passphrase again: 
+    Your identification has been saved in /root/.ssh/id_rsa.
+    Your public key has been saved in /root/.ssh/id_rsa.pub.
+    The key fingerprint is:
+    fa:86:74:77:a2:55:29:d8:e7:06:4a:13:f7:ca:cb:12 root@api-node
+    The key's randomart image is:
+    +--[ RSA 2048]----+
+    |                 |
+    |        . .      |
+    |         = . .   |
+    |        + + =    |
+    |       .S+ B     |
+    |      ..E * +    |
+    |     ..o * =     |
+    |      ..+ o      |
+    |       ...       |
+    +-----------------+
+    root@api-node:~# nova keypair-add gridka --pub-key ~/.ssh/id_rsa.pub
+    root@api-node:~# nova keypair-list
+    +--------+-------------------------------------------------+
+    | Name   | Fingerprint                                     |
+    +--------+-------------------------------------------------+
+    | gridka | fa:86:74:77:a2:55:29:d8:e7:06:4a:13:f7:ca:cb:12 |
+    +--------+-------------------------------------------------+
 
-* eth0 for the 840 VLAN (physical network conf.)
-* eth1 for the VMs (bridge)
-* eth2 for the pubblic (Floating IPs and NAT).
+    root@api-node:~# nova image-list
+    +--------------------------------------+--------------+--------+--------+
+    | ID                                   | Name         | Status | Server |
+    +--------------------------------------+--------------+--------+--------+
+    | 79af6953-6bde-463d-8c02-f10aca227ef4 | cirros-0.3.0 | ACTIVE |        |
+    +--------------------------------------+--------------+--------+--------+
+    root@api-node:~# nova flavor-list
+    +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
+    | ID | Name      | Memory_MB | Disk | Ephemeral | Swap | VCPUs | RXTX_Factor | Is_Public | extra_specs |
+    +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
+    | 1  | m1.tiny   | 512       | 0    | 0         |      | 1     | 1.0         | True      | {}          |
+    | 2  | m1.small  | 2048      | 20   | 0         |      | 1     | 1.0         | True      | {}          |
+    | 3  | m1.medium | 4096      | 40   | 0         |      | 2     | 1.0         | True      | {}          |
+    | 4  | m1.large  | 8192      | 80   | 0         |      | 4     | 1.0         | True      | {}          |
+    | 5  | m1.xlarge | 16384     | 160  | 0         |      | 8     | 1.0         | True      | {}          |
+    +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
+    root@api-node:~# nova secgroup-list
+    +---------+-------------+
+    | Name    | Description |
+    +---------+-------------+
+    | default | default     |
+    +---------+-------------+
+    root@api-node:~# nova boot --image 79af6953-6bde-463d-8c02-f10aca227ef4 --flavor m1.tiny --key_name gridka server-1
+    +-------------------------------------+--------------------------------------+
+    | Property                            | Value                                |
+    +-------------------------------------+--------------------------------------+
+    | OS-EXT-STS:task_state               | scheduling                           |
+    | image                               | cirros-0.3.0                         |
+    | OS-EXT-STS:vm_state                 | building                             |
+    | OS-EXT-SRV-ATTR:instance_name       | instance-00000001                    |
+    | flavor                              | m1.tiny                              |
+    | id                                  | 8e680a03-34ac-4292-a23c-d476b209aa62 |
+    | security_groups                     | [{u'name': u'default'}]              |
+    | user_id                             | 9e8ec4fa52004fd2afa121e2eb0d15b0     |
+    | OS-DCF:diskConfig                   | MANUAL                               |
+    | accessIPv4                          |                                      |
+    | accessIPv6                          |                                      |
+    | progress                            | 0                                    |
+    | OS-EXT-STS:power_state              | 0                                    |
+    | OS-EXT-AZ:availability_zone         | nova                                 |
+    | config_drive                        |                                      |
+    | status                              | BUILD                                |
+    | updated                             | 2013-08-19T09:37:34Z                 |
+    | hostId                              |                                      |
+    | OS-EXT-SRV-ATTR:host                | None                                 |
+    | key_name                            | gridka                               |
+    | OS-EXT-SRV-ATTR:hypervisor_hostname | None                                 |
+    | name                                | server-1                             |
+    | adminPass                           | k7cT4nnC6sJU                         |
+    | tenant_id                           | 1ce38185a0c941f1b09605c7bfb15a31     |
+    | created                             | 2013-08-19T09:37:34Z                 |
+    | metadata                            | {}                                   |
+    +-------------------------------------+--------------------------------------+
+    root@api-node:~# nova list
+    +--------------------------------------+----------+--------+----------+
+    | ID                                   | Name     | Status | Networks |
+    +--------------------------------------+----------+--------+----------+
+    | 8e680a03-34ac-4292-a23c-d476b209aa62 | server-1 | BUILD  |          |
+    +--------------------------------------+----------+--------+----------+
+    root@api-node:~# nova list
+    +--------------------------------------+----------+--------+----------------------------+
+    | ID                                   | Name     | Status | Networks                   |
+    +--------------------------------------+----------+--------+----------------------------+
+    | d2ef7cbf-c506-4c67-a6b6-7bd9fecbe820 | server-1 | BUILD  | net1=10.99.0.2, 172.16.1.1 |
+    +--------------------------------------+----------+--------+----------------------------+
+    root@api-node:~# nova list
+    +--------------------------------------+----------+--------+----------------------------+
+    | ID                                   | Name     | Status | Networks                   |
+    +--------------------------------------+----------+--------+----------------------------+
+    | d2ef7cbf-c506-4c67-a6b6-7bd9fecbe820 | server-1 | ACTIVE | net1=10.99.0.2, 172.16.1.1 |
+    +--------------------------------------+----------+--------+----------------------------+
+    root@api-node:~# ssh 172.16.1.1
+    The authenticity of host '172.16.1.1 (172.16.1.1)' can't be established.
+    RSA key fingerprint is 38:d2:4c:ee:31:11:c1:1a:0f:b6:3b:dc:f2:d2:46:8f.
+    Are you sure you want to continue connecting (yes/no)? yes
+    Warning: Permanently added '172.16.1.1' (RSA) to the list of known hosts.
+    # uname -a
+    Linux cirros 3.0.0-12-virtual #20-Ubuntu SMP Fri Oct 7 18:19:02 UTC 2011 x86_64 GNU/Linux
 
-A bridge is needed for the VMs. The host running nova-network manages: NATTING, DHCP, Floating IPs.
+
+
+root@api-node:~# nova volume-list
++--------------------------------------+-----------+--------------+------+-------------+-------------+
+| ID                                   | Status    | Display Name | Size | Volume Type | Attached to |
++--------------------------------------+-----------+--------------+------+-------------+-------------+
+| 180a081a-065b-497e-998d-aa32c7c295cc | available | test2        | 1    | None        |             |
++--------------------------------------+-----------+--------------+------+-------------+-------------+
+root@api-node:~# nova volume-attach server-1 180a081a-065b-497e-998d-aa32c7c295cc /dev/vdb
++----------+--------------------------------------+
+| Property | Value                                |
++----------+--------------------------------------+
+| device   | /dev/vdb                             |
+| serverId | d2ef7cbf-c506-4c67-a6b6-7bd9fecbe820 |
+| id       | 180a081a-065b-497e-998d-aa32c7c295cc |
+| volumeId | 180a081a-065b-497e-998d-aa32c7c295cc |
++----------+--------------------------------------+
 
 
 Horizon
-+++++++
+-------
 
-After an "apt-get install..." the service should work out of the box by accessing: http://api-node/horizon
+On the **api-node**::
 
-Workflow for a VM Creation
---------------------------
+    root@api-node:# apt-get install openstack-dashboard
+
+Edit the file ``/etc/openstack-dashboard/local_settings.py`` and
+update the ``OPENSTACK_HOST`` variable::
+
+    OPENSTACK_HOST = "auth-node.example.org"
+
+Connect to the api-node from the physical node by opening the url
+http://172.16.0.6/horizon
+
+
+
 
 Horizon asks Keystone for an authorization.
 Keystone is then checking on what the users/tenants are "supposed" to see (in terms of images, quotes, etc). Working nodes are periodically writing their status in the nova-database. When a new request arrives it is processed by the nova-scheduler which writes in the nova-database when a matchmaking with a free resource has been accomplished. On the next poll when the resource reads the nova-database it "realises" that it is supposed to start a new VM. nova-compute writes then the status inside the nova database.
