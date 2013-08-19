@@ -117,12 +117,12 @@ configuration, including the IP configuration and the correct
 hostname.
 
 You can connect to them from each one of the physical machines (the
-**gks-NNN** ones) using **ssh**, or by starting the ``virt-manager``
+**gks-NNN** ones) using **ssh** or by starting the ``virt-manager``
 program on the physical node hosting the virtual machine and then
 connecting to the console.
 
-The name of the virtual machine matches the hostname, as described in
-the *Tutorial overview* section:
+The hostname of the virtual machine are as described in the
+*Tutorial overview* section, we summarize them bellow:
 
 * **db-node**
 * **auth-node**
@@ -132,6 +132,13 @@ the *Tutorial overview* section:
 * **volume-node**
 * **compute-1-node**
 * **compute-2-node**
+
+In order to connect using **ssh** please do::
+
+     ssh root@hostname 
+
+where **hostname** is one of those listed just
+above. You will be asked for a password, use: **user@gridka**.
 
 You can start and stop them using the ``virt-manager`` graphical
 interface or the ``virsh`` command line tool.
