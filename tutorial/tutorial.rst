@@ -541,7 +541,8 @@ own service and endpoint.
 
 The "**identity**" service is created with the following command::
 
-    root@auth-node:~# keystone service-create --name keystone --type identity --description 'Keystone Identity Service'
+    root@auth-node:~# keystone service-create --name keystone --type identity \
+        --description 'Keystone Identity Service'
     WARNING: Bypassing authentication using a token & endpoint (authentication credentials are being ignored).
     +-------------+----------------------------------+
     |   Property  |              Value               |
@@ -674,7 +675,8 @@ First of all, we need to get the **id** of the **service** tenant::
 then we need to create a keystone user for the glance service,
 associated with the **service** tenant::
 
-    root@auth-node:~# keystone user-create --name=glance --pass=glanceServ --tenant-id cb0e475306cc4c91b2a43b537b1a848b
+    root@auth-node:~# keystone user-create --name=glance --pass=glanceServ \
+      --tenant-id cb0e475306cc4c91b2a43b537b1a848b
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
@@ -705,7 +707,8 @@ services, but this is a cleaner solution.
 
 We need then to create the **image** service::
 
-    root@auth-node:~# keystone service-create --name glance --type image --description 'Glance Image Service'
+    root@auth-node:~# keystone service-create --name glance --type image \
+      --description 'Glance Image Service'
     +-------------+----------------------------------+
     |   Property  |              Value               |
     +-------------+----------------------------------+
@@ -827,7 +830,8 @@ First of all, let's download a very small test image::
 The command line tool to manage images is ``glance``. Uploading an
 image is easy::
 
-    root@image-node:~# glance image-create --name cirros-0.3.0 --is-public=true --container-format=bare --disk-format=qcow2 --file cirros-0.3.0-x86_64-disk.img 
+    root@image-node:~# glance image-create --name cirros-0.3.0 --is-public=true \
+      --container-format=bare --disk-format=qcow2 --file cirros-0.3.0-x86_64-disk.img 
     +------------------+--------------------------------------+
     | Property         | Value                                |
     +------------------+--------------------------------------+
@@ -979,7 +983,8 @@ Then we need to give admin permissions to it::
 
 We need then to create the **volume** service::
 
-    root@auth-node:~# keystone service-create --name cinder --type volume --description 'Volume Service of OpenStack'
+    root@auth-node:~# keystone service-create --name cinder --type volume \
+      --description 'Volume Service of OpenStack'
     +-------------+----------------------------------+
     |   Property  |              Value               |
     +-------------+----------------------------------+
@@ -1029,7 +1034,8 @@ basic configuration
 Let's now go back to the  **volume-node** and install the cinder
 pachages::
 
-    root@volume-node:~# apt-get install -y cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms python-mysqldb  python-cinderclient
+    root@volume-node:~# apt-get install -y cinder-api cinder-scheduler cinder-volume \
+      iscsitarget open-iscsi iscsitarget-dkms python-mysqldb  python-cinderclient
 
 Ensure that the iscsi module has been installed by the
 iscsitarget-dkms package::
@@ -1325,7 +1331,8 @@ Then we need to give admin permissions to it::
 We need to create first the **compute** service::
 
 
-    root@auth-node:~# keystone service-create --name nova --type compute --description 'Compute Service of OpenStack'
+    root@auth-node:~# keystone service-create --name nova --type compute \
+      --description 'Compute Service of OpenStack'
     +-------------+----------------------------------+
     |   Property  |              Value               |
     +-------------+----------------------------------+
@@ -1357,7 +1364,8 @@ and its endpoint::
 
 then the **ec2** service::
 
-    root@auth-node:~# keystone service-create --name ec2 --type ec2 --description 'EC2 service of OpenStack'
+    root@auth-node:~# keystone service-create --name ec2 --type ec2 \
+      --description 'EC2 service of OpenStack'
     +-------------+----------------------------------+
     |   Property  |              Value               |
     +-------------+----------------------------------+
@@ -1392,8 +1400,7 @@ nova installation and configuration
 Now we can continue the installation on the **api-node**::
 
     root@api-node:~# apt-get install -y nova-api nova-cert novnc \
-    nova-consoleauth nova-scheduler nova-novncproxy nova-doc \
-    nova-conductor 
+    nova-consoleauth nova-scheduler nova-novncproxy nova-doc nova-conductor 
 
 The file ``/etc/nova/api-paste.ini`` is similar to what we have seen
 for cinder and glance. Check that the **[filter:authtoken]** section
@@ -1559,7 +1566,7 @@ The ``nova`` command line tool also allow you to run instances, but we
 need to complete the OpenStack installation in order to test it.
 
 
-``netowrk-node``
+``network-node``
 ----------------
 
 *(remember to add the cloud repository and install the **ntp** package
@@ -1727,7 +1734,8 @@ or another VM.
 The command to create the internal network **10.99.0.0/22**, which we
 are going to call "**net1**" is::
 
-    root@network-node:~# nova-manage network create --fixed_range_v4 10.99.0.0/22 --num_networks 1 --network_size 1022 --bridge br100 net1
+    root@network-node:~# nova-manage network create --fixed_range_v4 10.99.0.0/22 \
+      --num_networks 1 --network_size 1022 --bridge br100 net1
 
 ..
    FIXME: TOCHECK: ``eth2`` is the interface **ON THE COMPUTE NODE**.
@@ -2054,7 +2062,8 @@ groups::
 
 Now we are ready to start our first virtual machine::
 
-    root@api-node:~# nova boot --image 79af6953-6bde-463d-8c02-f10aca227ef4 --flavor m1.tiny --key_name gridka-api-node server-1
+    root@api-node:~# nova boot --image 79af6953-6bde-463d-8c02-f10aca227ef4 \
+      --flavor m1.tiny --key_name gridka-api-node server-1
     +-------------------------------------+--------------------------------------+
     | Property                            | Value                                |
     +-------------------------------------+--------------------------------------+
