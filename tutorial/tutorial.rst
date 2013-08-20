@@ -200,8 +200,11 @@ These are the network cards present on the virtual machines:
 
 +------+-----------------------+------------------+
 | eth0 | internal KVM network  | 192.168.122.0/24 |
++------+-----------------------+------------------+
 | eth1 | internal network      | 10.0.0.0/24      |
++------+-----------------------+------------------+
 | eth2 | public network        | 172.16.0.16      |
++------+-----------------------+------------------+
 | eth3 | Openstack private     |                  |
 |      | network (present only |                  |
 |      | on the network-node)  |                  |
