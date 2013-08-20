@@ -241,7 +241,7 @@ machines, but on a production environment you are likely to have only
 -----------
 
 cloud repository and ntp package
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+++++++++++++++++++++++++++++++++
 
 The following steps need to be done on all the machines. We are going
 them step by step on the **db-node** only, and then we will automate
