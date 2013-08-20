@@ -200,8 +200,11 @@ These are the network cards present on the virtual machines:
 
 +------+-----------------------+------------------+
 | eth0 | internal KVM network  | 192.168.122.0/24 |
++------+-----------------------+------------------+
 | eth1 | internal network      | 10.0.0.0/24      |
++------+-----------------------+------------------+
 | eth2 | public network        | 172.16.0.16      |
++------+-----------------------+------------------+
 | eth3 | Openstack private     |                  |
 |      | network (present only |                  |
 |      | on the network-node)  |                  |
@@ -237,50 +240,53 @@ machines, but on a production environment you are likely to have only
    * ``compute-2``: nova-compute,
 
 
-all nodes installation
-----------------------
-
-The following steps need to be done on all the machines.
-
-Repositories, NTP, system update
-++++++++++++++++++++++++++++++++
-
-Before starting you have to perform some common operation on all the hosts. This is
-useful as it can easily identify problems on some of the nodes, e.g.: missing connectivity 
-or a host being down. 
-
-* Go in sudo mode on all the nodes::
-
-    gridka@all-nodes:~ sudo su -
-
-* Add the OpenStack Grizzly repository::
-
-    root@all-nodes:# apt-get install -y ubuntu-cloud-keyring
-    root@all-nodes:# echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/grizzly main > /etc/apt/sources.list.d/grizzly.list
-
-* Update the system (can take a while...)::
- 
-    root@all-nodes:# apt-get update -y
-    root@all-nodes:# aptitude upgrade -y
-
-* Install the NTP service::
-
-    root@all-nodes:# apt-get install -y ntp
-
-
 ``db-node``
 -----------
 
-*(remember to add the cloud repository and install the **ntp** package
-as described in the `all nodes installation`_ section)*
+cloud repository and ntp package
+++++++++++++++++++++++++++++++++
+
+The following steps need to be done on all the machines. We are going
+them step by step on the **db-node** only, and then we will automate
+the process on the other nodes.
+
+Add the OpenStack Grizzly repository::
+
+    root@db-nodes:# apt-get install -y ubuntu-cloud-keyring
+    root@db-nodes:# echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/grizzly main > /etc/apt/sources.list.d/grizzly.list
+
+Update the system (can take a while...)::
+ 
+    root@db-nodes:# apt-get update -y
+    root@db-nodes:# aptitude upgrade -y
+
+Install the NTP service::
+
+    root@db-nodes:# apt-get install -y ntp
+
+
+all nodes installation
+~~~~~~~~~~~~~~~~~~~~~~
+
+Since this boring step has to be completed on all the other nodes, we
+can run the following script in order to automate this process and
+being ready when we are going to work on them, later on on the
+tutorial. The following command has to run on the **physical machine**::
+
+    root@gks-NNN:[~] $ for host in auth-node image-node api-node \
+        network-node volume-node compute-1 compute-2
+    do
+    ssh -n root@$host "(apt-get install -y ubuntu-cloud-keyring; echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/grizzly main > /etc/apt/sources.list.d/grizzly.list; apt-get update -y; apt-get upgrade -y; apt-get install -y ntp) >& /dev/null &"
+    done
+
+
+MySQL installation
+++++++++++++++++++
 
 We are going to install both MySQL and RabbitMQ on the same server,
 but on a production environment you might want to have them installed
 on different servers and/or in HA. The following instructions are
 intended to be used for both scenarios.
-
-MySQL installation
-++++++++++++++++++
 
 Now please move on the db-node where we have to install the MySQL server.
 In order to do that please execute::
