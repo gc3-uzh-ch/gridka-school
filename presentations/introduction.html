@@ -76,8 +76,13 @@
                         <h2>Seems simple</h2>
                         <img class="plain" src="http://www.openstack.org/themes/openstack/images/openstack-software-diagram.png" width="1024">
                     </section>
-                    <section fullscreen-img="images/openstack-logical-arch-folsom.jpg"  fullscreen-size="contain">
+                    <section fullscreen-img="images/openstack-arch-grizzly-logical-v2.jpg"  fullscreen-size="contain">
                         <h1 class="dark_bg">but isn't</h1>
+
+                    </section>
+                    <section>
+                        <h2>Logically</h2>
+                        <img class="plain" src="images/openstack-arch-grizzly-conceptual-v2.jpg" width="1024">
 
                     </section>
 
@@ -89,7 +94,18 @@
 
                 <section>
                     <section>
-                        <h2>The life of a VM</h2>
+                        <h2>The life of a VM Request</h2>
+                        <ul>
+                            <li>User logs into Horizon and starts a VM create</li>
+                            <li>Keystone authenticates and authorizes</li>
+                            <li>Nova starts provisioning and creates DB record</li>
+                            <li>Nova schedulers finds appropriate host</li>
+                            <li>Nova network setups network, NAT and Firewall rules</li>
+                            <li>Cinder provides block device</li>
+                            <li>Image URI comes from Glance</li>
+                            <li>Swift retrieves the image</li>
+                            <li>Finally VM is rendered</li>
+                        </ul>
                     </section>
                     <section>
                         <h2>You want to start a VM on your cloud</h2>
@@ -126,11 +142,17 @@
                     </section>
                     <section>
                         <h2>Storage</h2>
-                        Object and Block storage for use with servers and applications
+                        Object and Block storage for use with servers and applications.
+                        <h3>Swift</h3>
+                        Object storage to store and retrieve files.
+                        <h3>Cinder</h3>
+                        Provides persistent block storage for VMs (think mountable disks)
                     </section>
                     <section>
                         <h2>Networking</h2>
                         Pluggable, scalable, API-driven network and IP management
+                        <h3>Neutron</h3>
+                        Allows user to create networks and attach interfaces to them.
                     </section>
                     <section>
                         <h2>Dashboard</h2>
@@ -146,9 +168,17 @@
                 <section>
                     <section>
                         <h2>Keystone</h2>
+                        <p>Provides identity services, authentication and authorisation</p>
+                        <ul>
+                            <li>Authenticate users and issue tokens for access to services</li>
+                            <li>Store users and tenants for role-based access control</li>
+                            <li>Catalog of services (and API endpoints)</li>
+                            <li>Create policies across users and services</li>
+                        </ul>
                     </section>
                     <section>
-                        <h2>Details</h2>
+                        <p><em>keystone</em> handles API requests and has configurable catalog, policy token and identity services</p>
+                        <p>Each keystone function has a pluggable backend and can be customized to use other backends (LDAP, ...)</p>
                     </section>
                 </section>
 
@@ -157,31 +187,48 @@
                 <section>
                     <section>
                         <h2>Glance</h2>
+                        <p>Centralized storage of images of virtual machines</p>
+                        <ul>
+                            <li>Store public/private images that are used to start instances</li>
+                            <li>Users can query and list available images</li>
+                            <li>Deliver images to Nova to start instances</li>
+                            <li>Store snapshots from running instances as backup</li>
+                        </ul>
                     </section>
                     <section>
-                        <h2>Details</h2>
+                        <ul>
+                            <li><em>glance-api</em>: accepts API calls</li>
+                            <li><em>glance-registry</em>: stores and processes metadata about images</li>
+                            <li>SQL database to store metadata</li>
+                            <li>Storage repository (usually Swift, but also filesystems, RADOS, S3 and others)</li>
+                        </ul>
                     </section>
                 </section>
 
-                <!--  NOVA -->
-
-                <section>
-                    <section>
-                        <h2>Nova</h2>
-                    </section>
-                    <section>
-                        <h2>Details</h2>
-                    </section>
-                </section>
 
                 <!--  Swift -->
 
                 <section>
                     <section>
                         <h2>Swift</h2>
+                        <p>Designed to provide large scale storage of data that can be accessed via APIs. Distributed storage,
+                        storing multiple copies of each object.</p>
+                        <ul>
+                            <li>Stores & retrieves objects (files)</li>
+                            <li>Sets & modifies metadata (tags)</li>
+                            <li>Versioning of objects</li>
+                            <li>Serve static web pages/objects via HTTP</li>
+                        </ul>
                     </section>
                     <section>
-                        <h2>Details</h2>
+                        <p>Distributed architecture to prevent single point of failures</p>
+                        <p>Can work with a large number of storage backends</p>
+                        <ul>
+                            <li><em>swift-proxy-server</em>: handles API and HTTP requests</li>
+                            <li>Account servers</li>
+                            <li>Container servers</li>
+                            <li>Object storage servers</li>
+                        </ul>
                     </section>
                 </section>
                 <!--  CINDER -->
@@ -189,9 +236,21 @@
                 <section>
                     <section>
                         <h2>Cinder</h2>
+                        <p>Persistent block storage for instances</p>
+                        <ul>
+                            <li>Create, modify and delete volumes</li>
+                            <li>Create snapshots or backups of volumes</li>
+                            <li>Query volume status and metadata</li>
+                        </ul>
                     </section>
                     <section>
-                        <h2>Details</h2>
+                        <ul>
+                            <li><em>cinder-api</em>: receives api request and routes them to</li>
+                            <li><em>cinder-volume</em> who acts on these requests</li>
+                            <li>cinder database for metadata storage</li>
+                            <li>interfaces to a large number of block storage provider hard and software</li>
+                            <li><em>cinder-scheduler</em>: selects the best storage option</li>
+                        </ul>
                     </section>
                 </section>
 
@@ -200,9 +259,25 @@
                 <section>
                     <section>
                         <h2>Horizon</h2>
+                        Horizon is the user and admin facing admin UI. It is a modular Django web application.
                     </section>
                     <section>
-                        <h2>Details</h2>
+                        <h2>User features</h2>
+                        <ul>
+                            <li>Create, start, stop, destroy VMs</li>
+                            <li>Create, start, stop, destroy volumes</li>
+                            <li>Image and snapshot management</li>
+                            <li>Security: Access keys, Firewall rules</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Admin features</h2>
+                        <ul>
+                            <li>Flavors</li>
+                            <li>Projects (user groups)</li>
+                            <li>User management</li>
+                            <li>Usage information</li>
+                        </ul>
                     </section>
                 </section>
 
@@ -212,44 +287,48 @@
                 <section>
                     <section>
                         <h2>Nova Network</h2>
+                        <p>A deamon that performs network related tasks (assigning floating IPs, setting up firewall and
+                        NAT rules, setting up bridging interfaces)</p>
                     </section>
                     <section>
-                        <h2>Details</h2>
-                    </section>
-                </section>
-
-
-                <!--  Quantum -->
-
-                <section>
-                    <section>
-                        <h2>Quantum</h2>
-                    </section>
-                    <section>
-                        <h2>Details</h2>
+                        <h2>Neutron</h2>
+                        <p>Starting in Grizzly, the neutron service (formerly known as Quantum) handles networking tasks.</p>
+                        <p>Allows End users to define networks and attach server interfaces to them</p>
+                        <p>Neutron interfaces with actual networking hardware from a variety of vendors</p>
                     </section>
                 </section>
 
 
-                <!--  NOVA API -->
+
+
+
+                <!--  Compute  -->
 
                 <section>
                     <section>
-                        <h2>Nova API</h2>
+                        <h2>Compute</h2>
+                        <p>The most complicated component of them all.</p>
+                        <ul>
+                            <li>Start, resize, stop and query VMs (instances)</li>
+                            <li>Assign/remove public IP addresses</li>
+                            <li>Attach/detach block storage</li>
+                            <li>Add/modify/delete security groups</li>
+                            <li>VNC console</li>
+                            <li>Snapshot instances</li>
+                        </ul>
                     </section>
                     <section>
-                        <h2>Details</h2>
-                    </section>
-                </section>
+                        <p>Consists of multiple sub-components:</p>
+                        <ul>
+                           <li><em>nova-admin</em>: set of daemons that accept end user computer API calls. (OpenStack Compute and EC2 compatible)</li>
+                           <li><em>nova-compute</em>: daemon that creates/terminates VMs using the underlying hypervisor API (Xen, KVM, VMWare, Hyper-V)</li>
+                           <li><em>nova-scheduler</em>: decide on which host a VM should run</li>
+                           <li><em>nova-conductor</em>: mediates access to database (increased security)</li>
+                           <li>Queue as the communication mechanism (use an AMQP compatible queue like RabbitMQ)</li>
+                           <li>SQL database stores build-time and run-time state</li>
+                           <li>Console access</li>
+                        </ul>
 
-                <!--  NOVA API -->
-
-                <section>
-                    <section>
-                        <h2>Nova API</h2>
-                    </section>
-                    <section>
-                        <h2>Details</h2>
                     </section>
                 </section>
 
@@ -257,13 +336,11 @@
                 <!--  MySQL -->
 
                 <section>
-                    <section>
-                        <h2>MySQL</h2>
-                    </section>
-                    <section>
-                        <h2>Details</h2>
-                    </section>
+                    <h2>MySQL</h2>
+                    <p>or another SQL database - commonly used is PostgreSQL (or SQLite for development/test)</p>
+                    <p>Components like nova, cinder, glance, keystone store information in their respective databases. </p>
                 </section>
+
 
                 <!--  RabbitMQ -->
 
@@ -277,47 +354,19 @@
                 </section>
 
 
+
                 <section>
-                    <section>
-                        <h2>Helpful Commands</h2>
-                    </section>
-                    <section>
-                        <h2>Status of OpenStack</h2>
-                        <pre><code class="big">
-# nova-manage service list
-Binary           Host     Zone    Status     State Updated_At
-nova-consoleauth ineri    nova    enabled    :-)   2013-06-26 07:56:46
-nova-scheduler   ineri    nova    enabled    :-)   2013-06-26 07:56:43
-nova-cert        ineri    nova    enabled    :-)   2013-06-26 07:56:43
-nova-compute     s2       nova    enabled    :-)   2013-06-26 07:56:43
-nova-compute     s3       nova    disabled   XXX   2013-06-04 11:42:09
-nova-compute     s1       nova    enabled    :-)   2013-06-26 07:56:46
-nova-compute     s0       nova    enabled    :-)   2013-06-26 07:56:38
-nova-compute     s4       nova    enabled    :-)   2013-06-26 07:56:38
-nova-compute     h2       nova    enabled    :-)   2013-06-26 07:56:40
-nova-compute     h0       nova    enabled    :-)   2013-06-26 07:56:39
-nova-compute     h1       nova    enabled    :-)   2013-06-26 07:56:40
-nova-compute     h3       nova    enabled    :-)   2013-06-26 07:56:39
-nova-compute     h4       nova    enabled    :-)   2013-06-26 07:56:47
-nova-network     ineri    nova    enabled    :-)   2013-06-26 07:56:44
-nova-compute     h5       nova    enabled    :-)   2013-06-26 07:56:42
-                        </code></pre>
-                    </section>
-
-                    <section>
-                        <h2>Check an image file</h2>
-                        <pre><code class="big">
-root@s0:~# file /var/lib/nova/instances/instance-00000008/disk*
-/var/lib/nova/instances/instance-00000008/disk:       QEMU QCOW Image
-    (v2), has backing file (path /var/lib/nova/instances/
-    _base/2764feb602a5921c1efb3434a5a0616c4), 10737418240 bytes
-/var/lib/nova/instances/instance-00000008/disk.local: QEMU QCOW Image
-    (v2), has backing file (path /var/lib/nova/instances/
-    _base/ephemeral_0_80_None_80), 85899345920 bytes
-
-                        </code></pre>
-                    </section>
-
+                    <h1>Links</h1>
+                    <ul>
+                        <li><a href="http://docs.openstack.org/trunk/openstack-ops/content/">OpenStack Operations Manual</a></li>
+                        <li><a href="http://www.solinea.com/2013/06/15/openstack-grizzly-architecture-revisited/">http://www.solinea.com/2013/06/15/openstack-grizzly-architecture-revisited/</a>
+                        <li><a href="http://www.slideshare.net/mirantis/open-stack-architecture-overviewmeetup662013">http://www.slideshare.net/mirantis/open-stack-architecture-overviewmeetup662013</a>
+                        </li>
+                    </ul>
+                </section>
+                <section>
+                    <h1>License</h1>
+                    <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/deed.en_US"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-sa/3.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" property="dct:title">OpenStack - a journey into complexity</span> by <span xmlns:cc="http://creativecommons.org/ns#" property="cc:attributionName">Jens-Christian Fischer, SWITCH</span> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/deed.en_US">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>.
                 </section>
 			</div>
 
