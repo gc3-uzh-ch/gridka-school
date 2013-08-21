@@ -7,8 +7,7 @@ GridKa School 2013 - Training Session on OpenStack
 ==================================================
 
 This guide is to be used as reference for the installation of
-OpenStack `Grizzly` during the `GridKa School 2013 - Training Session on
-OpenStack`. 
+OpenStack `Grizzly` during the: `GridKa School 2013 - Training Session on OpenStack`. 
 
 
 OpenStack overview
@@ -20,16 +19,14 @@ OpenStack, specifically:
 MySQL
     MySQL database is used together with the RabbitMQ messaging
     system for storing and sharing information about the status of the
-    cloud.
-
-FIXME: mention that other database solutions can be implemented
-(Postgres, ...?)
+    cloud. Alternatively the PostgreSQL software can be also used as database
+    backend. We will use default one: MySQL. 
 
 RabbitMQ
     Messaging service used for inter-process communication among
-    various OpenStack components.
-
-FIXME: mention that also zeromq can be used (and possibly others?)
+    various OpenStack components. Alternatives to RabbitMQ are the
+    Qpid and ZeroMQ softwares, in this tutorial we will again use the
+    default one: RabbitMQ.
 
 Keystone
     OpenStack service which provides the authentication service and
@@ -41,32 +38,33 @@ nova
     OpenStack *orchestrator*: it works as a main API endpoint for
     Horizon and for command line tools, schedule the requests,
     talks to the other OpenStack components to provide the requested
-    resources, setup and run the virtual machines. It is thus composed
-    of multiple services: **nova-api**, **nova-scheduler**,
-    **nova-conductor** etc...
+    resources, setup and run the OpenStack instances. It is thus 
+    composed of multiple services: **nova-api**, **nova-scheduler**,
+    **nova-conductor**, **nova-cert**, ect.
 
 nova-network
-    OpenStack service used to configure the network of the VMs and to
-    optionally provide the so-called *Floating IPs*. IPs that can be
-    *attached* and *detached* from a virtual machine while it is
-    already running.
+    OpenStack service used to configure the network of the instances
+    and to optionally provide the so-called *Floating IPs*. IPs that can be
+    *attached* and *detached* from an instance while it is
+    already running. Those IPs are usually used for accessing the instances
+    from outside world. 
 
 nova-compute
     OpenStack service which runs on the compute node and is
-    responsible of actual managing the VM. It supports different
-    hypervisors.
-
-FIXME: shall we mention that the most common hypervisor is KVM, but
-    due to limitations on our setup we are going to use qemu?
+    responsible of actual managing the OpenStack instances. It 
+    supports different hypervisors. The complete list bellow can be found `here
+    <http://docs.openstack.org/trunk/openstack-compute/admin/content/selecting-a-hypervisor.html>`_.
+    The commonly used one is KVM but due to limitation in our setup we
+    will use qemu.
 
 glance
     OpenStack imaging service. It is used to store virtual disks
-    used to start the virtual machines. It is split in two different
+    used to start the instances. It is split in two different
     services: **glance-api** and **glance-registry**
 
 cinder
     OpenStack volume service. It is used to create persistent volumes which
-    can be attached to a running virtual machine later on. It is split
+    can be attached to a running instances later on. It is split
     in three different services: **cinder-api**, **cinder-scheduler**
     and **cinder-volume**
 
