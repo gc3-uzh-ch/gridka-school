@@ -226,6 +226,7 @@ The *internal KVM network* is only needed because we are using virtual
 machines, but on a production environment you are likely to have only
 2 network cards for each of the nodes, and 3 on the network node.
 
+
 ..
    Installation:
    -------------
@@ -251,8 +252,8 @@ cloud repository and ntp package
 ++++++++++++++++++++++++++++++++
 
 The following steps need to be done on all the machines. We are going
-them step by step on the **db-node** only, and then we will automate
-the process on the other nodes.
+execute them step by step on the **db-node** only, and then we will automate
+the process on the other nodes. Please login to the db-node and:
 
 Add the OpenStack Grizzly repository::
 
@@ -272,10 +273,10 @@ Install the NTP service::
 all nodes installation
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Since this boring step has to be completed on all the other nodes, we
-can run the following script in order to automate this process and
-being ready when we are going to work on them, later on on the
-tutorial. The following command has to run on the **physical machine**::
+Since those boring steps have to be completed on all the other nodes, we
+can run the following script in order to automate this process. This way
+the rest of the VMs will have all those steps already done by the time we are
+going to work on them. The following command has to run on the **physical machine**::
 
     root@gks-NNN:[~] $ for host in auth-node image-node api-node \
         network-node volume-node compute-1 compute-2
@@ -299,12 +300,12 @@ In order to do that please execute::
 
 you will be prompted for a password, it is safe to specify a good one,
 since the MySQL server will be accessible also via internet, so please
-pick a password and remember it.
+pick a password and remember it (e.g. "mysql").
 
 For security reasons the MySQL daemon listens on localhost only,
 port 3306. This has to be changed in order to make the server
 accessible from the all the OpenStack services. Edit the
-``/etc/mysql/my.cnf`` and ensure that it contains the following line::
+``/etc/mysql/my.cnf`` file and ensure that it contains the following line::
 
     bind-address            = 0.0.0.0
 
@@ -312,7 +313,7 @@ After changing this line you have to restart the MySQL server::
 
     root@db-node # service mysql restart
 
-Check that MySQL is actually running and listening on all the hosts
+Check that MySQL is actually running and listening on all the interfaces
 using the ``netstat`` command::
 
     root@db-node:~# netstat -nlp|grep 3306
@@ -329,7 +330,7 @@ Install RabbitMQ from the ubuntu repository::
 RabbitMQ does not need any specific configuration. On a production
 environment, however, you might need to create a specific user for
 OpenStack services; in order to do that please check the official
-documentation.
+documentation `here <http://www.rabbitmq.com/documentation.html>`_.
 
 To check if the RabbitMQ server is running use the ``rabbitmqctl``
 command::
@@ -357,7 +358,6 @@ command::
      {vm_memory_high_watermark,0.39999999980957235},
      {vm_memory_limit,840214118}]
     ...done.
-
 
 Please keep the connection to the db-node open as we will need to
 operate on it briefly.
