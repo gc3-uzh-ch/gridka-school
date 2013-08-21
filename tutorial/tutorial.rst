@@ -77,14 +77,13 @@ Tutorial overview
 
 Each team will have two physical machines to work with.
 
-One of the nodes will run 6 VMs running the various central services. 
+One of the nodes will run the 6 VMs hosting the central services. 
 They are called as follows:
 
 * ``db-node``:  runs *MySQL* and *RabbitMQ*  
 * ``auth-node``: runs *keystone*
 * ``image-node``: runs *glance-api* and *glance-registry*
-* ``api-node``: runs *nova-api*, *horizon*, *nova-scheduler* and other
-  nova-related services
+* ``api-node``: runs *nova-api*, *horizon*, *nova-scheduler* and other **nova** related services
 * ``network-node``: runs *nova-network*
 * ``volume-node``: runs *cinder-api*, *cinder-scheduler* and *cinder-volume*
 
@@ -102,7 +101,7 @@ In order to access the different virtual machines and start working on the
 configuration of OpenStack services listed above you will have to first login 
 on one of the nodes assigned to your group by doing::
 
-        ssh root@gks-NNN.scc.kit.edu -p 24
+        ssh root@gks-NNN.scc.kit.edu -p 24 -X
 
 where NNN is one of the numbers assigned to you.
 
@@ -111,42 +110,23 @@ Virtual Machines
 
 The physical nodes already have the KVM virtual machines we will use
 for the tutorial. These are Ubuntu 12.04 LTS machines with very basic
-configuration, including the IP configuration and the correct
-hostname.
+configuration, including the IP configuration and the correct hostname.
 
-You can connect to them from each one of the physical machines (the
-**gks-NNN** ones) using **ssh** or by starting the ``virt-manager``
-program on the physical node hosting the virtual machine and then
-connecting to the console.
+Start the Virtual Machines
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The hostname of the virtual machine are as described in the
-*Tutorial overview* section, we summarize them bellow:
-
-* **db-node**
-* **auth-node**
-* **api-node**
-* **network-node**
-* **image-node**
-* **volume-node**
-* **compute-1-node**
-* **compute-2-node**
-
-In order to connect using **ssh** please do::
-
-     ssh root@hostname 
-
-where **hostname** is one of those listed just
-above. You will be asked for a password, use: **user@gridka**.
-
-You can start and stop them using the ``virt-manager`` graphical
+You can start and stop the VMs using the ``virt-manager`` graphical
 interface or the ``virsh`` command line tool.
 
-The first thing you have to do is starting the virtual
-machines. Connect to both your physical nodes and run::
+All the VMs are initially stopped so the first exercise
+you have to do will be to start them all. Connect to both
+of the physical nodes and run::
 
     virt-manager
 
-Using the graphical interface, start all the previous nodes.
+Please note that each VM has its golden clone, called  **hostname-golden**. 
+They can be used to easily recreate a particular service or compute VM
+from scratch. Please **keep them OFF** and start the rest of the VMs. 
 
 However, if you prefer to use the ``virsh`` command line interface,
 run on one of the physical nodes the following commands::
@@ -163,6 +143,32 @@ and on the *other* physical node::
     root@gks-002:[~] $ virsh start compute-1
     root@gks-002:[~] $ virsh start compute-2
 
+Access the Virtual Machines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The hostname of the virtual machine are as described in the
+*Tutorial overview* section, we summarize them bellow:
+
+* **db-node**
+* **auth-node**
+* **api-node**
+* **network-node**
+* **image-node**
+* **volume-node**
+* **compute-1**
+* **compute-2**
+
+You can connect to them from each one of the physical machines (the
+**gks-NNN** ones) using **ssh** or by starting the ``virt-manager``
+program on the physical node hosting the virtual machine and then
+connecting to the console.
+
+In order to connect using **ssh** please do::
+
+     ssh root@hostname 
+
+where **hostname** is one of those listed above. All the Virtual
+Machines are setup with the same passwd: **user@gridka**  
 
 Network Setup
 +++++++++++++
