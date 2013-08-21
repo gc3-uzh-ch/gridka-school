@@ -7,8 +7,7 @@ GridKa School 2013 - Training Session on OpenStack
 ==================================================
 
 This guide is to be used as reference for the installation of
-OpenStack `Grizzly` during the `GridKa School 2013 - Training Session on
-OpenStack`. 
+OpenStack `Grizzly` during the: `GridKa School 2013 - Training Session on OpenStack`. 
 
 
 OpenStack overview
@@ -20,16 +19,14 @@ OpenStack, specifically:
 MySQL
     MySQL database is used together with the RabbitMQ messaging
     system for storing and sharing information about the status of the
-    cloud.
-
-FIXME: mention that other database solutions can be implemented
-(Postgres, ...?)
+    cloud. Alternatively the PostgreSQL software can be also used as database
+    backend. We will use default one: MySQL. 
 
 RabbitMQ
     Messaging service used for inter-process communication among
-    various OpenStack components.
-
-FIXME: mention that also zeromq can be used (and possibly others?)
+    various OpenStack components. Alternatives to RabbitMQ are the
+    Qpid and ZeroMQ softwares, in this tutorial we will again use the
+    default one: RabbitMQ.
 
 Keystone
     OpenStack service which provides the authentication service and
@@ -41,32 +38,33 @@ nova
     OpenStack *orchestrator*: it works as a main API endpoint for
     Horizon and for command line tools, schedule the requests,
     talks to the other OpenStack components to provide the requested
-    resources, setup and run the virtual machines. It is thus composed
-    of multiple services: **nova-api**, **nova-scheduler**,
-    **nova-conductor** etc...
+    resources, setup and run the OpenStack instances. It is thus 
+    composed of multiple services: **nova-api**, **nova-scheduler**,
+    **nova-conductor**, **nova-cert**, ect.
 
 nova-network
-    OpenStack service used to configure the network of the VMs and to
-    optionally provide the so-called *Floating IPs*. IPs that can be
-    *attached* and *detached* from a virtual machine while it is
-    already running.
+    OpenStack service used to configure the network of the instances
+    and to optionally provide the so-called *Floating IPs*. IPs that can be
+    *attached* and *detached* from an instance while it is
+    already running. Those IPs are usually used for accessing the instances
+    from outside world. 
 
 nova-compute
     OpenStack service which runs on the compute node and is
-    responsible of actual managing the VM. It supports different
-    hypervisors.
-
-FIXME: shall we mention that the most common hypervisor is KVM, but
-    due to limitations on our setup we are going to use qemu?
+    responsible of actual managing the OpenStack instances. It 
+    supports different hypervisors. The complete list bellow can be found `here
+    <http://docs.openstack.org/trunk/openstack-compute/admin/content/selecting-a-hypervisor.html>`_.
+    The commonly used one is KVM but due to limitation in our setup we
+    will use qemu.
 
 glance
     OpenStack imaging service. It is used to store virtual disks
-    used to start the virtual machines. It is split in two different
+    used to start the instances. It is split in two different
     services: **glance-api** and **glance-registry**
 
 cinder
     OpenStack volume service. It is used to create persistent volumes which
-    can be attached to a running virtual machine later on. It is split
+    can be attached to a running instances later on. It is split
     in three different services: **cinder-api**, **cinder-scheduler**
     and **cinder-volume**
 
@@ -79,14 +77,13 @@ Tutorial overview
 
 Each team will have two physical machines to work with.
 
-One of the nodes will run 6 VMs running the various central services. 
+One of the nodes will run the 6 VMs hosting the central services. 
 They are called as follows:
 
 * ``db-node``:  runs *MySQL* and *RabbitMQ*  
 * ``auth-node``: runs *keystone*
 * ``image-node``: runs *glance-api* and *glance-registry*
-* ``api-node``: runs *nova-api*, *horizon*, *nova-scheduler* and other
-  nova-related services
+* ``api-node``: runs *nova-api*, *horizon*, *nova-scheduler* and other **nova** related services
 * ``network-node``: runs *nova-network*
 * ``volume-node``: runs *cinder-api*, *cinder-scheduler* and *cinder-volume*
 
@@ -104,7 +101,7 @@ In order to access the different virtual machines and start working on the
 configuration of OpenStack services listed above you will have to first login 
 on one of the nodes assigned to your group by doing::
 
-        ssh root@gks-NNN.scc.kit.edu -p 24
+        ssh root@gks-NNN.scc.kit.edu -p 24 -X
 
 where NNN is one of the numbers assigned to you.
 
@@ -113,42 +110,23 @@ Virtual Machines
 
 The physical nodes already have the KVM virtual machines we will use
 for the tutorial. These are Ubuntu 12.04 LTS machines with very basic
-configuration, including the IP configuration and the correct
-hostname.
+configuration, including the IP configuration and the correct hostname.
 
-You can connect to them from each one of the physical machines (the
-**gks-NNN** ones) using **ssh** or by starting the ``virt-manager``
-program on the physical node hosting the virtual machine and then
-connecting to the console.
+Start the Virtual Machines
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The hostname of the virtual machine are as described in the
-*Tutorial overview* section, we summarize them bellow:
-
-* **db-node**
-* **auth-node**
-* **api-node**
-* **network-node**
-* **image-node**
-* **volume-node**
-* **compute-1-node**
-* **compute-2-node**
-
-In order to connect using **ssh** please do::
-
-     ssh root@hostname 
-
-where **hostname** is one of those listed just
-above. You will be asked for a password, use: **user@gridka**.
-
-You can start and stop them using the ``virt-manager`` graphical
+You can start and stop the VMs using the ``virt-manager`` graphical
 interface or the ``virsh`` command line tool.
 
-The first thing you have to do is starting the virtual
-machines. Connect to both your physical nodes and run::
+All the VMs are initially stopped so the first exercise
+you have to do will be to start them all. Connect to both
+of the physical nodes and run::
 
     virt-manager
 
-Using the graphical interface, start all the previous nodes.
+Please note that each VM has its golden clone, called  **hostname-golden**. 
+They can be used to easily recreate a particular service or compute VM
+from scratch. Please **keep them OFF** and start the rest of the VMs. 
 
 However, if you prefer to use the ``virsh`` command line interface,
 run on one of the physical nodes the following commands::
@@ -165,6 +143,32 @@ and on the *other* physical node::
     root@gks-002:[~] $ virsh start compute-1
     root@gks-002:[~] $ virsh start compute-2
 
+Access the Virtual Machines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The hostname of the virtual machine are as described in the
+*Tutorial overview* section, we summarize them bellow:
+
+* **db-node**
+* **auth-node**
+* **api-node**
+* **network-node**
+* **image-node**
+* **volume-node**
+* **compute-1**
+* **compute-2**
+
+You can connect to them from each one of the physical machines (the
+**gks-NNN** ones) using **ssh** or by starting the ``virt-manager``
+program on the physical node hosting the virtual machine and then
+connecting to the console.
+
+In order to connect using **ssh** please do::
+
+     ssh root@hostname 
+
+where **hostname** is one of those listed above. All the Virtual
+Machines are setup with the same passwd: **user@gridka**  
 
 Network Setup
 +++++++++++++
@@ -222,6 +226,7 @@ The *internal KVM network* is only needed because we are using virtual
 machines, but on a production environment you are likely to have only
 2 network cards for each of the nodes, and 3 on the network node.
 
+
 ..
    Installation:
    -------------
@@ -247,8 +252,8 @@ cloud repository and ntp package
 ++++++++++++++++++++++++++++++++
 
 The following steps need to be done on all the machines. We are going
-them step by step on the **db-node** only, and then we will automate
-the process on the other nodes.
+execute them step by step on the **db-node** only, and then we will automate
+the process on the other nodes. Please login to the db-node and:
 
 Add the OpenStack Grizzly repository::
 
@@ -268,10 +273,10 @@ Install the NTP service::
 all nodes installation
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Since this boring step has to be completed on all the other nodes, we
-can run the following script in order to automate this process and
-being ready when we are going to work on them, later on on the
-tutorial. The following command has to run on the **physical machine**::
+Since those boring steps have to be completed on all the other nodes, we
+can run the following script in order to automate this process. This way
+the rest of the VMs will have all those steps already done by the time we are
+going to work on them. The following command has to run on the **physical machine**::
 
     root@gks-NNN:[~] $ for host in auth-node image-node api-node \
         network-node volume-node compute-1 compute-2
@@ -295,12 +300,12 @@ In order to do that please execute::
 
 you will be prompted for a password, it is safe to specify a good one,
 since the MySQL server will be accessible also via internet, so please
-pick a password and remember it.
+pick a password and remember it (e.g. "mysql").
 
 For security reasons the MySQL daemon listens on localhost only,
 port 3306. This has to be changed in order to make the server
 accessible from the all the OpenStack services. Edit the
-``/etc/mysql/my.cnf`` and ensure that it contains the following line::
+``/etc/mysql/my.cnf`` file and ensure that it contains the following line::
 
     bind-address            = 0.0.0.0
 
@@ -308,7 +313,7 @@ After changing this line you have to restart the MySQL server::
 
     root@db-node # service mysql restart
 
-Check that MySQL is actually running and listening on all the hosts
+Check that MySQL is actually running and listening on all the interfaces
 using the ``netstat`` command::
 
     root@db-node:~# netstat -nlp|grep 3306
@@ -325,7 +330,7 @@ Install RabbitMQ from the ubuntu repository::
 RabbitMQ does not need any specific configuration. On a production
 environment, however, you might need to create a specific user for
 OpenStack services; in order to do that please check the official
-documentation.
+documentation `here <http://www.rabbitmq.com/documentation.html>`_.
 
 To check if the RabbitMQ server is running use the ``rabbitmqctl``
 command::
@@ -353,7 +358,6 @@ command::
      {vm_memory_high_watermark,0.39999999980957235},
      {vm_memory_limit,840214118}]
     ...done.
-
 
 Please keep the connection to the db-node open as we will need to
 operate on it briefly.
