@@ -808,7 +808,7 @@ Similar changes have to be done on the ``/etc/glance/glance-registry-paste.ini``
 
 Information on how to connect to the MySQL database are stored in the
 ``/etc/glance/glance-api.conf`` file. The syntax is similar to the one
-used in the``/etc/keystone/keystone.conf`` file,  but the name of the
+used in the ``/etc/keystone/keystone.conf`` file,  but the name of the
 option is ``sql_connection`` instead::
 
     sql_connection = mysql://glanceUser:glancePass@10.0.0.3/glance
