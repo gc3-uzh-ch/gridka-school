@@ -366,8 +366,18 @@ operate on it briefly.
 ``auth-node``
 -------------
 
-*(remember to add the cloud repository and install the **ntp** package
-as described in the `all nodes installation`_ section)*
+Before staring we can quickly check if the remote ssh execution of the
+commands done in the `all nodes installation`_ section worked without problems::
+
+    root@auth-node:~# dpkg -l ntp
+    Desired=Unknown/Install/Remove/Purge/Hold
+    | Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend
+    |/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)
+    ||/ Name                          Version                       Description
+    +++-=============================-=============================-==========================================================================
+    ii  ntp                           1:4.2.6.p3+dfsg-1ubuntu3.1    Network Time Protocol daemon and utility programs
+
+which confirmed ntp is installed as required.
 
 Keystone
 ++++++++
@@ -389,7 +399,7 @@ Go to the **auth-node** and install the keystone package::
         
 Update the value of the ``connection`` option in the
 ``/etc/keystone/keystone.conf`` file, in order to match the hostname,
-database name, user and password you just created. The syntax of this
+database name, user and password you've just created. The syntax of this
 option is::
 
     connection = <protocol>://<user>:<password>@<host>/<db_name>
@@ -403,7 +413,7 @@ following command::
 
     root@auth-node:~# keystone-manage db_sync
 
-Now we can restart the keystone service::
+Restart of the keystone service is again required::
 
     root@auth-node:~# service keystone restart
 
@@ -442,8 +452,8 @@ the admin token, we will set the following environment variables::
 Creation of the admin user
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In order to work with keystone we will need to create an admin user
-and to create a few basic projects and roles.
+In order to work with keystone we have to create an admin user and
+a few basic projects and roles.
 
 Please note that we will sometimes use the word ``tenant`` instead of
 ``project``, since the latter is actually the new name of the former,
@@ -475,7 +485,6 @@ correct environment variables::
     |      id     | cb0e475306cc4c91b2a43b537b1a848b |
     |     name    |             service              |
     +-------------+----------------------------------+
-
 
 Create the **admin** user::
 
@@ -521,7 +530,7 @@ Go on by creating the different roles::
     |   name   |              Member              |
     +----------+----------------------------------+
 
-This roles are checked by different services. It is not really easy
+These roles are checked by different services. It is not really easy
 to know which service checks for which role, but on a very basic
 installation you can just live with ``Member`` (to be used for all the
 standard users) and ``admin`` (to be used for the OpenStack
@@ -571,10 +580,10 @@ The following command will create an endpoint associated to this
 service::
 
     root@auth-node:~# keystone endpoint-create --region RegionOne \
-        --service-id 28b2812e31334d4494a8a434d3e6fc65 \
         --publicurl 'http://auth-node.example.org:5000/v2.0' \
         --adminurl 'http://auth-node.example.org:35357/v2.0' \
-        --internalurl 'http://10.0.0.4:5000/v2.0'
+        --internalurl 'http://10.0.0.4:5000/v2.0' \
+        --service-id 28b2812e31334d4494a8a434d3e6fc65
     WARNING: Bypassing authentication using a token & endpoint (authentication credentials are being ignored).
     +-------------+-----------------------------------------+
     |   Property  |                  Value                  |
@@ -614,7 +623,9 @@ while a list of endpoints is shown by the command::
 From now on, you can access keystone using the admin user either by
 using the following command line options::
 
-    root@any-host:~# keystone --os-user admin --os-tenant-name admin --os-password keystoneAdmin --os-auth-url http://auth-node.example.org:5000/v2.0
+    root@any-host:~# keystone --os-user admin --os-tenant-name admin \
+                    --os-password keystoneAdmin --os-auth-url http://auth-node.example.org:5000/v2.0 \
+                    <subcommand> 
 
 or by setting the following environment variables and run keystone
 without the previous options::
@@ -623,41 +634,41 @@ without the previous options::
     root@any-host:~# export OS_PASSWORD=keystoneAdmin
     root@any-host:~# export OS_TENANT_NAME=admin
     root@any-host:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
+    
+If you are going to use the last option it is usually a good practice to insert those environment
+variables in the root's .bashrc file so that they are loaded each time you open a new shell.
 
-Please keep the connection to the auth-node open as we will need to
-operate on it briefly.
+Please keep the connection to the auth-node open as we will need to operate on it briefly.
 
 ``image-node``
 --------------
 
-*(remember to add the cloud repository and install the **ntp** package
-as described in the `all nodes installation`_ section)*
+As we did for the auth node before staring it is good to quickly check if the
+remote ssh execution of the commands done in the `all nodes installation`_ section 
+worked without problems. You can again verify it by checking the ntp installation.
 
 Glance
 ++++++
 
 **Glance** is the name of the image service of OpenStack. It is
-responsible to store the images that will be used as templates to
-start the virtual machines. We will use the default configuration and
+responsible for storing the images that will be used as templates to
+start the instances. We will use the default configuration and
 only do the minimal changes to match our configuration.
+
+Glance is actually composed of different services:
+
+* **glance-api** accepts API calls for dicovering the available images, for their storage and also for their retrieval.
+
+* **glance-registry** is instead storing and retrieving metadata about the images from the db. 
+
+**FIXME explain the differences of the services above in more detail**
+
+glance database and keystone setup
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Similarly to what we did for the keystone service, also for the glance
 service we need to create a database and a pair of user and password
 for it.
-
-Glance is actually composed of different services:
-
-**glance-api**
-
-**glance-registry**
-
-In our setup, we will run all the cinder services on the same machine,
-although you can, in principle, spread them over multiple servers.
-
-FIXME: explain the difference between glance-api and glance-registry
-
-glance database and keystone setup
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 On the **db-node** create the database and the MySQL user::
 
@@ -712,8 +723,8 @@ Then we need to give admin permissions to it::
 
     root@image-node:~# keystone user-role-add --tenant service --user glance --role admin
 
-Please note that we could have created only one user for all the
-services, but this is a cleaner solution.
+Please note that we could have created only one user for all the services, 
+but this is a cleaner solution.
 
 We need then to create the **image** service::
 
@@ -731,10 +742,10 @@ We need then to create the **image** service::
 and the related endpoint::
 
     root@image-node:~# keystone endpoint-create --region RegionOne \
-        --service-id 6cb0cf7a81bc4489a344858398d40222 \
         --publicurl 'http://image-node.example.org:9292/v2' \
         --adminurl 'http://image-node.example.org:9292/v2' \
-        --internalurl 'http://10.0.0.5:9292/v2'
+        --internalurl 'http://10.0.0.5:9292/v2' \
+        --service-id 6cb0cf7a81bc4489a344858398d40222
     +-------------+---------------------------------------+
     |   Property  |                 Value                 |
     +-------------+---------------------------------------+
@@ -755,7 +766,7 @@ On the **image-node** install the **glance** package::
 
 To configure the glance service we need to edit a few files in ``/etc/glance``:
 
-On the ``/etc/glance/glance-api-paste.ini`` file, we need to adjust
+In the ``/etc/glance/glance-api-paste.ini`` file, we need to adjust
 the **filter:authtoken** section so that it matches the values we used
 when we created the keystone **glance** user::
 
@@ -782,7 +793,17 @@ Similar changes have to be done on the ``/etc/glance/glance-registry-paste.ini``
 
 .. Very interesting: we misspelled the password here, but we only get
    errors when getting the list of VM from horizon. Booting VM from
-   nova actually worked!!!
+   nova actually worked!!! 
+   
+   Found the following explanation here: http://bcwaldon.cc/
+   
+   glance-registry vs glance-api
+   The v1 and v2 Images APIs were implemented with seperate paths to
+   the Glance database. The first of which proxies queries through a subsequent
+   HTTP service (glance-registry) while the second talks directly to the database. 
+   As these two APIs should be talking to an equivalent system, we will be realigning
+   their internal paths to talk through the service layer (created with the domain object model)
+   directly to the database, effectively deprecating the glance-registry service.
 
 
 Information on how to connect to the MySQL database are stored in the
@@ -798,7 +819,7 @@ On this file, we also need to specify the RabbitMQ host (default is
     rabbit_host = 10.0.0.3
 
 Finally, we need to specify which paste pipeline we are using. We are not
-entering in details here, just check that the following option is present::
+entering into details here, just check that the following option is present::
 
     [paste_deploy]
     flavor = keystone
@@ -837,8 +858,7 @@ First of all, let's download a very small test image::
 
     root@image-node:~# wget https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img
 
-The command line tool to manage images is ``glance``. Uploading an
-image is easy::
+The command line tool to manage images is ``glance``. Uploading an image is easy::
 
     root@image-node:~# glance image-create --name cirros-0.3.0 --is-public=true \
       --container-format=bare --disk-format=qcow2 --file cirros-0.3.0-x86_64-disk.img 
