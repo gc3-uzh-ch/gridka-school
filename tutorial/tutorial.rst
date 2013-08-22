@@ -1836,18 +1836,15 @@ worked without problems. You can again verify it by checking the ntp installatio
 Nova-compute 
 ++++++++++++
 
-In the next few rows we try to briefly explain what happens behind the scene when a new request
+In the next few rows we try to briefly explain what happens behind the scene when a new request 
 for starting an OpenStack instance is done. Note that this is very high level description. 
 
-1. The OpenStack API, EC2 API or the Horizon Web Interface (based again on OpenStack APIs) are used for 
-creating the new instance request.
-2. Authentication is performed by keystone checking if the user is authorized for the requested operation.
-3. Message is then send to the scheduler with the new request.
-4. Scheduler writes the message in the RabbitMQ queue asking a specific host matching the requirements to start
-the instance.
-5. The compute reads the message from the queue and starts booting the new instance asking for a fixed IP to
-the network service.
-6. The instance is at the end available from the outside world through the assigned IP. 
+1) The OpenStack API, EC2 API or the Horizon Web Interface (based again on OpenStack APIs) are used for creating the new instance request.
+2) Authentication is performed by keystone checking if the user is authorized for the requested operation.
+3) Message is then send to the scheduler with the new request.
+4) cheduler writes the message in the RabbitMQ queue asking a specific host matching the requirements to start the instance.
+5) The compute reads the message from the queue and starts booting the new instance asking for a fixed IP to the network service.
+6) The instance is at the end available from the outside world through the assigned IP. 
 
 **FIXME: To be checked the described above workflow***
 
