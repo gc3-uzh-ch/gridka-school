@@ -1,8 +1,3 @@
-FIXME: we would probably need to rename "virtual machine" with
-"instance" or "openstack instance" when talking about OpenStack
-virtual machines, in order to avoid confusions with the virtual
-machines used to host the OpenStack services.
-
 GridKa School 2013 - Training Session on OpenStack
 ==================================================
 
@@ -1324,7 +1319,7 @@ user and password for nova, but in this case we need to create two
 different services and endpoints:
 
 compute
-    allows you to manage virtual machines
+    allows you to manage OpenStack instances
 
 ec2
     compatibility layer on top of the nova service, which allows you
@@ -1533,7 +1528,7 @@ These service should be in ``:-)`` state when running::
 Testing nova
 ~~~~~~~~~~~~
 
-So far we cannot run a virtual machine yet, but we can check if nova
+So far we cannot run an instance yet, but we can check if nova
 is able to talk to the services already installed. As usual, you can
 set the environment variables to use the ``nova`` command line
 without having to specify the credentials via command line options::
@@ -1776,7 +1771,7 @@ of public IPs. These IP can be either automatically assigned when an
 instance is started (using the option
 ``auto_assign_floating_ip=true`` in ``/etc/nova/nova.conf`` on the
 ``nova-network`` node, like we did), and/or assigned and removed from
-a virtual machine while the machine is up&running.
+an instance while it is up&running.
 
 Create a floating public network::
 
@@ -1877,16 +1872,15 @@ bridge, called **br100** attached to the network interface ``eth2``::
         bridge_fd    0
 
 This bridge must be on the same layer-2 network of the network node,
-and is used only for the communication among the OpenStack virtual
-machines.
+and is used only for the communication among the OpenStack instances.
 
 Since nova-compute only attach new virtual interface to this bridge
 but it does not change the IP configuration (as nova-network does),
 you can also assign the internal IP address of the **compute-1** node
 (in our case, the **10.0.0.20** ip address) on the **br100**
 interface. However, on a production environment, for security reasons,
-you want to have two physically separated network for the virtual
-machines and for the OpenStack services.
+you want to have two physically separated network for the instances
+and for the OpenStack services.
 
 (This is valid for **compute-1**, please update the IP address when configuring **compute-2**)
 
@@ -2025,8 +2019,8 @@ line interface, and then from the physical node connecting to the web
 interface.
 
 The first thing we need to do is to create a ssh keypair and upload
-the public key on OpenStack so that we can connect to the virtual
-machine. The command to create a ssh keypair is ``ssh-keygen``::
+the public key on OpenStack so that we can connect to the instance.
+The command to create a ssh keypair is ``ssh-keygen``::
 
     root@api-node:~# ssh-keygen -t rsa -f ~/.ssh/id_rsa
     Generating public/private rsa key pair.
@@ -2091,7 +2085,7 @@ groups::
     | default | default     |
     +---------+-------------+
 
-Now we are ready to start our first virtual machine::
+Now we are ready to start our first instance::
 
     root@api-node:~# nova boot --image 79af6953-6bde-463d-8c02-f10aca227ef4 \
       --flavor m1.tiny --key_name gridka-api-node server-1
@@ -2126,7 +2120,7 @@ Now we are ready to start our first virtual machine::
     | metadata                            | {}                                   |
     +-------------------------------------+--------------------------------------+
 
-This command returns immediately, even if the virtual machine is not
+This command returns immediately, even if the OpenStack instance is not
 yet started::
 
     root@api-node:~# nova list
@@ -2150,10 +2144,10 @@ yet started::
     | d2ef7cbf-c506-4c67-a6b6-7bd9fecbe820 | server-1 | ACTIVE | net1=10.99.0.2, 172.16.1.1 |
     +--------------------------------------+----------+--------+----------------------------+
 
-When the virtual machine is in ``ACTIVE`` it means that the virtual
-machine is being running on a compute node. However, the boot process
+When the instance is in ``ACTIVE`` state it means that it is now
+running on a compute node. However, the boot process
 can take some time, so don't worry if the following command will fail
-a few times before you can actually connect to the virtual machine::
+a few times before you can actually connect to the instance::
 
     root@api-node:~# ssh 172.16.1.1
     The authenticity of host '172.16.1.1 (172.16.1.1)' can't be established.
@@ -2166,7 +2160,7 @@ a few times before you can actually connect to the virtual machine::
 Testing cinder
 ++++++++++++++
 
-You can attach a volume to a running virtual machine easily::
+You can attach a volume to a running instance easily::
 
     root@api-node:~# nova volume-list
     +--------------------------------------+-----------+--------------+------+-------------+-------------+
@@ -2185,7 +2179,7 @@ You can attach a volume to a running virtual machine easily::
     | volumeId | 180a081a-065b-497e-998d-aa32c7c295cc |
     +----------+--------------------------------------+
 
-Inside the virtual machine, a new disk named ``/dev/vdb`` will
+Inside the instnace, a new disk named ``/dev/vdb`` will
 appear. This disk is *persistent*, which means that if you terminate
 the instance and then you attach the disk to a new instance, the
 content of the volume is persisted.
