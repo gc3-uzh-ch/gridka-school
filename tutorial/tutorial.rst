@@ -1293,8 +1293,9 @@ Deleting the volume can take some time::
 ``api-node``
 ------------
 
-*(remember to add the cloud repository and install the **ntp** package
-as described in the `all nodes installation`_ section)*
+As we did for the glance node before staring it is good to quickly check if the
+remote ssh execution of the commands done in the `all nodes installation`_ section 
+worked without problems. You can again verify it by checking the ntp installation.
 
 Nova
 ++++
@@ -1361,7 +1362,6 @@ Then we need to give admin permissions to it::
 
 We need to create first the **compute** service::
 
-
     root@auth-node:~# keystone service-create --name nova --type compute \
       --description 'Compute Service of OpenStack'
     +-------------+----------------------------------+
@@ -1376,10 +1376,10 @@ We need to create first the **compute** service::
 and its endpoint::
 
     root@auth-node:~# keystone endpoint-create --region RegionOne \
-      --service-id  338d7b7ec7f14622a1fc1a99bd9004bf \
       --publicurl 'http://api-node.example.org:8774/v2/$(tenant_id)s' \
       --adminurl 'http://api-node.example.org:8774/v2/$(tenant_id)s' \
-      --internalurl 'http://10.0.0.6:8774/v2/$(tenant_id)s'
+      --internalurl 'http://10.0.0.6:8774/v2/$(tenant_id)s' \
+      --service-id 338d7b7ec7f14622a1fc1a99bd9004bf
     +-------------+---------------------------------------------------+
     |   Property  |                       Value                       |
     +-------------+---------------------------------------------------+
@@ -1390,8 +1390,6 @@ and its endpoint::
     |    region   |                     RegionOne                     |
     |  service_id |          338d7b7ec7f14622a1fc1a99bd9004bf         |
     +-------------+---------------------------------------------------+
-
-
 
 then the **ec2** service::
 
@@ -1406,14 +1404,13 @@ then the **ec2** service::
     |     type    |               ec2                |
     +-------------+----------------------------------+
 
-
 and its endpoint::
 
     root@auth-node:~# keystone endpoint-create --region RegionOne \
-      --service-id a17a1f1d605a4ad58993c6d9a803b2af \
       --publicurl 'http://api-node.example.org:8773/services/Cloud' \
       --adminurl 'http://api-node.example.org:8773/services/Admin' \
-      --internalurl 'http://10.0.0.6:8773/services/Cloud'
+      --internalurl 'http://10.0.0.6:8773/services/Cloud' \
+      --service-id a17a1f1d605a4ad58993c6d9a803b2af
     +-------------+-------------------------------------------------+
     |   Property  |                      Value                      |
     +-------------+-------------------------------------------------+
@@ -1600,8 +1597,9 @@ need to complete the OpenStack installation in order to test it.
 ``network-node``
 ----------------
 
-*(remember to add the cloud repository and install the **ntp** package
-as described in the `all nodes installation`_ section)*
+As we did for the api node before staring it is good to quickly check if the
+remote ssh execution of the commands done in the `all nodes installation`_ section 
+worked without problems. You can again verify it by checking the ntp installation.
 
 nova-network
 ++++++++++++
@@ -1753,14 +1751,14 @@ Nova network creation
 ~~~~~~~~~~~~~~~~~~~~~
 
 You have to create manually a private internal network on the main
-node. This is the internal network used by the virtual machines within
-OpenStack, and usually it is a completely separated network. On the
+node. This is the internal network used by the instances within
+OpenStack, and usually is a completely separated network. On the
 compute nodes and on the network node this is available through the
 ``br100`` bridge (although compute nodes does not have an IP address
 on this network), while other service nodes does not have any
 interface on that network. As a consequence, the internal IP address
-of the virtual machines is only reachable by either the network node
-or another VM.
+of the instances is only reachable by either the network node
+or another instance.
 
 The command to create the internal network **10.99.0.0/22**, which we
 are going to call "**net1**" is::
@@ -1771,11 +1769,11 @@ are going to call "**net1**" is::
 ..
    FIXME: TOCHECK: ``eth2`` is the interface **ON THE COMPUTE NODE**.
 
-In order to allow the virtual machines to be reachable from the
+In order to allow the instances to be reachable from the
 internet too (during this school, due to hardware limitations, this
 only means reachable by the physical nodes) we need to create a range
-of public IPs. These IP can be either automatically assigned when a
-virtual machine is started (using the option
+of public IPs. These IP can be either automatically assigned when an
+instance is started (using the option
 ``auto_assign_floating_ip=true`` in ``/etc/nova/nova.conf`` on the
 ``nova-network`` node, like we did), and/or assigned and removed from
 a virtual machine while the machine is up&running.
