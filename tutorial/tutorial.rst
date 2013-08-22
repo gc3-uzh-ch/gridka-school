@@ -1829,13 +1829,27 @@ connections::
 ``compute-1`` and ``compute-2``
 -------------------------------
 
-*(remember to add the cloud repository and install the **ntp** package
-as described in the `all nodes installation`_ section)*
+As we did for the network node before staring it is good to quickly check if the
+remote ssh execution of the commands done in the `all nodes installation`_ section 
+worked without problems. You can again verify it by checking the ntp installation.
 
-Nova-compute (does not need an endpoint)
-++++++++++++++++++++++++++++++++++++++++
+Nova-compute 
+++++++++++++
 
-FIXME: explain what happens on the compute node when you start a VM.
+In the next few rows we try to briefly explain what happens behind the scene when a new request
+for starting an OpenStack instance is done. Note that this is very high level description. 
+
+1. The OpenStack API, EC2 API or the Horizon Web Interface (based again on OpenStack APIs) are used for 
+creating the new instance request.
+2. Authentication is performed by keystone checking if the user is authorized for the requested operation.
+3. Message is then send to the scheduler with the new request.
+4. Scheduler writes the message in the RabbitMQ queue asking a specific host matching the requirements to start
+the instance.
+5. The compute reads the message from the queue and starts booting the new instance asking for a fixed IP to
+the network service.
+6. The instance is at the end available from the outside world through the assigned IP. 
+
+**FIXME: To be checked the described above workflow***
 
 Software installation
 ~~~~~~~~~~~~~~~~~~~~~
@@ -1874,15 +1888,13 @@ bridge, called **br100** attached to the network interface ``eth2``::
 This bridge must be on the same layer-2 network of the network node,
 and is used only for the communication among the OpenStack instances.
 
-Since nova-compute only attach new virtual interface to this bridge
+Since nova-compute only attach new virtual interfaces to this bridge
 but it does not change the IP configuration (as nova-network does),
 you can also assign the internal IP address of the **compute-1** node
 (in our case, the **10.0.0.20** ip address) on the **br100**
 interface. However, on a production environment, for security reasons,
 you want to have two physically separated network for the instances
 and for the OpenStack services.
-
-(This is valid for **compute-1**, please update the IP address when configuring **compute-2**)
 
 Start the bridge::
 
@@ -1953,6 +1965,7 @@ displayed above.
    On the ``/etc/nova/api-paste.conf`` we have to put the information
    on how to access the keystone authentication service. Ensure then that
    the following information are present in this file::
+   TA: I don't think it is needed as api-paste.conf file is not even prsent.
 
        [filter:authtoken]
        paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
@@ -2057,8 +2070,7 @@ you can check that the keypair has been created with::
     | gridka-api-node | fa:86:74:77:a2:55:29:d8:e7:06:4a:13:f7:ca:cb:12 |
     +-----------------+-------------------------------------------------+
 
-Let's get the ID of the available images, flavors and security
-groups::
+Let's get the ID of the available images, flavors and security groups::
 
     root@api-node:~# nova image-list
     +--------------------------------------+--------------+--------+--------+
@@ -2120,8 +2132,7 @@ Now we are ready to start our first instance::
     | metadata                            | {}                                   |
     +-------------------------------------+--------------------------------------+
 
-This command returns immediately, even if the OpenStack instance is not
-yet started::
+This command returns immediately, even if the OpenStack instance is not yet started::
 
     root@api-node:~# nova list
     +--------------------------------------+----------+--------+----------+
@@ -2179,10 +2190,9 @@ You can attach a volume to a running instance easily::
     | volumeId | 180a081a-065b-497e-998d-aa32c7c295cc |
     +----------+--------------------------------------+
 
-Inside the instnace, a new disk named ``/dev/vdb`` will
-appear. This disk is *persistent*, which means that if you terminate
-the instance and then you attach the disk to a new instance, the
-content of the volume is persisted.
+Inside the instnace, a new disk named ``/dev/vdb`` will appear. This disk is 
+*persistent*, which means that if you terminate the instance and then you attach
+the disk to a new instance, the content of the volume is persisted.
 
 
 Horizon
