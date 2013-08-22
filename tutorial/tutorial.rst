@@ -1,8 +1,3 @@
-FIXME: we would probably need to rename "virtual machine" with
-"instance" or "openstack instance" when talking about OpenStack
-virtual machines, in order to avoid confusions with the virtual
-machines used to host the OpenStack services.
-
 GridKa School 2013 - Training Session on OpenStack
 ==================================================
 
@@ -366,8 +361,18 @@ operate on it briefly.
 ``auth-node``
 -------------
 
-*(remember to add the cloud repository and install the **ntp** package
-as described in the `all nodes installation`_ section)*
+Before staring we can quickly check if the remote ssh execution of the
+commands done in the `all nodes installation`_ section worked without problems::
+
+    root@auth-node:~# dpkg -l ntp
+    Desired=Unknown/Install/Remove/Purge/Hold
+    | Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend
+    |/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)
+    ||/ Name                          Version                       Description
+    +++-=============================-=============================-==========================================================================
+    ii  ntp                           1:4.2.6.p3+dfsg-1ubuntu3.1    Network Time Protocol daemon and utility programs
+
+which confirmed ntp is installed as required.
 
 Keystone
 ++++++++
@@ -389,7 +394,7 @@ Go to the **auth-node** and install the keystone package::
         
 Update the value of the ``connection`` option in the
 ``/etc/keystone/keystone.conf`` file, in order to match the hostname,
-database name, user and password you just created. The syntax of this
+database name, user and password you've just created. The syntax of this
 option is::
 
     connection = <protocol>://<user>:<password>@<host>/<db_name>
@@ -403,7 +408,7 @@ following command::
 
     root@auth-node:~# keystone-manage db_sync
 
-Now we can restart the keystone service::
+Restart of the keystone service is again required::
 
     root@auth-node:~# service keystone restart
 
@@ -442,8 +447,8 @@ the admin token, we will set the following environment variables::
 Creation of the admin user
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In order to work with keystone we will need to create an admin user
-and to create a few basic projects and roles.
+In order to work with keystone we have to create an admin user and
+a few basic projects and roles.
 
 Please note that we will sometimes use the word ``tenant`` instead of
 ``project``, since the latter is actually the new name of the former,
@@ -475,7 +480,6 @@ correct environment variables::
     |      id     | cb0e475306cc4c91b2a43b537b1a848b |
     |     name    |             service              |
     +-------------+----------------------------------+
-
 
 Create the **admin** user::
 
@@ -521,7 +525,7 @@ Go on by creating the different roles::
     |   name   |              Member              |
     +----------+----------------------------------+
 
-This roles are checked by different services. It is not really easy
+These roles are checked by different services. It is not really easy
 to know which service checks for which role, but on a very basic
 installation you can just live with ``Member`` (to be used for all the
 standard users) and ``admin`` (to be used for the OpenStack
@@ -571,10 +575,10 @@ The following command will create an endpoint associated to this
 service::
 
     root@auth-node:~# keystone endpoint-create --region RegionOne \
-        --service-id 28b2812e31334d4494a8a434d3e6fc65 \
         --publicurl 'http://auth-node.example.org:5000/v2.0' \
         --adminurl 'http://auth-node.example.org:35357/v2.0' \
-        --internalurl 'http://10.0.0.4:5000/v2.0'
+        --internalurl 'http://10.0.0.4:5000/v2.0' \
+        --service-id 28b2812e31334d4494a8a434d3e6fc65
     WARNING: Bypassing authentication using a token & endpoint (authentication credentials are being ignored).
     +-------------+-----------------------------------------+
     |   Property  |                  Value                  |
@@ -614,7 +618,9 @@ while a list of endpoints is shown by the command::
 From now on, you can access keystone using the admin user either by
 using the following command line options::
 
-    root@any-host:~# keystone --os-user admin --os-tenant-name admin --os-password keystoneAdmin --os-auth-url http://auth-node.example.org:5000/v2.0
+    root@any-host:~# keystone --os-user admin --os-tenant-name admin \
+                    --os-password keystoneAdmin --os-auth-url http://auth-node.example.org:5000/v2.0 \
+                    <subcommand> 
 
 or by setting the following environment variables and run keystone
 without the previous options::
@@ -623,41 +629,41 @@ without the previous options::
     root@any-host:~# export OS_PASSWORD=keystoneAdmin
     root@any-host:~# export OS_TENANT_NAME=admin
     root@any-host:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
+    
+If you are going to use the last option it is usually a good practice to insert those environment
+variables in the root's .bashrc file so that they are loaded each time you open a new shell.
 
-Please keep the connection to the auth-node open as we will need to
-operate on it briefly.
+Please keep the connection to the auth-node open as we will need to operate on it briefly.
 
 ``image-node``
 --------------
 
-*(remember to add the cloud repository and install the **ntp** package
-as described in the `all nodes installation`_ section)*
+As we did for the auth node before staring it is good to quickly check if the
+remote ssh execution of the commands done in the `all nodes installation`_ section 
+worked without problems. You can again verify it by checking the ntp installation.
 
 Glance
 ++++++
 
 **Glance** is the name of the image service of OpenStack. It is
-responsible to store the images that will be used as templates to
-start the virtual machines. We will use the default configuration and
+responsible for storing the images that will be used as templates to
+start the instances. We will use the default configuration and
 only do the minimal changes to match our configuration.
+
+Glance is actually composed of different services:
+
+* **glance-api** accepts API calls for dicovering the available images, for their storage and also for their retrieval.
+
+* **glance-registry** is instead storing and retrieving metadata about the images from the db. 
+
+**FIXME explain the differences of the services above in more detail**
+
+glance database and keystone setup
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Similarly to what we did for the keystone service, also for the glance
 service we need to create a database and a pair of user and password
 for it.
-
-Glance is actually composed of different services:
-
-**glance-api**
-
-**glance-registry**
-
-In our setup, we will run all the cinder services on the same machine,
-although you can, in principle, spread them over multiple servers.
-
-FIXME: explain the difference between glance-api and glance-registry
-
-glance database and keystone setup
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 On the **db-node** create the database and the MySQL user::
 
@@ -712,8 +718,8 @@ Then we need to give admin permissions to it::
 
     root@image-node:~# keystone user-role-add --tenant service --user glance --role admin
 
-Please note that we could have created only one user for all the
-services, but this is a cleaner solution.
+Please note that we could have created only one user for all the services, 
+but this is a cleaner solution.
 
 We need then to create the **image** service::
 
@@ -731,10 +737,10 @@ We need then to create the **image** service::
 and the related endpoint::
 
     root@image-node:~# keystone endpoint-create --region RegionOne \
-        --service-id 6cb0cf7a81bc4489a344858398d40222 \
         --publicurl 'http://image-node.example.org:9292/v2' \
         --adminurl 'http://image-node.example.org:9292/v2' \
-        --internalurl 'http://10.0.0.5:9292/v2'
+        --internalurl 'http://10.0.0.5:9292/v2' \
+        --service-id 6cb0cf7a81bc4489a344858398d40222
     +-------------+---------------------------------------+
     |   Property  |                 Value                 |
     +-------------+---------------------------------------+
@@ -755,7 +761,7 @@ On the **image-node** install the **glance** package::
 
 To configure the glance service we need to edit a few files in ``/etc/glance``:
 
-On the ``/etc/glance/glance-api-paste.ini`` file, we need to adjust
+In the ``/etc/glance/glance-api-paste.ini`` file, we need to adjust
 the **filter:authtoken** section so that it matches the values we used
 when we created the keystone **glance** user::
 
@@ -782,12 +788,22 @@ Similar changes have to be done on the ``/etc/glance/glance-registry-paste.ini``
 
 .. Very interesting: we misspelled the password here, but we only get
    errors when getting the list of VM from horizon. Booting VM from
-   nova actually worked!!!
+   nova actually worked!!! 
+   
+   Found the following explanation here: http://bcwaldon.cc/
+   
+   glance-registry vs glance-api
+   The v1 and v2 Images APIs were implemented with seperate paths to
+   the Glance database. The first of which proxies queries through a subsequent
+   HTTP service (glance-registry) while the second talks directly to the database. 
+   As these two APIs should be talking to an equivalent system, we will be realigning
+   their internal paths to talk through the service layer (created with the domain object model)
+   directly to the database, effectively deprecating the glance-registry service.
 
 
 Information on how to connect to the MySQL database are stored in the
 ``/etc/glance/glance-api.conf`` file. The syntax is similar to the one
-used in the``/etc/keystone/keystone.conf`` file,  but the name of the
+used in the ``/etc/keystone/keystone.conf`` file,  but the name of the
 option is ``sql_connection`` instead::
 
     sql_connection = mysql://glanceUser:glancePass@10.0.0.3/glance
@@ -798,7 +814,7 @@ On this file, we also need to specify the RabbitMQ host (default is
     rabbit_host = 10.0.0.3
 
 Finally, we need to specify which paste pipeline we are using. We are not
-entering in details here, just check that the following option is present::
+entering into details here, just check that the following option is present::
 
     [paste_deploy]
     flavor = keystone
@@ -837,8 +853,7 @@ First of all, let's download a very small test image::
 
     root@image-node:~# wget https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img
 
-The command line tool to manage images is ``glance``. Uploading an
-image is easy::
+The command line tool to manage images is ``glance``. Uploading an image is easy::
 
     root@image-node:~# glance image-create --name cirros-0.3.0 --is-public=true \
       --container-format=bare --disk-format=qcow2 --file cirros-0.3.0-x86_64-disk.img 
@@ -897,8 +912,9 @@ The cirros image we uploaded before, having an image id of
 ``volume-node``
 +++++++++++++++
 
-*(remember to add the cloud repository and install the **ntp** package
-as described in the `all nodes installation`_ section)*
+As we did for the image node before staring it is good to quickly check if the
+remote ssh execution of the commands done in the `all nodes installation`_ section 
+worked without problems. You can again verify it by checking the ntp installation.
 
 Cinder
 ++++++
@@ -940,8 +956,7 @@ In our setup, we will run all the cinder services on the same machine,
 although you can, in principle, spread them over multiple servers.
 
 The **volume-node** has one more disk (``/dev/vdb``) which will use to
-create a LVM volume group to store the logical volumes created by
-cinder.
+create a LVM volume group to store the logical volumes created by cinder.
 
 cinder database and keystone setup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1007,10 +1022,11 @@ We need then to create the **volume** service::
 and the related endpoint, using the service id we just got::
         
     root@auth-node:~# keystone endpoint-create --region RegionOne \
-      --service-id 2561a51dd7494651862a44e34d637e1e \
       --publicurl 'http://volume-node.example.org:8776/v1/$(tenant_id)s' \
       --adminurl 'http://volume-node.example.org:8776/v1/$(tenant_id)s' \
-      --internalurl 'http://10.0.0.8:8776/v1/$(tenant_id)s'
+      --internalurl 'http://10.0.0.8:8776/v1/$(tenant_id)s' \
+      --service-id 2561a51dd7494651862a44e34d637e1e \
+
     +-------------+------------------------------------------------------+
     |   Property  |                        Value                         |
     +-------------+------------------------------------------------------+
@@ -1272,8 +1288,9 @@ Deleting the volume can take some time::
 ``api-node``
 ------------
 
-*(remember to add the cloud repository and install the **ntp** package
-as described in the `all nodes installation`_ section)*
+As we did for the glance node before staring it is good to quickly check if the
+remote ssh execution of the commands done in the `all nodes installation`_ section 
+worked without problems. You can again verify it by checking the ntp installation.
 
 Nova
 ++++
@@ -1302,7 +1319,7 @@ user and password for nova, but in this case we need to create two
 different services and endpoints:
 
 compute
-    allows you to manage virtual machines
+    allows you to manage OpenStack instances
 
 ec2
     compatibility layer on top of the nova service, which allows you
@@ -1340,7 +1357,6 @@ Then we need to give admin permissions to it::
 
 We need to create first the **compute** service::
 
-
     root@auth-node:~# keystone service-create --name nova --type compute \
       --description 'Compute Service of OpenStack'
     +-------------+----------------------------------+
@@ -1355,10 +1371,10 @@ We need to create first the **compute** service::
 and its endpoint::
 
     root@auth-node:~# keystone endpoint-create --region RegionOne \
-      --service-id  338d7b7ec7f14622a1fc1a99bd9004bf \
       --publicurl 'http://api-node.example.org:8774/v2/$(tenant_id)s' \
       --adminurl 'http://api-node.example.org:8774/v2/$(tenant_id)s' \
-      --internalurl 'http://10.0.0.6:8774/v2/$(tenant_id)s'
+      --internalurl 'http://10.0.0.6:8774/v2/$(tenant_id)s' \
+      --service-id 338d7b7ec7f14622a1fc1a99bd9004bf
     +-------------+---------------------------------------------------+
     |   Property  |                       Value                       |
     +-------------+---------------------------------------------------+
@@ -1369,8 +1385,6 @@ and its endpoint::
     |    region   |                     RegionOne                     |
     |  service_id |          338d7b7ec7f14622a1fc1a99bd9004bf         |
     +-------------+---------------------------------------------------+
-
-
 
 then the **ec2** service::
 
@@ -1385,14 +1399,13 @@ then the **ec2** service::
     |     type    |               ec2                |
     +-------------+----------------------------------+
 
-
 and its endpoint::
 
     root@auth-node:~# keystone endpoint-create --region RegionOne \
-      --service-id a17a1f1d605a4ad58993c6d9a803b2af \
       --publicurl 'http://api-node.example.org:8773/services/Cloud' \
       --adminurl 'http://api-node.example.org:8773/services/Admin' \
-      --internalurl 'http://10.0.0.6:8773/services/Cloud'
+      --internalurl 'http://10.0.0.6:8773/services/Cloud' \
+      --service-id a17a1f1d605a4ad58993c6d9a803b2af
     +-------------+-------------------------------------------------+
     |   Property  |                      Value                      |
     +-------------+-------------------------------------------------+
@@ -1515,7 +1528,7 @@ These service should be in ``:-)`` state when running::
 Testing nova
 ~~~~~~~~~~~~
 
-So far we cannot run a virtual machine yet, but we can check if nova
+So far we cannot run an instance yet, but we can check if nova
 is able to talk to the services already installed. As usual, you can
 set the environment variables to use the ``nova`` command line
 without having to specify the credentials via command line options::
@@ -1579,8 +1592,9 @@ need to complete the OpenStack installation in order to test it.
 ``network-node``
 ----------------
 
-*(remember to add the cloud repository and install the **ntp** package
-as described in the `all nodes installation`_ section)*
+As we did for the api node before staring it is good to quickly check if the
+remote ssh execution of the commands done in the `all nodes installation`_ section 
+worked without problems. You can again verify it by checking the ntp installation.
 
 nova-network
 ++++++++++++
@@ -1732,14 +1746,14 @@ Nova network creation
 ~~~~~~~~~~~~~~~~~~~~~
 
 You have to create manually a private internal network on the main
-node. This is the internal network used by the virtual machines within
-OpenStack, and usually it is a completely separated network. On the
+node. This is the internal network used by the instances within
+OpenStack, and usually is a completely separated network. On the
 compute nodes and on the network node this is available through the
 ``br100`` bridge (although compute nodes does not have an IP address
 on this network), while other service nodes does not have any
 interface on that network. As a consequence, the internal IP address
-of the virtual machines is only reachable by either the network node
-or another VM.
+of the instances is only reachable by either the network node
+or another instance.
 
 The command to create the internal network **10.99.0.0/22**, which we
 are going to call "**net1**" is::
@@ -1750,14 +1764,14 @@ are going to call "**net1**" is::
 ..
    FIXME: TOCHECK: ``eth2`` is the interface **ON THE COMPUTE NODE**.
 
-In order to allow the virtual machines to be reachable from the
+In order to allow the instances to be reachable from the
 internet too (during this school, due to hardware limitations, this
 only means reachable by the physical nodes) we need to create a range
-of public IPs. These IP can be either automatically assigned when a
-virtual machine is started (using the option
+of public IPs. These IP can be either automatically assigned when an
+instance is started (using the option
 ``auto_assign_floating_ip=true`` in ``/etc/nova/nova.conf`` on the
 ``nova-network`` node, like we did), and/or assigned and removed from
-a virtual machine while the machine is up&running.
+an instance while it is up&running.
 
 Create a floating public network::
 
@@ -1858,16 +1872,15 @@ bridge, called **br100** attached to the network interface ``eth2``::
         bridge_fd    0
 
 This bridge must be on the same layer-2 network of the network node,
-and is used only for the communication among the OpenStack virtual
-machines.
+and is used only for the communication among the OpenStack instances.
 
 Since nova-compute only attach new virtual interface to this bridge
 but it does not change the IP configuration (as nova-network does),
 you can also assign the internal IP address of the **compute-1** node
 (in our case, the **10.0.0.20** ip address) on the **br100**
 interface. However, on a production environment, for security reasons,
-you want to have two physically separated network for the virtual
-machines and for the OpenStack services.
+you want to have two physically separated network for the instances
+and for the OpenStack services.
 
 (This is valid for **compute-1**, please update the IP address when configuring **compute-2**)
 
@@ -2006,8 +2019,8 @@ line interface, and then from the physical node connecting to the web
 interface.
 
 The first thing we need to do is to create a ssh keypair and upload
-the public key on OpenStack so that we can connect to the virtual
-machine. The command to create a ssh keypair is ``ssh-keygen``::
+the public key on OpenStack so that we can connect to the instance.
+The command to create a ssh keypair is ``ssh-keygen``::
 
     root@api-node:~# ssh-keygen -t rsa -f ~/.ssh/id_rsa
     Generating public/private rsa key pair.
@@ -2072,7 +2085,7 @@ groups::
     | default | default     |
     +---------+-------------+
 
-Now we are ready to start our first virtual machine::
+Now we are ready to start our first instance::
 
     root@api-node:~# nova boot --image 79af6953-6bde-463d-8c02-f10aca227ef4 \
       --flavor m1.tiny --key_name gridka-api-node server-1
@@ -2107,7 +2120,7 @@ Now we are ready to start our first virtual machine::
     | metadata                            | {}                                   |
     +-------------------------------------+--------------------------------------+
 
-This command returns immediately, even if the virtual machine is not
+This command returns immediately, even if the OpenStack instance is not
 yet started::
 
     root@api-node:~# nova list
@@ -2131,10 +2144,10 @@ yet started::
     | d2ef7cbf-c506-4c67-a6b6-7bd9fecbe820 | server-1 | ACTIVE | net1=10.99.0.2, 172.16.1.1 |
     +--------------------------------------+----------+--------+----------------------------+
 
-When the virtual machine is in ``ACTIVE`` it means that the virtual
-machine is being running on a compute node. However, the boot process
+When the instance is in ``ACTIVE`` state it means that it is now
+running on a compute node. However, the boot process
 can take some time, so don't worry if the following command will fail
-a few times before you can actually connect to the virtual machine::
+a few times before you can actually connect to the instance::
 
     root@api-node:~# ssh 172.16.1.1
     The authenticity of host '172.16.1.1 (172.16.1.1)' can't be established.
@@ -2147,7 +2160,7 @@ a few times before you can actually connect to the virtual machine::
 Testing cinder
 ++++++++++++++
 
-You can attach a volume to a running virtual machine easily::
+You can attach a volume to a running instance easily::
 
     root@api-node:~# nova volume-list
     +--------------------------------------+-----------+--------------+------+-------------+-------------+
@@ -2166,7 +2179,7 @@ You can attach a volume to a running virtual machine easily::
     | volumeId | 180a081a-065b-497e-998d-aa32c7c295cc |
     +----------+--------------------------------------+
 
-Inside the virtual machine, a new disk named ``/dev/vdb`` will
+Inside the instnace, a new disk named ``/dev/vdb`` will
 appear. This disk is *persistent*, which means that if you terminate
 the instance and then you attach the disk to a new instance, the
 content of the volume is persisted.
