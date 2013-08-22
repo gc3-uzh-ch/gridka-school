@@ -15,7 +15,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 		<link rel="stylesheet" href="reveal.js/css/reveal.min.css">
-		<link rel="stylesheet" href="reveal.js/css/theme/simple.css" id="theme">
+		<link rel="stylesheet" href="reveal.js/css/theme/night.css" id="theme">
 
 		<!-- For syntax highlighting -->
 		<link rel="stylesheet" href="reveal.js/lib/css/zenburn.css">
@@ -47,28 +47,65 @@
 
 				<section>
 					<h1>Introduction to OpenStack</h1>
-					<h3>An overview over the Stack</h3>
+					<h3>A journey into complexity</h3>
 					<p>
+                        <small>Antonio Messina</small>
+                        <small>Tyanko Aleksiev </small>
 						<small>Jens-Christian Fischer <a href="http://twitter.com/jcfischer">@jcfischer</a></small>
+
 					</p>
 				</section>
 
 
 
 				<section fullscreen-img="http://farm4.staticflickr.com/3343/3479326045_06e6147ded_b.jpg" data-transition="fade">
-                    <h1 class="dark_bg">Not just fluffy</h1>
-                    <span class="attribution">http://www.flickr.com/photos/paulsgarden/3479326045</span>
+                    <h1 class="fragment">Clouds</h1>
+                    <div class="attribution">http://www.flickr.com/photos/paulsgarden/3479326045</div>
+				</section>
+
+                <section fullscreen-img="http://farm4.staticflickr.com/3343/3479326045_06e6147ded_b.jpg" data-transition="fade">
+                    <h1>Not just fluffy</h1>
+                    <div class="attribution">http://www.flickr.com/photos/paulsgarden/3479326045</div>
 				</section>
 
                 <section fullscreen-img="http://farm3.staticflickr.com/2337/2359829594_0faf82fb73_b.jpg" data-transition="fade">
-                    <h1 class="dark_bg">but big</h1>
-                    <span class="attribution">http://www.flickr.com/photos/9926320@N05/2359829594</span>
+
+                    <div class="attribution">http://www.flickr.com/photos/9926320@N05/2359829594</div>
 				</section>
 
 
                 <section fullscreen-img="http://farm9.staticflickr.com/8108/8656549092_d0468d1fb3_b.jpg" fullscreen-size="contain"  data-transition="fade">
-                    <h1>and scary</h1>
-                    <span class="attribution">http://www.flickr.com/photos/34534185@N00/8656549092</span>
+                    <h1 class="fragment">Big and Scary</h1>
+                    <div class="attribution">http://www.flickr.com/photos/34534185@N00/8656549092</div>
+                </section>
+
+                <section>
+                    <h2>Let me tell you a story</h2>
+                    <p></p><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Trudi_Gerster_Portrait_20090907.jpg/396px-Trudi_Gerster_Portrait_20090907.jpg">
+                    </p>
+                    <p>
+                        <a href="https://de.wikipedia.org/wiki/Trudi_Gerster">Trudi Gerster, 1919 - 2013</a>
+                    </p>
+                </section>
+                <section>
+                    <p class="fragment">In a land, far, far away</p>
+                    <p class="fragment">In the times, when wishes would get you absolutely nothing</p>
+                    <p class="fragment">Little Joe Doe wanted to start a VM</p>
+                    <p class="fragment">And he had heard about this newfangled Cloud thing</p>
+                    <p class="fragment">And he thought: "This is easy, I will just start a VM"</p>
+                    <p class="fragment">And he did</p>
+                    <p class="fragment">And life was good</p>
+                    <p class="fragment">And he lived happily ever after</p>
+                    <p class="fragment">until...</p>
+                </section>
+                <section>
+                    <p class="fragment">He wanted to understand what was happening</p>
+                    <p class="fragment">So he went to the Internet</p>
+                    <p class="fragment">And looked at the OpenStack website</p>
+                    <p class="fragment">And read</p>
+                    <p class="fragment">And he got confused</p>
+                    <p class="fragment">And read some more</p>
+                    <p class="fragment">And got some more confused</p>
                 </section>
 
                 <section>
@@ -77,7 +114,6 @@
                         <img class="plain" src="http://www.openstack.org/themes/openstack/images/openstack-software-diagram.png" width="1024">
                     </section>
                     <section fullscreen-img="images/openstack-arch-grizzly-logical-v2.jpg"  fullscreen-size="contain">
-                        <h1 class="dark_bg">but isn't</h1>
 
                     </section>
                     <section>
@@ -86,11 +122,58 @@
 
                     </section>
 
+                    <section>
+                        <h2>Major Blocks</h2>
+                        <ul>
+                            <li class="fragment">Compute</li>
+                            <li class="fragment">Storage</li>
+                            <li class="fragment">Networking</li>
+                            <li class="fragment">Dashboard</li>
+                            <li class="fragment">Shared Services</li>
+                        </ul>
+                    </section>
+
+                    <section>
+                        <h2>Compute</h2>
+                        <h3>Nova</h3>
+                        <p>Provision and manage large networks of virtual machines</p>
+                    </section>
+                    <section>
+                        <h2>Storage</h2>
+                        <p>Object and Block storage for use with servers and applications.</p>
+                        <h3>Swift</h3>
+                        <p>Object storage to store and retrieve files.</p>
+                        <h3>Cinder</h3>
+                        <p>Provides persistent block storage for VMs (think mountable disks)</p>
+                    </section>
+                    <section>
+                        <h2>Networking</h2>
+                        <p>Pluggable, scalable, API-driven network and IP management</p>
+                        <h3>Nova Network</h3>
+                        <p>"simple" daemon for IP, NAT and Firewall Management</p>
+                        <h3>Neutron</h3>
+                        <p>Allows user to create networks and attach interfaces to them. (we will graciously skip Neutron
+                           in this class, otherwise we'd be here for another 3 days)</p>
+                    </section>
+                    <section>
+                        <h2>Dashboard</h2>
+                        <h3>Horizon</h3>
+                        <p>Graphical interface to access, provision and automate cloud-based resources</p>
+                    </section>
+                    <section>
+                        <h2>Shared Services</h2>
+                        <h3>Keystone</h3>
+                        <p>Identity (authentication and authorisation) and Image services</p>
+                        <h3>MySQL</h3>
+                        <p>Meta Data storage for all services</p>
+                        <h3>RabbitMQ</h3>
+                        <p>Queue that handles synchronisation between components</p>
+
+                    </section>
+
                 </section>
 
-                <section>
-                    <h2>Let me tell you a story</h2>
-                </section>
+
 
                 <section>
                     <section>
@@ -106,6 +189,9 @@
                             <li>Swift retrieves the image</li>
                             <li>Finally VM is rendered</li>
                         </ul>
+                    </section>
+                    <section fullscreen-img="images/vm-request-base.png" fullscreen-size="contain"  data-transition="fade">
+
                     </section>
                     <section fullscreen-img="images/vm-request-1.png" fullscreen-size="contain"  data-transition="fade">
 
@@ -174,64 +260,8 @@
 
                     </section>
 
-
-
-                    <section>
-                        <h2>You want to start a VM on your cloud</h2>
-                    </section>
-                    <section>
-                        <h2>Through the API ask to create one</h2>
-                    </section>
-                    <section>
-                        <h2>The API will check with <em>Keystone</em></h2>
-                        <p>Keystone handles authentication and authorisation</p>
-                    </section>
-                    <section>
-                        <h2>The API will check with <em>Keystone</em></h2>
-                        <p>Keystone handles authentication and authorisation</p>
-                    </section>
-
                 </section>
 
-                <section>
-                    <h2>Major Blocks</h2>
-                    <ul>
-                        <li class="fragment">Compute</li>
-                        <li class="fragment">Storage</li>
-                        <li class="fragment">Networking</li>
-                        <li class="fragment">Dashboard</li>
-                        <li class="fragment">Shared Services</li>
-                    </ul>
-                </section>
-
-                <section>
-                    <section>
-                        <h2>Compute</h2>
-                        Provision and manage large networks of virtual machines
-                    </section>
-                    <section>
-                        <h2>Storage</h2>
-                        Object and Block storage for use with servers and applications.
-                        <h3>Swift</h3>
-                        Object storage to store and retrieve files.
-                        <h3>Cinder</h3>
-                        Provides persistent block storage for VMs (think mountable disks)
-                    </section>
-                    <section>
-                        <h2>Networking</h2>
-                        Pluggable, scalable, API-driven network and IP management
-                        <h3>Neutron</h3>
-                        Allows user to create networks and attach interfaces to them.
-                    </section>
-                    <section>
-                        <h2>Dashboard</h2>
-                        Graphical interface to access, provision and automate cloud-based resources
-                    </section>
-                    <section>
-                        <h2>Shared Services</h2>
-                        Identity (authentication and authorisation) and Image services
-                    </section>
-                </section>
 
 <!--  KEYSTONE -->
                 <section>

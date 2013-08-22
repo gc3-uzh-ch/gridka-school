@@ -1,12 +1,14 @@
 .dark_bg{
-    background-color: rgba(100,100,100 ,0.8);
+    background-color: rgba(255,255,255 ,0.8);
+    line-height: 1.8em;
 }
 
 .attribution {
-    font-size: 16px;
-    position: relative;
-    bottom: 0;
-    right: 0;
+    font-size: 99px;
+    position:fixed;
+    bottom:-300%;
+    width:100%;
+    background-color: rgba(255,255,255,0.5);
 
 }
 

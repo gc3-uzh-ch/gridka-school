@@ -50,36 +50,6 @@
 	<key>GraphicsList</key>
 	<array>
 		<dict>
-			<key>AllowLabelDrop</key>
-			<false/>
-			<key>Class</key>
-			<string>LineGraphic</string>
-			<key>Head</key>
-			<dict>
-				<key>ID</key>
-				<integer>4</integer>
-			</dict>
-			<key>ID</key>
-			<integer>60</integer>
-			<key>Points</key>
-			<array>
-				<string>{388.5, 71}</string>
-				<string>{388.15097, 115.50002}</string>
-			</array>
-			<key>Style</key>
-			<dict>
-				<key>stroke</key>
-				<dict>
-					<key>HeadArrow</key>
-					<string>Arrow</string>
-					<key>HeadScale</key>
-					<real>2.2142860889434814</real>
-					<key>TailArrow</key>
-					<string>0</string>
-				</dict>
-			</dict>
-		</dict>
-		<dict>
 			<key>Class</key>
 			<string>Group</string>
 			<key>Graphics</key>
@@ -1287,7 +1257,7 @@
 	<key>MasterSheets</key>
 	<array/>
 	<key>ModificationDate</key>
-	<string>2013-08-21 14:31:00 +0000</string>
+	<string>2013-08-22 15:20:02 +0000</string>
 	<key>Modifier</key>
 	<string>Jens-Christian Fischer</string>
 	<key>NotesVisible</key>
@@ -1373,7 +1343,7 @@
 			</dict>
 		</array>
 		<key>Frame</key>
-		<string>{{-1925, -33}, {1746, 1080}}</string>
+		<string>{{0, 4}, {1680, 1024}}</string>
 		<key>ListView</key>
 		<true/>
 		<key>OutlineWidth</key>
@@ -1387,7 +1357,7 @@
 		<key>SidebarWidth</key>
 		<integer>120</integer>
 		<key>VisibleRegion</key>
-		<string>{{0, 0}, {798.5, 455}}</string>
+		<string>{{0, 0}, {772.5, 434.5}}</string>
 		<key>Zoom</key>
 		<real>2</real>
 		<key>ZoomValues</key>
