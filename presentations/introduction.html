@@ -15,7 +15,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 		<link rel="stylesheet" href="reveal.js/css/reveal.min.css">
-		<link rel="stylesheet" href="reveal.js/css/theme/default.css" id="theme">
+		<link rel="stylesheet" href="reveal.js/css/theme/simple.css" id="theme">
 
 		<!-- For syntax highlighting -->
 		<link rel="stylesheet" href="reveal.js/lib/css/zenburn.css">
@@ -107,6 +107,75 @@
                             <li>Finally VM is rendered</li>
                         </ul>
                     </section>
+                    <section fullscreen-img="images/vm-request-1.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+                    <section fullscreen-img="images/vm-request-2.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+                    <section fullscreen-img="images/vm-request-3.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+                    <section fullscreen-img="images/vm-request-4.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+                    <section fullscreen-img="images/vm-request-5.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+                    <section fullscreen-img="images/vm-request-6.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+                    <section fullscreen-img="images/vm-request-7.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+                    <section fullscreen-img="images/vm-request-8.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+                    <section fullscreen-img="images/vm-request-9.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+                    <section fullscreen-img="images/vm-request-10.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+                    <section fullscreen-img="images/vm-request-11.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+                    <section fullscreen-img="images/vm-request-12.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+                    <section fullscreen-img="images/vm-request-13.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+                    <section fullscreen-img="images/vm-request-14.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+                    <section fullscreen-img="images/vm-request-15.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+                    <section fullscreen-img="images/vm-request-16.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+                    <section fullscreen-img="images/vm-request-17.png" fullscreen-size="contain"  data-transition="fade">
+
+                    </section>
+
+
+
                     <section>
                         <h2>You want to start a VM on your cloud</h2>
                     </section>
@@ -401,6 +470,14 @@
 				theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
 				transition: Reveal.getQueryHash().transition || 'linear', // default/cube/page/concave/zoom/linear/fade/none
 
+                leap: {
+                    naturalSwipe   : false,    // Invert swipe gestures
+                    pointerOpacity : 0.5,      // Set pointer opacity to 0.5
+                    pointerColor   : '#d80000' // Red pointer
+                },
+
+
+
 				// Optional libraries used to extend on reveal.js
 				dependencies: [
 					{ src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
@@ -410,6 +487,7 @@
 					{ src: 'reveal.js/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
 					{ src: 'reveal.js/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } },
                     { src: 'site/js/fullscreen-img.js' },
+                    { src: 'reveal.js/plugin/leap/leap.js', async: true }
 
                     // { src: 'plugin/search/search.js', async: true, condition: function() { return !!document.body.classList; } }
 					// { src: 'plugin/remotes/remotes.js', async: true, condition: function() { return !!document.body.classList; } }
