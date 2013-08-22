@@ -917,8 +917,9 @@ The cirros image we uploaded before, having an image id of
 ``volume-node``
 +++++++++++++++
 
-*(remember to add the cloud repository and install the **ntp** package
-as described in the `all nodes installation`_ section)*
+As we did for the image node before staring it is good to quickly check if the
+remote ssh execution of the commands done in the `all nodes installation`_ section 
+worked without problems. You can again verify it by checking the ntp installation.
 
 Cinder
 ++++++
@@ -960,8 +961,7 @@ In our setup, we will run all the cinder services on the same machine,
 although you can, in principle, spread them over multiple servers.
 
 The **volume-node** has one more disk (``/dev/vdb``) which will use to
-create a LVM volume group to store the logical volumes created by
-cinder.
+create a LVM volume group to store the logical volumes created by cinder.
 
 cinder database and keystone setup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1027,10 +1027,11 @@ We need then to create the **volume** service::
 and the related endpoint, using the service id we just got::
         
     root@auth-node:~# keystone endpoint-create --region RegionOne \
-      --service-id 2561a51dd7494651862a44e34d637e1e \
       --publicurl 'http://volume-node.example.org:8776/v1/$(tenant_id)s' \
       --adminurl 'http://volume-node.example.org:8776/v1/$(tenant_id)s' \
-      --internalurl 'http://10.0.0.8:8776/v1/$(tenant_id)s'
+      --internalurl 'http://10.0.0.8:8776/v1/$(tenant_id)s' \
+      --service-id 2561a51dd7494651862a44e34d637e1e \
+
     +-------------+------------------------------------------------------+
     |   Property  |                        Value                         |
     +-------------+------------------------------------------------------+
