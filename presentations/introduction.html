@@ -63,22 +63,6 @@
                     <div class="attribution">http://www.flickr.com/photos/paulsgarden/3479326045</div>
 				</section>
 
-                <section fullscreen-img="http://farm4.staticflickr.com/3343/3479326045_06e6147ded_b.jpg" data-transition="fade">
-                    <h1>Not just fluffy</h1>
-                    <div class="attribution">http://www.flickr.com/photos/paulsgarden/3479326045</div>
-				</section>
-
-                <section fullscreen-img="http://farm3.staticflickr.com/2337/2359829594_0faf82fb73_b.jpg" data-transition="fade">
-
-                    <div class="attribution">http://www.flickr.com/photos/9926320@N05/2359829594</div>
-				</section>
-
-
-                <section fullscreen-img="http://farm9.staticflickr.com/8108/8656549092_d0468d1fb3_b.jpg" fullscreen-size="contain"  data-transition="fade">
-                    <h1 class="fragment">Big and Scary</h1>
-                    <div class="attribution">http://www.flickr.com/photos/34534185@N00/8656549092</div>
-                </section>
-
                 <section>
                     <h2>Let me tell you a story</h2>
                     <p></p><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Trudi_Gerster_Portrait_20090907.jpg/396px-Trudi_Gerster_Portrait_20090907.jpg">
@@ -87,6 +71,7 @@
                         <a href="https://de.wikipedia.org/wiki/Trudi_Gerster">Trudi Gerster, 1919 - 2013</a>
                     </p>
                 </section>
+
                 <section>
                     <p class="fragment">In a land, far, far away</p>
                     <p class="fragment">In the times, when wishes would get you absolutely nothing</p>
@@ -108,11 +93,31 @@
                     <p class="fragment">And got some more confused</p>
                 </section>
 
+                <section fullscreen-img="http://farm4.staticflickr.com/3343/3479326045_06e6147ded_b.jpg" data-transition="fade">
+                    <h1>Not just fluffy</h1>
+                    <div class="attribution">http://www.flickr.com/photos/paulsgarden/3479326045</div>
+				</section>
+
+                <section fullscreen-img="http://farm3.staticflickr.com/2337/2359829594_0faf82fb73_b.jpg" data-transition="fade">
+                    <h1>&nbsp;</h1>
+                    <div class="attribution">http://www.flickr.com/photos/9926320@N05/2359829594</div>
+				</section>
+
+
+                <section fullscreen-img="http://farm9.staticflickr.com/8108/8656549092_d0468d1fb3_b.jpg" fullscreen-size="contain"  data-transition="fade">
+                    <h1 class="fragment">Big and Scary</h1>
+                    <div class="attribution">http://www.flickr.com/photos/34534185@N00/8656549092</div>
+                </section>
+
+
+
+
                 <section>
                     <section >
                         <h2>Seems simple</h2>
                         <img class="plain" src="http://www.openstack.org/themes/openstack/images/openstack-software-diagram.png" width="1024">
                     </section>
+
                     <section fullscreen-img="images/openstack-arch-grizzly-logical-v2.jpg"  fullscreen-size="contain">
 
                     </section>
@@ -260,6 +265,20 @@
 
                     </section>
 
+                    <section>
+                        <h2>The life of a VM Request</h2>
+                        <ul>
+                            <li>User logs into Horizon and starts a VM create</li>
+                            <li>Keystone authenticates and authorizes</li>
+                            <li>Nova starts provisioning and creates DB record</li>
+                            <li>Nova schedulers finds appropriate host</li>
+                            <li>Nova network setups network, NAT and Firewall rules</li>
+                            <li>Cinder provides block device</li>
+                            <li>Image URI comes from Glance</li>
+                            <li>Swift retrieves the image</li>
+                            <li>Finally VM is rendered</li>
+                        </ul>
+                    </section>
                 </section>
 
 
