@@ -1187,9 +1187,6 @@ it should differ from the standard one only for the options
 ``sql_connection``, ``rabbit_host``, ``iscsi_ip_address`` and
 ``iscsi_helper``.
 
-FIXME: it has to be ``ietadm`` or ``tgtadm``? I think ``ietadm`` is
-the correct one!
-
 Populate the cinder database::
 
     root@volume-node:~# cinder-manage db sync
@@ -1618,11 +1615,27 @@ Let's just recap how the networking works in OpenStack
 OpenStack networking
 ~~~~~~~~~~~~~~~~~~~~
 
-FIXME: complete this section
+The nova-network is providing the networkig service in OpenStack and enables
+the communication between the instances and:
 
-* flat dhcp <= we use this
-* flat
-* ...
+* the rest of the stack services 
+* the outside world. 
+
+There are currently three kind of networks implemented by three "Network Manager" types:
+
+* Flat DHCP Network Manager: the implementation we are going to use in the tutorial. 
+  OpenStack starts a DHCP server (dnsmasq) to pass out IP addresses to VM instances
+  from the specified subnet in addition to manually configuring the networking bridge. 
+  IP addresses for VM instances are grabbed from a subnet specified by the network administrator.
+  
+* Flat Network Manager: a network administrator specifies a subnet where 
+  IP addresses for VM instances are grabbed from the subnet, and then injected into
+  the image on launch.
+  
+* VLAN Network Manager: In this mode, Compute creates a VLAN and bridge for each project.
+  For multiple machine installation, the VLAN Network Mode requires a switch that supports VLAN 
+  tagging (IEEE 802.1Q)
+
 
 FIXME: during the tutorial, it's probably better to install the
 package first, and then, during the installation, explain how
@@ -1846,7 +1859,7 @@ for starting an OpenStack instance is done. Note that this is very high level de
 5) The compute reads the message from the queue and starts booting the new instance asking for a fixed IP to the network service.
 6) The instance is at the end available from the outside world through the assigned IP. 
 
-**FIXME: To be checked the described above workflow***
+**FIXME: To be checked the described workflow***
 
 Software installation
 ~~~~~~~~~~~~~~~~~~~~~
