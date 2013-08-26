@@ -64,3 +64,29 @@
       when: eth1_in_br1|failed
       tags: bridge
           
+
+- hosts: servers
+  tasks:
+    - name: ensure the ip address is correct
+      action: shell ifconfig br1 | grep 10.0.0.1
+
+    - name: check virtual machine files
+      action: file path=/var/lib/libvirt/images/${item}.img state=file
+      with_items:
+        - api-node
+        - auth-node
+        - db-node
+        - image-node
+        - network-node
+        - volume-node
+
+- hosts: computes
+  tasks:
+    - name: ensure the ip address is correct
+      action: shell ifconfig br1 | grep 10.0.0.2
+
+    - name: check virtual machine files
+      action: file path=/var/lib/libvirt/images/${item}.img state=file
+      with_items:
+        - compute-1
+        - compute-2
