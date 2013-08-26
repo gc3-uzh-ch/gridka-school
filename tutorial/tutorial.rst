@@ -1976,7 +1976,7 @@ displayed above.
    On the ``/etc/nova/api-paste.conf`` we have to put the information
    on how to access the keystone authentication service. Ensure then that
    the following information are present in this file::
-   TA: I don't think it is needed as api-paste.conf file is not even prsent.
+   TA: I don't think it is needed as api-paste.conf file is not even present.
 
        [filter:authtoken]
        paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
