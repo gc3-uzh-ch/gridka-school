@@ -2344,3 +2344,47 @@ our purposes and for installing OpenStack on 6 hosts.
 The `official Grizzly tutorial <http://docs.openstack.org/grizzly/openstack-compute/install/apt/content/>`_.
 
 .. _`Openstack Compute Administration Guide`: http://docs.openstack.org/trunk/openstack-compute/admin/content/index.html
+
+
+Troubleshooting exercises
+-------------------------
+
+This is a list of exercises to help you understand how OpenStack
+components interact among them.
+
+* Remove the "admin" role from the glance user::
+
+    root@auth-node:~# keystone user-role-remove \
+      --user-id c938866a0a3c4266a25dc95fbfcc6718 \
+      --role-id fafa8117d1564d8c9ec4fe6dbf985c68 \
+      --tenant-id cb0e475306cc4c91b2a43b537b1a848b
+
+  and see what does **not** work anymore.
+
+* Fill the ``/var/lib/nova/instances`` directory by creating a big
+  file using dd, and try to start a virtual machine
+
+* shutdown one of the services at the time and see what does not work
+  anymore:
+
+  - rabbitmq
+  - mysql
+  - nova-api
+  - nova-network
+  - glance-api
+  - glance-registry
+  
+  specifically, try to start virtual machines both with the ``nova``
+  command line tool and via web interface.
+
+* Set a *wrong* password in ``/etc/nova/nova.conf`` file on the
+  **api-node** for the sql connection, restart all the nova services
+  *and see what happen.
+
+* Do the same, but for the **glance-api** service
+
+* Do the same, but for the **glance-registry** service
+
+* Do the same on the previous services, but instead of put the wrong
+  sql password, write a wrong *keystone* password.
+
