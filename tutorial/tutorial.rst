@@ -1630,7 +1630,8 @@ There are currently three kind of networks implemented by three "Network Manager
   
 * Flat Network Manager: a network administrator specifies a subnet where 
   IP addresses for VM instances are grabbed from the subnet, and then injected into
-  the image on launch.
+  the image on launch. This means the system adminstrator has to implement a method 
+  for the IP assigment: external DHCP or other means.
   
 * VLAN Network Manager: In this mode, Compute creates a VLAN and bridge for each project.
   For multiple machine installation, the VLAN Network Mode requires a switch that supports VLAN 
