@@ -6,68 +6,6 @@ OpenStack `Grizzly` during the: `GridKa School 2013 - Training Session
 on OpenStack`.
 
 
-OpenStack overview
-------------------
-
-This tutorial will show how to install the main components of
-OpenStack, specifically:
-
-MySQL
-    MySQL database is used together with the RabbitMQ messaging system
-    for storing and sharing information about the status of the
-    cloud. Alternatively the PostgreSQL software can be also used as
-    database backend. We will use default one: MySQL.
-
-RabbitMQ
-    Messaging service used for inter-process communication among
-    various OpenStack components. Alternatives to RabbitMQ are the
-    Qpid and ZeroMQ softwares, in this tutorial we will again use the
-    default one: RabbitMQ.
-
-Keystone
-    OpenStack service which provides the authentication service and
-    works as a catalog of the various services available on the
-    cloud. Different backends can be used: in our setup we will store
-    login, password and tokens in a MySQL db. 
-
-nova
-    OpenStack *orchestrator*: it works as a main API endpoint for
-    Horizon and for command line tools, schedule the requests,
-    talks to the other OpenStack components to provide the requested
-    resources, setup and run the OpenStack instances. It is thus 
-    composed of multiple services: **nova-api**, **nova-scheduler**,
-    **nova-conductor**, **nova-cert**, ect.
-
-nova-network
-    OpenStack service used to configure the network of the instances
-    and to optionally provide the so-called *Floating IPs*. IPs that
-    can be *attached* and *detached* from an instance while it is
-    already running. Those IPs are usually used for accessing the
-    instances from outside world.
-
-nova-compute
-    OpenStack service which runs on the compute node and is
-    responsible of actual managing the OpenStack instances. It 
-    supports different hypervisors. The complete list bellow can be found `here
-    <http://docs.openstack.org/trunk/openstack-compute/admin/content/selecting-a-hypervisor.html>`_.
-    The commonly used one is KVM but due to limitation in our setup we
-    will use qemu.
-
-glance
-    OpenStack imaging service. It is used to store virtual disks
-    used to start the instances. It is split in two different
-    services: **glance-api** and **glance-registry**
-
-cinder
-    OpenStack volume service. It is used to create persistent volumes which
-    can be attached to a running instances later on. It is split
-    in three different services: **cinder-api**, **cinder-scheduler**
-    and **cinder-volume**
-
-Horizon
-    OpenStack Web Interface.
-
-
 Tutorial overview
 -----------------
 
@@ -137,7 +75,8 @@ Physical machines are assigned as follow:
 Network layout
 ++++++++++++++
 
-Each phyiscal
+The following diagram shows both the network layout of the physical
+machines and of the virtual machines running in it:
 
 .. image:: ../images/network_diagram.png
 
@@ -183,18 +122,6 @@ and on the *other* physical node::
 Access the Virtual Machines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The hostname of the virtual machine are as described in the
-*Tutorial overview* section, we summarize them bellow:
-
-* **db-node**
-* **auth-node**
-* **api-node**
-* **network-node**
-* **image-node**
-* **volume-node**
-* **compute-1**
-* **compute-2**
-
 You can connect to them from each one of the physical machines (the
 **gks-NNN** ones) using **ssh** or by starting the ``virt-manager``
 program on the physical node hosting the virtual machine and then
@@ -205,11 +132,29 @@ In order to connect using **ssh** please do::
      ssh root@hostname 
 
 where **hostname** is one of those listed above. All the Virtual
-Machines are setup with the same passwd: **user@gridka**  
+Machines have the same password: **user@gridka**
 
 Network Setup
 +++++++++++++
 
+Each virtual machine has 3 network interfaces, with the exception of the
+**network-node** that have 4. Some of these interfaces have been already
+configured, so that you can already connect to them using either the
+"*public*" or the private ip address.
+
+These are the networks we are going to use:
+
++------+-----------------------+------------------+
+| eth0 | internal KVM network  | 192.168.122.0/24 |
++------+-----------------------+------------------+
+| eth1 | internal network      | 10.0.0.0/24      |
++------+-----------------------+------------------+
+| eth2 | public network        | 172.16.0.16      |
++------+-----------------------+------------------+
+| eth3 | Openstack private     |                  |
+|      | network (present only |                  |
+|      | on the network-node)  |                  |
++------+-----------------------+------------------+
 
 The IP addresses of these machines are:
 
@@ -235,25 +180,11 @@ The IP addresses of these machines are:
 +--------------+--------------+-----------+--------------------------+------------+
 
 Both private and public hostnames are present in the ``/etc/hosts`` of
-the physical machines, in order to allow you to connect to the various
-nodes using the hostname instead of the IP addresses.
-
-These are the network cards present on the virtual machines:
-
-+------+-----------------------+------------------+
-| eth0 | internal KVM network  | 192.168.122.0/24 |
-+------+-----------------------+------------------+
-| eth1 | internal network      | 10.0.0.0/24      |
-+------+-----------------------+------------------+
-| eth2 | public network        | 172.16.0.16      |
-+------+-----------------------+------------------+
-| eth3 | Openstack private     |                  |
-|      | network (present only |                  |
-|      | on the network-node)  |                  |
-+------+-----------------------+------------------+
+the physical machines, in order to allow you to connect to them using
+the hostname instead of the IP addresses.
 
 Please note that the network node needs one more network interface
-which will be completely managed by the **nova-network** service and
+that will be completely managed by the **nova-network** service, and
 is thus left unconfigured at the beginning.
 
 On the compute node, moreover, we will need to manually create a
@@ -281,6 +212,69 @@ machines, but on a production environment you are likely to have only
    * ``volume-node``: cinder,
    * ``compute-1``: nova-compute,
    * ``compute-2``: nova-compute,
+
+
+
+OpenStack overview
+------------------
+
+This tutorial will show how to install the main components of
+OpenStack, specifically:
+
+MySQL
+    MySQL database is used together with the RabbitMQ messaging system
+    for storing and sharing information about the status of the
+    cloud. Alternatively the PostgreSQL software can be also used as
+    database backend. We will use default one: MySQL.
+
+RabbitMQ
+    Messaging service used for inter-process communication among
+    various OpenStack components. Alternatives to RabbitMQ are the
+    Qpid and ZeroMQ softwares, in this tutorial we will again use the
+    default one: RabbitMQ.
+
+Keystone
+    OpenStack service which provides the authentication service and
+    works as a catalog of the various services available on the
+    cloud. Different backends can be used: in our setup we will store
+    login, password and tokens in a MySQL db. 
+
+nova
+    OpenStack *orchestrator*: it works as a main API endpoint for
+    Horizon and for command line tools, schedule the requests,
+    talks to the other OpenStack components to provide the requested
+    resources, setup and run the OpenStack instances. It is thus 
+    composed of multiple services: **nova-api**, **nova-scheduler**,
+    **nova-conductor**, **nova-cert**, ect.
+
+nova-network
+    OpenStack service used to configure the network of the instances
+    and to optionally provide the so-called *Floating IPs*. IPs that
+    can be *attached* and *detached* from an instance while it is
+    already running. Those IPs are usually used for accessing the
+    instances from outside world.
+
+nova-compute
+    OpenStack service which runs on the compute node and is
+    responsible of actual managing the OpenStack instances. It 
+    supports different hypervisors. The complete list bellow can be found `here
+    <http://docs.openstack.org/trunk/openstack-compute/admin/content/selecting-a-hypervisor.html>`_.
+    The commonly used one is KVM but due to limitation in our setup we
+    will use qemu.
+
+glance
+    OpenStack imaging service. It is used to store virtual disks
+    used to start the instances. It is split in two different
+    services: **glance-api** and **glance-registry**
+
+cinder
+    OpenStack volume service. It is used to create persistent volumes which
+    can be attached to a running instances later on. It is split
+    in three different services: **cinder-api**, **cinder-scheduler**
+    and **cinder-volume**
+
+Horizon
+    OpenStack Web Interface.
 
 
 ``db-node``
