@@ -1,0 +1,5 @@
+StrictHostKeyChecking no
+
+Host *-node compute-1 compute-2
+User root
+Port 22
