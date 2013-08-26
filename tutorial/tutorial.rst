@@ -277,6 +277,15 @@ Horizon
 ``db-node``
 -----------
 
+OpenStack components use both MySQL and RabbitMQ to share information
+about the current status of the cloud and to communicate to each
+other. Since the architecture is higly distributed, a request done on
+an API service (for instance, to start a virtual instance), will
+trigger a series of tasks possible executed by different services on
+different machines. The server that receive the requests then write on
+the database some information related to the request and communicate
+with the other services via RabbitMQ.
+
 cloud repository and ntp package
 ++++++++++++++++++++++++++++++++
 
@@ -318,8 +327,8 @@ MySQL installation
 ++++++++++++++++++
 
 We are going to install both MySQL and RabbitMQ on the same server,
-but on a production environment you might want to have them installed
-on different servers and/or in HA. The following instructions are
+but on a production environment you may want to have them installed on
+different servers and/or in HA. The following instructions are
 intended to be used for both scenarios.
 
 Now please move on the db-node where we have to install the MySQL server.
@@ -351,6 +360,11 @@ using the ``netstat`` command::
 
 RabbitMQ
 ++++++++
+
+RabbitMQ is an implementation of the AMQP (Advanced Message Queuing
+Protocol), a networking protocol that enables conforming client
+applications to communicate with conforming messaging middleware
+brokers.
 
 Install RabbitMQ from the ubuntu repository::
 
@@ -394,6 +408,18 @@ operate on it briefly.
 
 ``auth-node``
 -------------
+
+The **auth-node** will run *keystone*, the service used byt OpenStack
+to store information aobut users, passwords, and the available
+services.
+
+This is thus the main endpoint of an OpenStack installation, so that
+by giving the URL of the keystone service a client can get all the
+information it needs to operate on that specific cloud. The keystone
+URL is also needed by all the various services, since they will need
+to authenticate the clients against keystone and, in some cases,
+discover all the services provided by the OpenStack installation in
+order to perform specific tasks.
 
 Before staring we can quickly check if the remote ssh execution of the
 commands done in the `all nodes installation`_ section worked without problems::
@@ -684,13 +710,19 @@ responsible for storing the images that will be used as templates to
 start the instances. We will use the default configuration and
 only do the minimal changes to match our configuration.
 
-Glance is actually composed of different services:
+Glance is actually composed of two different services:
 
-* **glance-api** accepts API calls for dicovering the available images, for their storage and also for their retrieval.
+* **glance-api** accepts API calls for dicovering the available
+  images, their metadata and is used also to retrieve them. It
+  supports two protocol versions: v1 and v2; when using v1, it does
+  not directly access the database but instead it talks to the
+  **glance-registry** service
 
-* **glance-registry** is instead storing and retrieving metadata about the images from the db. 
+* **glance-registry** used by **glance-api** to actually retrieve image
+  metadata when using the old v1 protocol.
 
-**FIXME explain the differences of the services above in more detail**
+Very good explanation about what glance does is available on `this
+blogpost <http://bcwaldon.cc/2012/11/06/openstack-image-service-grizzly.html>`_
 
 glance database and keystone setup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
