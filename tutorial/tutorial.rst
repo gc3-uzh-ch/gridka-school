@@ -72,14 +72,6 @@ Physical machines are assigned as follow:
 | team 10 | gks-246          | gks-247       |
 +---------+------------------+---------------+
 
-Network layout
-++++++++++++++
-
-The following diagram shows both the network layout of the physical
-machines and of the virtual machines running in it:
-
-.. image:: ../images/network_diagram.png
-
 
 Virtual Machines
 ++++++++++++++++
@@ -155,6 +147,11 @@ These are the networks we are going to use:
 |      | network (present only |                  |
 |      | on the network-node)  |                  |
 +------+-----------------------+------------------+
+
+The following diagram shows both the network layout of the physical
+machines and of the virtual machines running in it:
+
+.. image:: ../images/network_diagram.png
 
 The IP addresses of these machines are:
 
