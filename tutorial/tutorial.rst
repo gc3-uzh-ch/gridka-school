@@ -2,7 +2,8 @@ GridKa School 2013 - Training Session on OpenStack
 ==================================================
 
 This guide is to be used as reference for the installation of
-OpenStack `Grizzly` during the: `GridKa School 2013 - Training Session on OpenStack`. 
+OpenStack `Grizzly` during the: `GridKa School 2013 - Training Session
+on OpenStack`.
 
 
 OpenStack overview
@@ -12,10 +13,10 @@ This tutorial will show how to install the main components of
 OpenStack, specifically:
 
 MySQL
-    MySQL database is used together with the RabbitMQ messaging
-    system for storing and sharing information about the status of the
-    cloud. Alternatively the PostgreSQL software can be also used as database
-    backend. We will use default one: MySQL. 
+    MySQL database is used together with the RabbitMQ messaging system
+    for storing and sharing information about the status of the
+    cloud. Alternatively the PostgreSQL software can be also used as
+    database backend. We will use default one: MySQL.
 
 RabbitMQ
     Messaging service used for inter-process communication among
@@ -39,10 +40,10 @@ nova
 
 nova-network
     OpenStack service used to configure the network of the instances
-    and to optionally provide the so-called *Floating IPs*. IPs that can be
-    *attached* and *detached* from an instance while it is
-    already running. Those IPs are usually used for accessing the instances
-    from outside world. 
+    and to optionally provide the so-called *Floating IPs*. IPs that
+    can be *attached* and *detached* from an instance while it is
+    already running. Those IPs are usually used for accessing the
+    instances from outside world.
 
 nova-compute
     OpenStack service which runs on the compute node and is
@@ -70,35 +71,76 @@ Horizon
 Tutorial overview
 -----------------
 
-Each team will have two physical machines to work with.
+For this tutorial we will work in teams. Each team is composed of 2
+people and will have assigned two physical machines to work with.
 
-One of the nodes will run the 6 VMs hosting the central services. 
+One of the nodes will run the 6 VMs hosting the **central services**. 
 They are called as follows:
 
 * ``db-node``:  runs *MySQL* and *RabbitMQ*  
-* ``auth-node``: runs *keystone*
-* ``image-node``: runs *glance-api* and *glance-registry*
-* ``api-node``: runs *nova-api*, *horizon*, *nova-scheduler* and other **nova** related services
-* ``network-node``: runs *nova-network*
-* ``volume-node``: runs *cinder-api*, *cinder-scheduler* and *cinder-volume*
 
-while the other will run 2 VMs hosting the compute nodes for your stack:
+* ``auth-node``: runs *keystone*
+
+* ``image-node``: runs *glance-api* and *glance-registry*
+
+* ``api-node``: runs *nova-api*, *horizon*, *nova-scheduler* and other
+  **nova** related services
+
+* ``network-node``: runs *nova-network*
+
+* ``volume-node``: runs *cinder-api*, *cinder-scheduler* and
+  *cinder-volume*
+
+while the other will run 2 VMs hosting the **compute nodes** for your
+stack:
 
 * ``compute-1``: runs *nova-compute*
 * ``compute-2``: runs *nova-compute*
 
-**FIXME: how to assign the machines to the teams?**
-
 How to access the physical nodes
 ++++++++++++++++++++++++++++++++
 
-In order to access the different virtual machines and start working on the 
-configuration of OpenStack services listed above you will have to first login 
-on one of the nodes assigned to your group by doing::
+In order to access the different virtual machines and start working on
+the configuration of OpenStack services listed above you will have to
+first login on one of the nodes assigned to your group by doing::
 
         ssh root@gks-NNN.scc.kit.edu -p 24 -X
 
 where NNN is one of the numbers assigned to you.
+
+Physical machines are assigned as follow:
+
++---------+------------------+---------------+
+| team    | central services | compute nodes |
++=========+==================+===============+
+| team 01 | gks-125          | gks-126       |
++---------+------------------+---------------+
+| team 02 | gks-127          | gks-128       |
++---------+------------------+---------------+
+| team 03 | gks-129          | gks-130       |
++---------+------------------+---------------+
+| team 04 | gks-131          | gks-132       |
++---------+------------------+---------------+
+| team 05 | gks-137          | gks-138       |
++---------+------------------+---------------+
+| team 06 | gks-140          | gks-141       |
++---------+------------------+---------------+
+| team 07 | gks-142          | gks-143       |
++---------+------------------+---------------+
+| team 08 | gks-242          | gks-243       |
++---------+------------------+---------------+
+| team 09 | gks-244          | gks-245       |
++---------+------------------+---------------+
+| team 10 | gks-246          | gks-247       |
++---------+------------------+---------------+
+
+Network layout
+++++++++++++++
+
+Each phyiscal
+
+.. image:: ../images/network_diagram.png
+
 
 Virtual Machines
 ++++++++++++++++
@@ -167,6 +209,7 @@ Machines are setup with the same passwd: **user@gridka**
 
 Network Setup
 +++++++++++++
+
 
 The IP addresses of these machines are:
 
@@ -324,8 +367,8 @@ Install RabbitMQ from the ubuntu repository::
         
 RabbitMQ does not need any specific configuration. On a production
 environment, however, you might need to create a specific user for
-OpenStack services; in order to do that please check the official
-documentation `here <http://www.rabbitmq.com/documentation.html>`_.
+OpenStack services; in order to do that please check the `official
+documentation <http://www.rabbitmq.com/documentation.html>`_.
 
 To check if the RabbitMQ server is running use the ``rabbitmqctl``
 command::
@@ -1642,6 +1685,8 @@ FIXME: during the tutorial, it's probably better to install the
 package first, and then, during the installation, explain how
 nova-network works.
 
+FIXME: also cfr http://www.mirantis.com/blog/openstack-networking-flatmanager-and-flatdhcpmanager/
+
 ``nova-network`` configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1853,12 +1898,26 @@ Nova-compute
 In the next few rows we try to briefly explain what happens behind the scene when a new request 
 for starting an OpenStack instance is done. Note that this is very high level description. 
 
-1) The OpenStack API, EC2 API or the Horizon Web Interface (based again on OpenStack APIs) are used for creating the new instance request.
-2) Authentication is performed by keystone checking if the user is authorized for the requested operation.
+1) The OpenStack API, EC2 API or the Horizon Web Interface (based
+   again on OpenStack APIs) are used for creating the new instance
+   request.
+
+2) Authentication is performed by keystone checking if the user is
+   authorized for the requested operation.
+
 3) Message is then send to the scheduler with the new request.
-4) cheduler writes the message in the RabbitMQ queue asking a specific host matching the requirements to start the instance.
-5) The compute reads the message from the queue and starts booting the new instance asking for a fixed IP to the network service.
-6) The instance is at the end available from the outside world through the assigned IP. 
+
+4) cheduler writes the message in the RabbitMQ queue asking a specific
+   host matching the requirements to start the instance.
+
+5) The compute reads the message from the queue and starts booting the
+   new instance asking for a fixed IP to the network service.
+
+   **FIXME:** what about downloading image from glance and mounting
+   the disk from cinder? What about networking? Also cfr http://www.laurentluce.com/posts/openstack-nova-internals-of-instance-launching/
+
+6) The instance is at the end available from the outside world through
+   the assigned IP.
 
 **FIXME: To be checked the described workflow***
 
@@ -2081,7 +2140,8 @@ you can check that the keypair has been created with::
     | gridka-api-node | fa:86:74:77:a2:55:29:d8:e7:06:4a:13:f7:ca:cb:12 |
     +-----------------+-------------------------------------------------+
 
-Let's get the ID of the available images, flavors and security groups::
+Let's get the ID of the available images, flavors and security
+groups::
 
     root@api-node:~# nova image-list
     +--------------------------------------+--------------+--------+--------+
@@ -2143,7 +2203,8 @@ Now we are ready to start our first instance::
     | metadata                            | {}                                   |
     +-------------------------------------+--------------------------------------+
 
-This command returns immediately, even if the OpenStack instance is not yet started::
+This command returns immediately, even if the OpenStack instance is
+not yet started::
 
     root@api-node:~# nova list
     +--------------------------------------+----------+--------+----------+
@@ -2201,9 +2262,10 @@ You can attach a volume to a running instance easily::
     | volumeId | 180a081a-065b-497e-998d-aa32c7c295cc |
     +----------+--------------------------------------+
 
-Inside the instnace, a new disk named ``/dev/vdb`` will appear. This disk is 
-*persistent*, which means that if you terminate the instance and then you attach
-the disk to a new instance, the content of the volume is persisted.
+Inside the instnace, a new disk named ``/dev/vdb`` will appear. This
+disk is *persistent*, which means that if you terminate the instance
+and then you attach the disk to a new instance, the content of the
+volume is persisted.
 
 
 Horizon
@@ -2240,8 +2302,10 @@ Recap
 Small recap on what has to be done for a service installation:
 
 * create database,
-* create user for the this database in way that in can connects and configure the service.
-* create user for the service which has role admin in the tenant service
+* create user for the this database in way that in can connects and
+  configure the service.
+* create user for the service which has role admin in the tenant
+  service
 * define the endpoint
 
 
@@ -2251,10 +2315,9 @@ References
 As starting reference has been used the following `tutorial
 <https://github.com/mseknibilel/OpenStack-Grizzly-Install-Guide/blob/master/OpenStack_Grizzly_Install_Guide.rst>`_.
 
-We adapted the tutorial above with what we considered necessary for our purposes and for installing OpenStack on
-6 hosts.
+We adapted the tutorial above with what we considered necessary for
+our purposes and for installing OpenStack on 6 hosts.
 
-The official Grizzly tutorial can be found `here
-<http://docs.openstack.org/grizzly/openstack-compute/install/apt/content/>`_.
+The `official Grizzly tutorial <http://docs.openstack.org/grizzly/openstack-compute/install/apt/content/>`_.
 
 .. _`Openstack Compute Administration Guide`: http://docs.openstack.org/trunk/openstack-compute/admin/content/index.html
