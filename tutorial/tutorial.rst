@@ -1060,23 +1060,29 @@ GlusterFS, NFS or various appliances from IBM, NetApp etc.
 
 Cinder is actually composed of different services:
 
-**cinder-api** The cinder-api service is a WSGI app that authenticates
-    and routes requests throughout the Block Storage system. It can be
-    used directly (via API or via ``cinder`` command line tool) but it
-    is also accessed by the ``nova`` service and the horizon web interface.
+**cinder-api** 
 
-**cinder-scheduler** The cinder-scheduler is responsible for
-    scheduling/routing requests to the appropriate volume service. As
-    of Grizzly; depending upon your configuration this may be simple
-    round-robin scheduling to the running volume services, or it can
-    be more sophisticated through the use of the Filter Scheduler. The
-    Filter Scheduler is the default in Grizzly and enables filter on
-    things like Capacity, Availability Zone, Volume Types and
-    Capabilities as well as custom filters.
+    The cinder-api service is a WSGI app that authenticates and routes
+    requests throughout the Block Storage system. It can be used
+    directly (via API or via ``cinder`` command line tool) but it is
+    also accessed by the ``nova`` service and the horizon web
+    interface.
 
-**cinder-volume** The cinder-volume service is responsible for
-    managing Block Storage devices, specifically the back-end devices
-    themselves.
+**cinder-scheduler** 
+
+    The cinder-scheduler is responsible for scheduling/routing
+    requests to the appropriate volume service. As of Grizzly;
+    depending upon your configuration this may be simple round-robin
+    scheduling to the running volume services, or it can be more
+    sophisticated through the use of the Filter Scheduler. The Filter
+    Scheduler is the default in Grizzly and enables filter on things
+    like Capacity, Availability Zone, Volume Types and Capabilities as
+    well as custom filters.
+
+**cinder-volume** 
+
+    The cinder-volume service is responsible for managing Block
+    Storage devices, specifically the back-end devices themselves.
 
 In our setup, we will run all the cinder services on the same machine,
 although you can, in principle, spread them over multiple servers.
