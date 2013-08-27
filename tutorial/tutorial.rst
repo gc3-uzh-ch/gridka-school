@@ -5,6 +5,16 @@ This guide is to be used as reference for the installation of
 OpenStack `Grizzly` during the: `GridKa School 2013 - Training Session
 on OpenStack`.
 
+Goal of the tutorial is to end up with a small installation of
+OpenStack Grizzly on a set of different Ubuntu 12.04 virtual
+machines.
+
+Since our focus is to explain the most basic components of OpenStack
+to ease a later deployment on a production environment, the various
+services will be installed on different machines, that is the most
+common setup on production. Moreover, having different services on
+different machines will help to better understand the dependencies
+among the various services.
 
 Tutorial overview
 -----------------
@@ -15,19 +25,22 @@ people and will have assigned two physical machines to work with.
 One of the nodes will run the 6 VMs hosting the **central services**. 
 They are called as follows:
 
-* ``db-node``:  runs *MySQL* and *RabbitMQ*  
+* ``db-node``:  runs *MySQL* and *RabbitMQ*
 
-* ``auth-node``: runs *keystone*
+* ``auth-node``: runs *keystone*, the identity and authentication
+  service
 
-* ``image-node``: runs *glance-api* and *glance-registry*
+* ``image-node``: runs **glance**, the image storage, composed of the
+  *glance-api* and glance-registry* services
 
-* ``api-node``: runs *nova-api*, *horizon*, *nova-scheduler* and other
-  **nova** related services
+* ``api-node``: runs most of the **nova** service: *nova-api*,
+  *horizon*, *nova-scheduler*, *nova-conductor* and *nova-console*.
 
-* ``network-node``: runs *nova-network*
+* ``network-node``: runs the network services:
+  *nova-network* and nova-metadata* (not Neutron/Quantum)
 
-* ``volume-node``: runs *cinder-api*, *cinder-scheduler* and
-  *cinder-volume*
+* ``volume-node``: runs **cinder**, the volume manager, composed of
+  the *cinder-api*, *cinder-scheduler* and *cinder-volume* services
 
 while the other will run 2 VMs hosting the **compute nodes** for your
 stack:
@@ -148,6 +161,34 @@ These are the networks we are going to use:
 |      | on the network-node)  |                  |
 +------+-----------------------+------------------+
 
+The *internal KVM network* is a network needed because our virtual
+machines does not have real public IP addresses, therefore we need to
+allow them to communicate through the physical node. The libvirt
+daemon will automatically assign an IP address to this interface and
+set the needed iptables rules in order to configure the NAT and allow
+the machine to connect to the internet. On a production environment,
+you will not have this interface.
+
+The *internal network* is a trusted network used by all the OpenStack
+services to communicate to each other. Usually, you wouldn't setup a
+strict firewall on this ip address.
+
+The *public network* is the network exposed to the Internet. In our
+case we are using a non-routable IP range because of the constraints
+imposed by the tutorial setup, but on a production environment you
+will use public ip addresses instead and will setup a firewall in
+order to only allow connection on specific ports.
+
+The *OpenStack private network* is the internal network of the
+OpenStack virtual machines. The virtual machines need to communicate
+with the network node, (unless a "multinode setup is used") and among
+them, therefore this network is configured only on the network node
+(that also need to have an IP address in it) and the compute nodes,
+which only need to have an interface on this network attached to a
+bridge the virtual machines will be attached to. On a production
+environment you would probably use a separated L2 network for this,
+either by using VLANs or using a second physical interface.
+
 The following diagram shows both the network layout of the physical
 machines and of the virtual machines running in it:
 
@@ -217,6 +258,9 @@ OpenStack overview
 
 This tutorial will show how to install the main components of
 OpenStack, specifically:
+
+.. image:: ../images/openstack-conceptual-arch.small.png
+
 
 MySQL
     MySQL database is used together with the RabbitMQ messaging system
@@ -293,6 +337,10 @@ The following steps need to be done on all the machines. We are going
 execute them step by step on the **db-node** only, and then we will automate
 the process on the other nodes. Please login to the db-node and:
 
+Connect to the **db-node**::
+
+    root@gks-NNN:[~] $ ssh root@db-node
+
 Add the OpenStack Grizzly repository::
 
     root@db-nodes:# apt-get install -y ubuntu-cloud-keyring
@@ -345,7 +393,12 @@ port 3306. This has to be changed in order to make the server
 accessible from the all the OpenStack services. Edit the
 ``/etc/mysql/my.cnf`` file and ensure that it contains the following line::
 
-    bind-address            = 0.0.0.0
+    bind-address            = 10.0.0.3
+
+This will make the MySQL daemon listen only on the *private*
+interface. Please note that in this way you will not be able to
+contact it using the *public* interface (172.16.0.3), which is usually
+what you want in a production environment.
 
 After changing this line you have to restart the MySQL server::
 
@@ -355,7 +408,7 @@ Check that MySQL is actually running and listening on all the interfaces
 using the ``netstat`` command::
 
     root@db-node:~# netstat -nlp|grep 3306
-    tcp        0      0 0.0.0.0:3306            0.0.0.0:*               LISTEN      21926/mysqld    
+    tcp        0     10 0.0.0.3:3306            0.0.0.0:*               LISTEN      21926/mysqld    
 
 
 RabbitMQ
@@ -953,6 +1006,13 @@ uploaded on the image store::
     +--------------------------------------+--------------+-------------+------------------+---------+--------+
     | 79af6953-6bde-463d-8c02-f10aca227ef4 | cirros-0.3.0 | qcow2       | bare             | 9761280 | active |
     +--------------------------------------+--------------+-------------+------------------+---------+--------+
+
+You can easily find ready-to-use images on the web. An image for the
+`Ubuntu Server 12.04 "Precise" (amd64)
+<http://cloud-images.ubuntu.com/precise/current/precise-server-cloudimg-amd64-disk1.img>`_
+can be found at the `Ubuntu Cloud Images archive
+<http://cloud-images.ubuntu.com/>`_, you can download it and upload
+using glance as we did before.
 
 Further improvements
 ~~~~~~~~~~~~~~~~~~~~
@@ -2379,7 +2439,7 @@ components interact among them.
 
 * Set a *wrong* password in ``/etc/nova/nova.conf`` file on the
   **api-node** for the sql connection, restart all the nova services
-  *and see what happen.
+  and see what happen.
 
 * Do the same, but for the **glance-api** service
 
