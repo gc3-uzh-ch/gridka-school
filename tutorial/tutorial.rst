@@ -1193,40 +1193,11 @@ Let's now go back to the  **volume-node** and install the cinder
 packages::
 
     root@volume-node:~# apt-get install -y cinder-api cinder-scheduler cinder-volume \
-      iscsitarget open-iscsi iscsitarget-dkms python-mysqldb  python-cinderclient
-
-Ensure that the iscsi module has been installed by the
-iscsitarget-dkms package::
-
-    root@volume-node:~# dkms status
-    iscsitarget, 1.4.20.2, 3.5.0-37-generic, x86_64: installed
-
-It is possible that the installation of the ``iscsitarget-dkms``
-module compiled the modules for a newer version of the kernel. If this
-is the case, just restart the machine and then run::
-
-    root@volume-node:~# dkms autoinstall iscsitarget
-
-..
-   This is the *wrong* output of ``dkms status``::
-
-       root@volume-node:~# dkms status
-       iscsitarget, 1.4.20.2: added
-
-   Check the current running kernel version with `uname -a` and the
-   header version in /usr/src/ : they need to match.
-
-
-The file ``/etc/default/iscsitarget`` controls the startup of the
-iscsi daemon, it has to contain this line::
-
-    ISCSITARGET_ENABLE=true
-
-(please note that it is case sensitive)
+      open-iscsi python-mysqldb  python-cinderclient
 
 Ensure that the iscsi services are running::
 
-    root@volume-node:~# service iscsitarget start
+    root@volume-node:~# service service start
     root@volume-node:~# service open-iscsi start
 
 We will configure cinder in order to create volumes using LVM, but in
@@ -1302,7 +1273,7 @@ LVM configuration. A minimal configuration file will contain::
     [DEFAULT]
     rootwrap_config=/etc/cinder/rootwrap.conf
     api_paste_config = /etc/cinder/api-paste.ini
-    iscsi_helper=ietadm
+    iscsi_helper=tgtadm
     volume_name_template = volume-%s
     volume_group = cinder-volumes
     verbose = True
@@ -1400,6 +1371,42 @@ You can easily check that a new LVM volume has been created::
       - currently set to     256
       Block device           252:0
 
+To show if the volume is actually served via iscsi you can run::
+
+   root@volume-node:~# tgtadm  --lld iscsi --op show --mode target
+   Target 1: iqn.2010-10.org.openstack:volume-1d1a75eb-1493-4fda-8eba-fa851cfd5040
+       System information:
+           Driver: iscsi
+           State: ready
+       I_T nexus information:
+       LUN information:
+           LUN: 0
+               Type: controller
+               SCSI ID: IET     00010000
+               SCSI SN: beaf10
+               Size: 0 MB, Block size: 1
+               Online: Yes
+               Removable media: No
+               Readonly: No
+               Backing store type: null
+               Backing store path: None
+               Backing store flags: 
+           LUN: 1
+               Type: disk
+               SCSI ID: IET     00010001
+               SCSI SN: beaf11
+               Size: 1074 MB, Block size: 512
+               Online: Yes
+               Removable media: No
+               Readonly: No
+               Backing store type: rdwr
+               Backing store path: /dev/cinder-volumes/volume-1d1a75eb-1493-4fda-8eba-fa851cfd5040
+               Backing store flags: 
+       Account information:
+       ACL information:
+           ALL
+
+
 Since the volume is not used by any VM, we can delete it with the ``cinder delete`` command::
 
     root@volume-node:~# cinder delete 1d1a75eb-1493-4fda-8eba-fa851cfd5040
@@ -1412,6 +1419,14 @@ Deleting the volume can take some time::
     +--------------------------------------+----------+--------------+------+-------------+----------+-------------+
     | 1d1a75eb-1493-4fda-8eba-fa851cfd5040 | deleting |     test     |  1   |     None    |  false   |             |
     +--------------------------------------+----------+--------------+------+-------------+----------+-------------+
+
+After a while the volume is deleted, removed from iscsi and LVM::
+
+    root@volume-node:~# cinder list
+
+    root@volume-node:~# tgtadm  --lld iscsi --op show --mode target
+    root@volume-node:~# lvdisplay 
+    root@volume-node:~#
 
 
 ``api-node``
@@ -1587,7 +1602,7 @@ configuration options <http://docs.openstack.org/trunk/openstack-compute/admin/c
     state_path=/var/lib/nova
     lock_path=/var/lock/nova
     force_dhcp_release=True
-    iscsi_helper=ietadm
+    iscsi_helper=tgtadm
     libvirt_use_virtio_for_bridges=True
     connection_type=libvirt
     root_helper=sudo nova-rootwrap /etc/nova/rootwrap.conf
