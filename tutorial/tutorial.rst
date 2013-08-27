@@ -154,7 +154,7 @@ These are the networks we are going to use:
 +------+-----------------------+------------------+
 | eth1 | internal network      | 10.0.0.0/24      |
 +------+-----------------------+------------------+
-| eth2 | public network        | 172.16.0.16      |
+| eth2 | public network        | 172.16.0.0/16    |
 +------+-----------------------+------------------+
 | eth3 | Openstack private     |                  |
 |      | network (present only |                  |
@@ -1319,8 +1319,6 @@ options::
     root@volume-node:~# export OS_PASSWORD=keystoneAdmin
     root@volume-node:~# export OS_TENANT_NAME=admin
     root@volume-node:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
-
-As usual you can set the environment variables OS_USERNAME
 
 Test cinder by creating a volume::
 
