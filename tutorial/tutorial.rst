@@ -1566,7 +1566,7 @@ is correct::
     admin_tenant_name = service
     admin_user = nova
     admin_password = novaServ
-    signing_dir = /tmp/keystone-signing
+    #signing_dir = /tmp/keystone-signing
     # Workaround for https://bugs.launchpad.net/nova/+bug/1154809
     auth_version = v2.0
 
@@ -1633,15 +1633,19 @@ Restart all the nova services::
     root@api-node:~# service nova-api restart
     nova-api stop/waiting
     nova-api start/running, process 26273
+
     root@api-node:~# service nova-conductor restart
     nova-conductor stop/waiting
     nova-conductor start/running, process 26296
+
     root@api-node:~# service nova-scheduler restart
     nova-scheduler stop/waiting
     nova-scheduler start/running, process 26311
+
     root@api-node:~# service nova-novncproxy restart
     nova-novncproxy stop/waiting
     nova-novncproxy start/running, process 26326
+
     root@api-node:~# service nova-cert restart
     nova-cert stop/waiting
     nova-cert start/running, process 26376
@@ -1876,8 +1880,9 @@ following options are defined::
     default_floating_pool=public
     public_interface=eth2
 
-FIXME: ``auto_assign_floating_ip`` will only work if floating IPs are
-configured and there are floating IPs free!
+..
+   FIXME: ``auto_assign_floating_ip`` will only work if floating IPs are
+   configured and there are floating IPs free!
 
 ..
        # Not sure it's needed
@@ -2026,12 +2031,18 @@ dependencies.
 Network configuration
 ~~~~~~~~~~~~~~~~~~~~~
 
-Configure the internal bridge. In order to do that you will need to
-login using the console. 
+We need to configure an internal bridge. The bridge will be used by
+libvirt daemon to connect the network interface of a virtual machine
+to a physical network, in our case, **eth2** on the compute node.
 
-Open virt-manager, login as root and shutdown the *network*::
+In our setup, this is the same layer-2 network as the **eth1** network
+used for the internal network of OpenStack services; however, in
+production, you will probably want to separate the two network, either
+by using physically separated networks or by use of VLANs.
 
-    root@compute-1 # /etc/init.d/networking stop
+Please note that (using the naming convention of our setup) the
+**eth3** interface on the **network-node** must be in the same L2 network as
+**eth2** in the **compute-node**
 
 Update the ``/etc/network/interfaces`` file and configure a new
 bridge, called **br100** attached to the network interface ``eth2``::
@@ -2043,17 +2054,6 @@ bridge, called **br100** attached to the network interface ``eth2``::
         bridge-ports eth2
         bridge_stp   off
         bridge_fd    0
-
-This bridge must be on the same layer-2 network of the network node,
-and is used only for the communication among the OpenStack instances.
-
-Since nova-compute only attach new virtual interfaces to this bridge
-but it does not change the IP configuration (as nova-network does),
-you can also assign the internal IP address of the **compute-1** node
-(in our case, the **10.0.0.20** ip address) on the **br100**
-interface. However, on a production environment, for security reasons,
-you want to have two physically separated network for the instances
-and for the OpenStack services.
 
 Start the bridge::
 
@@ -2114,8 +2114,6 @@ and MySQL servers. The minimum information you have to provide in the
 
     # Compute #
     compute_driver=libvirt.LibvirtDriver
-
-    # network_host=10.0.0.7
 
 You can just replace the ``/etc/nova/nova.conf`` file with the content
 displayed above.
@@ -2385,18 +2383,6 @@ opening the URL ``http://172.16.0.6/horizon`` on your web browser
 
    Different scheduling policy and options can be set in the nova's configuration file.
 
-Recap
------
-
-Small recap on what has to be done for a service installation:
-
-* create database,
-* create user for the this database in way that in can connects and
-  configure the service.
-* create user for the service which has role admin in the tenant
-  service
-* define the endpoint
-
 
 References
 ----------
@@ -2454,3 +2440,8 @@ components interact among them.
 * Do the same on the previous services, but instead of put the wrong
   sql password, write a wrong *keystone* password.
 
+* Try to remove ``iscsi_ip_address` from ``/etc/cinder/cinder.conf``
+  and restart the services. Then, try to create a volume and attach to
+  it. Debug it!
+
+* remove all the floating IPs and see what happen.
