@@ -1787,11 +1787,10 @@ There are currently three kind of networks implemented by three "Network Manager
   tagging (IEEE 802.1Q)
 
 
-FIXME: during the tutorial, it's probably better to install the
-package first, and then, during the installation, explain how
-nova-network works.
-
-FIXME: also cfr http://www.mirantis.com/blog/openstack-networking-flatmanager-and-flatdhcpmanager/
+..
+   FIXME: during the tutorial, it's probably better to install the
+   package first, and then, during the installation, explain how
+   nova-network works.
 
 ``nova-network`` configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1999,34 +1998,58 @@ As we did for the network node before staring it is good to quickly check if the
 remote ssh execution of the commands done in the `all nodes installation`_ section 
 worked without problems. You can again verify it by checking the ntp installation.
 
-Nova-compute 
+Nova-compute
 ++++++++++++
 
 In the next few rows we try to briefly explain what happens behind the scene when a new request 
 for starting an OpenStack instance is done. Note that this is very high level description. 
 
-1) The OpenStack API, EC2 API or the Horizon Web Interface (based
-   again on OpenStack APIs) are used for creating the new instance
-   request.
+1) Authentication is performed either by the web interface **horizon**
+   or **nova** command line tool:
 
-2) Authentication is performed by keystone checking if the user is
-   authorized for the requested operation.
+   a) keystone is contacted and authentication is performed
+   b) a *token* is saved in the database and returned to the client
+      (horizon or nova cli) to be used with later interactions with
+      OpenStack services for this request.
 
-3) Message is then send to the scheduler with the new request.
+2) **nova-api** is contacted and a new request is created:
 
-4) cheduler writes the message in the RabbitMQ queue asking a specific
-   host matching the requirements to start the instance.
+   a) it checks via *keystone* the validity of the token
+   b) checks the authorization of the user
+   c) validates parameters and create a new request in the database
+   d) calls the scheduler via queue
 
-5) The compute reads the message from the queue and starts booting the
-   new instance asking for a fixed IP to the network service.
+3) **nova-scheduler** find an appropriate host
 
-   **FIXME:** what about downloading image from glance and mounting
-   the disk from cinder? What about networking? Also cfr http://www.laurentluce.com/posts/openstack-nova-internals-of-instance-launching/
+   a) reads the request
+   b) find an appropriate host via filtering and weighting
+   c) calls the choosen *nova-compute* host via queue
 
-6) The instance is at the end available from the outside world through
-   the assigned IP.
+4) **nova-compute** read the request and start an instance:
 
-**FIXME: To be checked the described workflow***
+   a) generates a proper configuration for the hypervisor 
+   b) get image URI via image id
+   c) download the image
+   d) request to allocate network via queue
+
+5) **nova-network** configure the network
+
+   a) allocates a valid private ip
+   b) if requested, it allocates a floating ip
+   c) configures the operating system as needed (in our case: dnsmasq
+      and iptables are configured)
+   d) updates the request status
+
+6) **nova-network** contacts *cinder* to provision the volume
+
+   a) gets connection parameters from cinder
+   b) uses iscsi to make the volume available on the local machine
+   c) asks the hypervisor to provision the local volume as virtual
+      volume of the specified virtual machine
+
+7) **horizon** or **nova** poll the status of the request by
+   contacting **nova-api** until it is ready.
+
 
 Software installation
 ~~~~~~~~~~~~~~~~~~~~~
@@ -2409,6 +2432,8 @@ our purposes and for installing OpenStack on 6 hosts.
 The `official Grizzly tutorial <http://docs.openstack.org/grizzly/openstack-compute/install/apt/content/>`_.
 
 .. _`Openstack Compute Administration Guide`: http://docs.openstack.org/trunk/openstack-compute/admin/content/index.html
+
+For a very good explanation about the FlatDHCP netowrk configuration, also cfr. http://www.mirantis.com/blog/openstack-networking-flatmanager-and-flatdhcpmanager/
 
 
 Troubleshooting exercises
