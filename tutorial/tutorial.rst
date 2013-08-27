@@ -141,7 +141,7 @@ These are the networks we are going to use:
 +------+-----------------------+------------------+
 | eth1 | internal network      | 10.0.0.0/24      |
 +------+-----------------------+------------------+
-| eth2 | public network        | 172.16.0.16      |
+| eth2 | public network        | 172.16.0.0/16    |
 +------+-----------------------+------------------+
 | eth3 | Openstack private     |                  |
 |      | network (present only |                  |
@@ -1283,8 +1283,6 @@ options::
     root@volume-node:~# export OS_TENANT_NAME=admin
     root@volume-node:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
 
-As usual you can set the environment variables OS_USERNAME
-
 Test cinder by creating a volume::
 
     root@volume-node:~# cinder create --display-name test 1
@@ -2319,17 +2317,20 @@ opening the URL ``http://172.16.0.6/horizon`` on your web browser
 
    Different scheduling policy and options can be set in the nova's configuration file.
 
-Recap
------
+.. 
+  not needed
+ 
+  Recap
+  -----
 
-Small recap on what has to be done for a service installation:
+  Small recap on what has to be done for a service installation:
 
-* create database,
-* create user for the this database in way that in can connects and
-  configure the service.
-* create user for the service which has role admin in the tenant
-  service
-* define the endpoint
+  * create database,
+  * create user for the this database in way that in can connects and
+    configure the service.
+  * create user for the service which has role admin in the tenant
+    service
+  * define the endpoint
 
 
 References
