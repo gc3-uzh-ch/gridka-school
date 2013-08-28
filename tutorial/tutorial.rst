@@ -871,7 +871,7 @@ We need then to create the **image** service::
 
 and the related endpoint::
 
-    root@image-node:~# keystone endpoint-create --region RegionOne \
+    root@auth-node:~# keystone endpoint-create --region RegionOne \
         --publicurl 'http://image-node.example.org:9292/v2' \
         --adminurl 'http://image-node.example.org:9292/v2' \
         --internalurl 'http://10.0.0.5:9292/v2' \
