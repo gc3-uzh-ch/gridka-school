@@ -431,7 +431,7 @@ Install RabbitMQ from the ubuntu repository::
         
 RabbitMQ does not need any specific configuration. On a production
 environment, however, you might need to create a specific user for
-OpenStack services; in order to do that please check the `official
+OpenStack services; in order to do that please check the `RabbitMQ official
 documentation <http://www.rabbitmq.com/documentation.html>`_.
 
 To check if the RabbitMQ server is running use the ``rabbitmqctl``
@@ -474,7 +474,7 @@ Keystone performs two main tasks:
 
 * stores information about Authentication and Authorizations (*users*,
   *passwords*, *authorization tokens*, *projects* (also known as
-  **tenants*) and *roles*
+  *tenants*) and *roles*
 * stores information about available *services* and the URI of the
   *endpoints*.
 
@@ -2452,20 +2452,37 @@ The `official Grizzly tutorial <http://docs.openstack.org/grizzly/openstack-comp
 For a very good explanation about the FlatDHCP netowrk configuration, also cfr. http://www.mirantis.com/blog/openstack-networking-flatmanager-and-flatdhcpmanager/
 
 
-Troubleshooting exercises
--------------------------
+Troubleshooting challenge session
+---------------------------------
 
-This is a list of exercises to help you understand how OpenStack
-components interact among them.
+The idea of this session is to try to learn how to debug an OpenStack
+installation.
 
-* Remove the "admin" role from the glance user::
+Below there is a list of proposed *sabotages* that you can do on your
+machines. The idea is that each one of you will perform one or more of
+these *sabotages* and then will switch with someone else.
+
+Then, you will have to check that the installation is working
+(actually, find what is *not* working as expected) and try to fix the
+problem.
+
+
+proposed sabotages (but you can be creative!)
++++++++++++++++++++++++++++++++++++++++++++++
+
+* Remove the "admin" role from one of the "nova", "glance", "cinder"
+  users::
 
     root@auth-node:~# keystone user-role-remove \
-      --user-id c938866a0a3c4266a25dc95fbfcc6718 \
+      --user-id <user_id> \
       --role-id fafa8117d1564d8c9ec4fe6dbf985c68 \
       --tenant-id cb0e475306cc4c91b2a43b537b1a848b
 
   and see what does **not** work anymore.
+
+* remove or replace with an invalid IP address the ``rabbit_host``
+  configuration option on one of the configuration file and restart
+  the service.
 
 * Fill the ``/var/lib/nova/instances`` directory by creating a big
   file using dd, and try to start a virtual machine
@@ -2480,22 +2497,42 @@ components interact among them.
   - glance-api
   - glance-registry
   
-  specifically, try to start virtual machines both with the ``nova``
-  command line tool and via web interface.
+  try to start virtual machines both with the ``nova`` command line
+  tool and via web interface and check if there are differences.
 
 * Set a *wrong* password in ``/etc/nova/nova.conf`` file on the
   **api-node** for the sql connection, restart all the nova services
-  and see what happen.
 
 * Do the same, but for the **glance-api** service
 
 * Do the same, but for the **glance-registry** service
 
-* Do the same on the previous services, but instead of put the wrong
-  sql password, write a wrong *keystone* password.
+* Do the same, but for the **cinder** service
+
+* Similarly, try to put the wrong *keystone* password on one of the
+  main services.
 
 * Try to remove ``iscsi_ip_address` from ``/etc/cinder/cinder.conf``
-  and restart the services. Then, try to create a volume and attach to
-  it. Debug it!
+  (or just replace the address it with an invalid one) and restart the
+  cinder services. Then, try to create a volume and attach it to a
+  running instance.
 
-* remove all the floating IPs and see what happen.
+* remove all the floating IPs with the ``nova-manage floating
+  delete``. Play also with the ``auto_assign_floating_ip`` option of
+  the ``/etc/nova/nova.conf`` configuration file. (if you are very
+  mean, you can replace the floating IPs with similar but invalid ones)
+
+List of possible checks
++++++++++++++++++++++++
+
+* upload an image
+* start an instance using ``nova``
+* start an instance using the web interface
+* create a snapshot (both from web and command line)
+* create a volume (both from web and command line)
+* attach a volume to a running instance (web/CLI)
+* connect to the instance using ssh
+* connect to the instance on a port different than 22 (hint: use
+  netcat or ssh)
+* start an instance using ``euca-start-instances`` (note: we didn't
+  tell you how to do it)
