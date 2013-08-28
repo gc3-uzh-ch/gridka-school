@@ -851,7 +851,7 @@ associated with the **service** tenant::
 
 Then we need to give admin permissions to it::
 
-    root@image-node:~# keystone user-role-add --tenant service --user glance --role admin
+    root@auth-node:~# keystone user-role-add --tenant service --user glance --role admin
 
 Please note that we could have created only one user for all the services, 
 but this is a cleaner solution.
