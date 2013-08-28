@@ -2242,6 +2242,7 @@ We will test OpenStack first from the **api-node** using the command
 line interface, and then from the physical node connecting to the web
 interface.
 
+
 The first thing we need to do is to create a ssh keypair and upload
 the public key on OpenStack so that we can connect to the instance.
 The command to create a ssh keypair is ``ssh-keygen``::
@@ -2438,6 +2439,89 @@ opening the URL ``http://172.16.0.6/horizon`` on your web browser
    Different scheduling policy and options can be set in the nova's configuration file.
 
 
+Notes on EC2 compatible interface
+---------------------------------
+
+The EC2 compatibility layer in nova is provided by the **nova-api**
+service together with the native interface. There also is a
+**nova-api-ec2** service which is used *as a replacement* of
+**nova-api** if you only need the EC2 API and you don't want the
+native apis, although in our case we need both.
+
+The EC2 compatibility layer, however, need one more configuration
+option we didn't define. 
+
+Edit ``/etc/nova/nova.conf`` on the **api-node** and add the following
+option::
+
+    keystone_ec2_url=http://auth-node.example.org:5000/v2.0/ec2tokens
+
+Please note that this is an url pointing to the keystone service, but
+with an additional ``ec2tokens``. This is used by the **nova-api**
+service to validate ec2-style tokens, and by default points to
+localhost.
+
+working with the EC2 interface
+++++++++++++++++++++++++++++++
+
+To access an EC2 endpoint you need to get an **access key** and a
+**secret key**. These are temporary tokens you can create and delete,
+so that you don't have to use your login and password all the time,
+and you can actually *lend* them to other people to allow them to run
+virtual machines on your behalf without having to give them your login
+and password. You can delete them whenever you want.
+
+To create a new pair of ec2 credentials you can run::
+
+    root@api-node:~# keystone ec2-credentials-create
+    +-----------+----------------------------------+
+    |  Property |              Value               |
+    +-----------+----------------------------------+
+    |   access  | c22f5770ee924f25b4c7b091f521b15f |
+    |   secret  | 78b92ddde8134b46a05dbd91023e27db |
+    | tenant_id | acdbdb11d3334ed987869316d0039856 |
+    |  user_id  | 13ff2976843649669c4911ec156eaa3f |
+    +-----------+----------------------------------+
+
+You can later on delete a pair of ec2 credentials with ``keystone
+ec2-credentials-delete --access <access_key>``
+
+If you want to test the EC2 interface the easiest way is to install
+the **euca2ools** tool::
+
+    root@api-node:~# apt-get install euca2ools
+
+and then run, for instance, the command::
+
+    root@api-node:~# euca-describe-images \
+      --access-key c22f5770ee924f25b4c7b091f521b15f \
+      --secret-key 78b92ddde8134b46a05dbd91023e27db \
+      -U http://api-node.example.org:8773/services/Cloud
+    IMAGE	ami-00000001	None (Cirros-0.3.0-x86_64)	0aacc603e6dd425caa51db0d07957412	available	private			machine				instance-store
+
+There are two things to note about this command:
+
+* the URL we are using this time is *not* the keystone url. This
+  because the service providing the EC2 compatibility layer is
+  **nova-api** instead, so we have to use the URL we used as endpoint
+  for the **ec2** service
+
+* the image id returned by the previous command is *not* directly
+  related to the image id used in glance. Instead, it is an ``ami-*``
+  id (similar to the IDs used by amazon images). Actually, there is no
+  easy way to get the ami id knowing the glance id, so you have to
+  use the image name whenever it is possible to identify the right
+  image.
+
+Also for the euca2ools and for most of the EC2 libraries, setting the
+following environment variables allows you to avoid explicitly specify
+access/secret keys and endpoint url::
+
+    root@api-node:~# export EC2_ACCESS_KEY=445f486efe1a4eeea2c924d0252ff269
+    root@api-node:~# export EC2_SECRET_KEY=ff98e8529e2543aebf6f001c74d65b17
+    root@api-node:~# export EC2_URL=http://api-node.example.org:8773/services/Cloud
+
+
 References
 ----------
 
@@ -2538,3 +2622,12 @@ List of possible checks
   netcat or ssh)
 * start an instance using ``euca-start-instances`` (note: we didn't
   tell you how to do it)
+
+.. Notes:
+   * missing information about the metadata service
+   * missing info about the user-data
+   * missing detailed information on the security groups
+   * missing info about 
+   * FIXME: next time, use images with updated software, to avoid a
+     long delay when running apt-get upgrade
+   * missing info on the ec2 compatible interface
