@@ -1213,7 +1213,6 @@ packages::
 
 Ensure that the iscsi services are running::
 
-    root@volume-node:~# service service start
     root@volume-node:~# service open-iscsi start
 
 We will configure cinder in order to create volumes using LVM, but in
