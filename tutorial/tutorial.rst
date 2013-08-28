@@ -2,103 +2,89 @@ GridKa School 2013 - Training Session on OpenStack
 ==================================================
 
 This guide is to be used as reference for the installation of
-OpenStack `Grizzly` during the: `GridKa School 2013 - Training Session on OpenStack`. 
+OpenStack `Grizzly` during the: `GridKa School 2013 - Training Session
+on OpenStack`.
 
+Goal of the tutorial is to end up with a small installation of
+OpenStack Grizzly on a set of different Ubuntu 12.04 virtual
+machines.
 
-OpenStack overview
-------------------
-
-This tutorial will show how to install the main components of
-OpenStack, specifically:
-
-MySQL
-    MySQL database is used together with the RabbitMQ messaging
-    system for storing and sharing information about the status of the
-    cloud. Alternatively the PostgreSQL software can be also used as database
-    backend. We will use default one: MySQL. 
-
-RabbitMQ
-    Messaging service used for inter-process communication among
-    various OpenStack components. Alternatives to RabbitMQ are the
-    Qpid and ZeroMQ softwares, in this tutorial we will again use the
-    default one: RabbitMQ.
-
-Keystone
-    OpenStack service which provides the authentication service and
-    works as a catalog of the various services available on the
-    cloud. Different backends can be used: in our setup we will store
-    login, password and tokens in a MySQL db. 
-
-nova
-    OpenStack *orchestrator*: it works as a main API endpoint for
-    Horizon and for command line tools, schedule the requests,
-    talks to the other OpenStack components to provide the requested
-    resources, setup and run the OpenStack instances. It is thus 
-    composed of multiple services: **nova-api**, **nova-scheduler**,
-    **nova-conductor**, **nova-cert**, ect.
-
-nova-network
-    OpenStack service used to configure the network of the instances
-    and to optionally provide the so-called *Floating IPs*. IPs that can be
-    *attached* and *detached* from an instance while it is
-    already running. Those IPs are usually used for accessing the instances
-    from outside world. 
-
-nova-compute
-    OpenStack service which runs on the compute node and is
-    responsible of actual managing the OpenStack instances. It 
-    supports different hypervisors. The complete list bellow can be found `here
-    <http://docs.openstack.org/trunk/openstack-compute/admin/content/selecting-a-hypervisor.html>`_.
-    The commonly used one is KVM but due to limitation in our setup we
-    will use qemu.
-
-glance
-    OpenStack imaging service. It is used to store virtual disks
-    used to start the instances. It is split in two different
-    services: **glance-api** and **glance-registry**
-
-cinder
-    OpenStack volume service. It is used to create persistent volumes which
-    can be attached to a running instances later on. It is split
-    in three different services: **cinder-api**, **cinder-scheduler**
-    and **cinder-volume**
-
-Horizon
-    OpenStack Web Interface.
-
+Since our focus is to explain the most basic components of OpenStack
+to ease a later deployment on a production environment, the various
+services will be installed on different machines, that is the most
+common setup on production. Moreover, having different services on
+different machines will help to better understand the dependencies
+among the various services.
 
 Tutorial overview
 -----------------
 
-Each team will have two physical machines to work with.
+For this tutorial we will work in teams. Each team is composed of 2
+people and will have assigned two physical machines to work with.
 
-One of the nodes will run the 6 VMs hosting the central services. 
+One of the nodes will run the 6 VMs hosting the **central services**. 
 They are called as follows:
 
-* ``db-node``:  runs *MySQL* and *RabbitMQ*  
-* ``auth-node``: runs *keystone*
-* ``image-node``: runs *glance-api* and *glance-registry*
-* ``api-node``: runs *nova-api*, *horizon*, *nova-scheduler* and other **nova** related services
-* ``network-node``: runs *nova-network*
-* ``volume-node``: runs *cinder-api*, *cinder-scheduler* and *cinder-volume*
+* ``db-node``:  runs *MySQL* and *RabbitMQ*
 
-while the other will run 2 VMs hosting the compute nodes for your stack:
+* ``auth-node``: runs *keystone*, the identity and authentication
+  service
+
+* ``image-node``: runs **glance**, the image storage, composed of the
+  *glance-api* and glance-registry* services
+
+* ``api-node``: runs most of the **nova** service: *nova-api*,
+  *horizon*, *nova-scheduler*, *nova-conductor* and *nova-console*.
+
+* ``network-node``: runs the network services:
+  *nova-network* and nova-metadata* (not Neutron/Quantum)
+
+* ``volume-node``: runs **cinder**, the volume manager, composed of
+  the *cinder-api*, *cinder-scheduler* and *cinder-volume* services
+
+while the other will run 2 VMs hosting the **compute nodes** for your
+stack:
 
 * ``compute-1``: runs *nova-compute*
 * ``compute-2``: runs *nova-compute*
 
-**FIXME: how to assign the machines to the teams?**
-
 How to access the physical nodes
 ++++++++++++++++++++++++++++++++
 
-In order to access the different virtual machines and start working on the 
-configuration of OpenStack services listed above you will have to first login 
-on one of the nodes assigned to your group by doing::
+In order to access the different virtual machines and start working on
+the configuration of OpenStack services listed above you will have to
+first login on one of the nodes assigned to your group by doing::
 
         ssh root@gks-NNN.scc.kit.edu -p 24 -X
 
 where NNN is one of the numbers assigned to you.
+
+Physical machines are assigned as follow:
+
++---------+------------------+---------------+
+| team    | central services | compute nodes |
++=========+==================+===============+
+| team 01 | gks-125          | gks-126       |
++---------+------------------+---------------+
+| team 02 | gks-127          | gks-128       |
++---------+------------------+---------------+
+| team 03 | gks-129          | gks-130       |
++---------+------------------+---------------+
+| team 04 | gks-131          | gks-132       |
++---------+------------------+---------------+
+| team 05 | gks-137          | gks-138       |
++---------+------------------+---------------+
+| team 06 | gks-140          | gks-141       |
++---------+------------------+---------------+
+| team 07 | gks-142          | gks-143       |
++---------+------------------+---------------+
+| team 08 | gks-242          | gks-243       |
++---------+------------------+---------------+
+| team 09 | gks-244          | gks-245       |
++---------+------------------+---------------+
+| team 10 | gks-246          | gks-247       |
++---------+------------------+---------------+
+
 
 Virtual Machines
 ++++++++++++++++
@@ -141,18 +127,6 @@ and on the *other* physical node::
 Access the Virtual Machines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The hostname of the virtual machine are as described in the
-*Tutorial overview* section, we summarize them bellow:
-
-* **db-node**
-* **auth-node**
-* **api-node**
-* **network-node**
-* **image-node**
-* **volume-node**
-* **compute-1**
-* **compute-2**
-
 You can connect to them from each one of the physical machines (the
 **gks-NNN** ones) using **ssh** or by starting the ``virt-manager``
 program on the physical node hosting the virtual machine and then
@@ -163,10 +137,62 @@ In order to connect using **ssh** please do::
      ssh root@hostname 
 
 where **hostname** is one of those listed above. All the Virtual
-Machines are setup with the same passwd: **user@gridka**  
+Machines have the same password: **user@gridka**
 
 Network Setup
 +++++++++++++
+
+Each virtual machine has 3 network interfaces, with the exception of the
+**network-node** that have 4. Some of these interfaces have been already
+configured, so that you can already connect to them using either the
+"*public*" or the private ip address.
+
+These are the networks we are going to use:
+
++------+-----------------------+------------------+
+| eth0 | internal KVM network  | 192.168.122.0/24 |
++------+-----------------------+------------------+
+| eth1 | internal network      | 10.0.0.0/24      |
++------+-----------------------+------------------+
+| eth2 | public network        | 172.16.0.0/16    |
++------+-----------------------+------------------+
+| eth3 | Openstack private     |                  |
+|      | network (present only |                  |
+|      | on the network-node)  |                  |
++------+-----------------------+------------------+
+
+The *internal KVM network* is a network needed because our virtual
+machines does not have real public IP addresses, therefore we need to
+allow them to communicate through the physical node. The libvirt
+daemon will automatically assign an IP address to this interface and
+set the needed iptables rules in order to configure the NAT and allow
+the machine to connect to the internet. On a production environment,
+you will not have this interface.
+
+The *internal network* is a trusted network used by all the OpenStack
+services to communicate to each other. Usually, you wouldn't setup a
+strict firewall on this ip address.
+
+The *public network* is the network exposed to the Internet. In our
+case we are using a non-routable IP range because of the constraints
+imposed by the tutorial setup, but on a production environment you
+will use public ip addresses instead and will setup a firewall in
+order to only allow connection on specific ports.
+
+The *OpenStack private network* is the internal network of the
+OpenStack virtual machines. The virtual machines need to communicate
+with the network node, (unless a "multinode setup is used") and among
+them, therefore this network is configured only on the network node
+(that also need to have an IP address in it) and the compute nodes,
+which only need to have an interface on this network attached to a
+bridge the virtual machines will be attached to. On a production
+environment you would probably use a separated L2 network for this,
+either by using VLANs or using a second physical interface.
+
+The following diagram shows both the network layout of the physical
+machines and of the virtual machines running in it:
+
+.. image:: ../images/network_diagram.png
 
 The IP addresses of these machines are:
 
@@ -192,25 +218,11 @@ The IP addresses of these machines are:
 +--------------+--------------+-----------+--------------------------+------------+
 
 Both private and public hostnames are present in the ``/etc/hosts`` of
-the physical machines, in order to allow you to connect to the various
-nodes using the hostname instead of the IP addresses.
-
-These are the network cards present on the virtual machines:
-
-+------+-----------------------+------------------+
-| eth0 | internal KVM network  | 192.168.122.0/24 |
-+------+-----------------------+------------------+
-| eth1 | internal network      | 10.0.0.0/24      |
-+------+-----------------------+------------------+
-| eth2 | public network        | 172.16.0.16      |
-+------+-----------------------+------------------+
-| eth3 | Openstack private     |                  |
-|      | network (present only |                  |
-|      | on the network-node)  |                  |
-+------+-----------------------+------------------+
+the physical machines, in order to allow you to connect to them using
+the hostname instead of the IP addresses.
 
 Please note that the network node needs one more network interface
-which will be completely managed by the **nova-network** service and
+that will be completely managed by the **nova-network** service, and
 is thus left unconfigured at the beginning.
 
 On the compute node, moreover, we will need to manually create a
@@ -240,8 +252,83 @@ machines, but on a production environment you are likely to have only
    * ``compute-2``: nova-compute,
 
 
+
+OpenStack overview
+------------------
+
+This tutorial will show how to install the main components of
+OpenStack, specifically:
+
+.. image:: ../images/openstack-conceptual-arch.small.png
+
+
+MySQL
+    MySQL database is used together with the RabbitMQ messaging system
+    for storing and sharing information about the status of the
+    cloud. Alternatively the PostgreSQL software can be also used as
+    database backend. We will use default one: MySQL.
+
+RabbitMQ
+    Messaging service used for inter-process communication among
+    various OpenStack components. Alternatives to RabbitMQ are the
+    Qpid and ZeroMQ softwares, in this tutorial we will again use the
+    default one: RabbitMQ.
+
+Keystone
+    OpenStack service which provides the authentication service and
+    works as a catalog of the various services available on the
+    cloud. Different backends can be used: in our setup we will store
+    login, password and tokens in a MySQL db. 
+
+nova
+    OpenStack *orchestrator*: it works as a main API endpoint for
+    Horizon and for command line tools, schedule the requests,
+    talks to the other OpenStack components to provide the requested
+    resources, setup and run the OpenStack instances. It is thus 
+    composed of multiple services: **nova-api**, **nova-scheduler**,
+    **nova-conductor**, **nova-cert**, ect.
+
+nova-network
+    OpenStack service used to configure the network of the instances
+    and to optionally provide the so-called *Floating IPs*. IPs that
+    can be *attached* and *detached* from an instance while it is
+    already running. Those IPs are usually used for accessing the
+    instances from outside world.
+
+nova-compute
+    OpenStack service which runs on the compute node and is
+    responsible of actual managing the OpenStack instances. It 
+    supports different hypervisors. The complete list bellow can be found `here
+    <http://docs.openstack.org/trunk/openstack-compute/admin/content/selecting-a-hypervisor.html>`_.
+    The commonly used one is KVM but due to limitation in our setup we
+    will use qemu.
+
+glance
+    OpenStack imaging service. It is used to store virtual disks
+    used to start the instances. It is split in two different
+    services: **glance-api** and **glance-registry**
+
+cinder
+    OpenStack volume service. It is used to create persistent volumes which
+    can be attached to a running instances later on. It is split
+    in three different services: **cinder-api**, **cinder-scheduler**
+    and **cinder-volume**
+
+Horizon
+    OpenStack Web Interface.
+
+
 ``db-node``
 -----------
+
+OpenStack components use both MySQL and RabbitMQ to share information
+about the current status of the cloud and to communicate to each
+other. Since the architecture is higly distributed, a request done on
+an API service (for instance, to start a virtual instance), will
+trigger a series of tasks possible executed by different services on
+different machines. The server that receive the requests then write on
+the database some information related to the request and communicate
+with the other services via RabbitMQ.
 
 cloud repository and ntp package
 ++++++++++++++++++++++++++++++++
@@ -249,6 +336,10 @@ cloud repository and ntp package
 The following steps need to be done on all the machines. We are going
 execute them step by step on the **db-node** only, and then we will automate
 the process on the other nodes. Please login to the db-node and:
+
+Connect to the **db-node**::
+
+    root@gks-NNN:[~] $ ssh root@db-node
 
 Add the OpenStack Grizzly repository::
 
@@ -284,8 +375,8 @@ MySQL installation
 ++++++++++++++++++
 
 We are going to install both MySQL and RabbitMQ on the same server,
-but on a production environment you might want to have them installed
-on different servers and/or in HA. The following instructions are
+but on a production environment you may want to have them installed on
+different servers and/or in HA. The following instructions are
 intended to be used for both scenarios.
 
 Now please move on the db-node where we have to install the MySQL server.
@@ -302,7 +393,12 @@ port 3306. This has to be changed in order to make the server
 accessible from the all the OpenStack services. Edit the
 ``/etc/mysql/my.cnf`` file and ensure that it contains the following line::
 
-    bind-address            = 0.0.0.0
+    bind-address            = 10.0.0.3
+
+This will make the MySQL daemon listen only on the *private*
+interface. Please note that in this way you will not be able to
+contact it using the *public* interface (172.16.0.3), which is usually
+what you want in a production environment.
 
 After changing this line you have to restart the MySQL server::
 
@@ -312,11 +408,16 @@ Check that MySQL is actually running and listening on all the interfaces
 using the ``netstat`` command::
 
     root@db-node:~# netstat -nlp|grep 3306
-    tcp        0      0 0.0.0.0:3306            0.0.0.0:*               LISTEN      21926/mysqld    
+    tcp        0     10 0.0.0.3:3306            0.0.0.0:*               LISTEN      21926/mysqld    
 
 
 RabbitMQ
 ++++++++
+
+RabbitMQ is an implementation of the AMQP (Advanced Message Queuing
+Protocol), a networking protocol that enables conforming client
+applications to communicate with conforming messaging middleware
+brokers.
 
 Install RabbitMQ from the ubuntu repository::
 
@@ -324,8 +425,8 @@ Install RabbitMQ from the ubuntu repository::
         
 RabbitMQ does not need any specific configuration. On a production
 environment, however, you might need to create a specific user for
-OpenStack services; in order to do that please check the official
-documentation `here <http://www.rabbitmq.com/documentation.html>`_.
+OpenStack services; in order to do that please check the `official
+documentation <http://www.rabbitmq.com/documentation.html>`_.
 
 To check if the RabbitMQ server is running use the ``rabbitmqctl``
 command::
@@ -360,6 +461,18 @@ operate on it briefly.
 
 ``auth-node``
 -------------
+
+The **auth-node** will run *keystone*, the service used byt OpenStack
+to store information aobut users, passwords, and the available
+services.
+
+This is thus the main endpoint of an OpenStack installation, so that
+by giving the URL of the keystone service a client can get all the
+information it needs to operate on that specific cloud. The keystone
+URL is also needed by all the various services, since they will need
+to authenticate the clients against keystone and, in some cases,
+discover all the services provided by the OpenStack installation in
+order to perform specific tasks.
 
 Before staring we can quickly check if the remote ssh execution of the
 commands done in the `all nodes installation`_ section worked without problems::
@@ -650,13 +763,19 @@ responsible for storing the images that will be used as templates to
 start the instances. We will use the default configuration and
 only do the minimal changes to match our configuration.
 
-Glance is actually composed of different services:
+Glance is actually composed of two different services:
 
-* **glance-api** accepts API calls for dicovering the available images, for their storage and also for their retrieval.
+* **glance-api** accepts API calls for dicovering the available
+  images, their metadata and is used also to retrieve them. It
+  supports two protocol versions: v1 and v2; when using v1, it does
+  not directly access the database but instead it talks to the
+  **glance-registry** service
 
-* **glance-registry** is instead storing and retrieving metadata about the images from the db. 
+* **glance-registry** used by **glance-api** to actually retrieve image
+  metadata when using the old v1 protocol.
 
-**FIXME explain the differences of the services above in more detail**
+Very good explanation about what glance does is available on `this
+blogpost <http://bcwaldon.cc/2012/11/06/openstack-image-service-grizzly.html>`_
 
 glance database and keystone setup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -888,6 +1007,13 @@ uploaded on the image store::
     | 79af6953-6bde-463d-8c02-f10aca227ef4 | cirros-0.3.0 | qcow2       | bare             | 9761280 | active |
     +--------------------------------------+--------------+-------------+------------------+---------+--------+
 
+You can easily find ready-to-use images on the web. An image for the
+`Ubuntu Server 12.04 "Precise" (amd64)
+<http://cloud-images.ubuntu.com/precise/current/precise-server-cloudimg-amd64-disk1.img>`_
+can be found at the `Ubuntu Cloud Images archive
+<http://cloud-images.ubuntu.com/>`_, you can download it and upload
+using glance as we did before.
+
 Further improvements
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -934,23 +1060,29 @@ GlusterFS, NFS or various appliances from IBM, NetApp etc.
 
 Cinder is actually composed of different services:
 
-**cinder-api** The cinder-api service is a WSGI app that authenticates
-    and routes requests throughout the Block Storage system. It can be
-    used directly (via API or via ``cinder`` command line tool) but it
-    is also accessed by the ``nova`` service and the horizon web interface.
+**cinder-api** 
 
-**cinder-scheduler** The cinder-scheduler is responsible for
-    scheduling/routing requests to the appropriate volume service. As
-    of Grizzly; depending upon your configuration this may be simple
-    round-robin scheduling to the running volume services, or it can
-    be more sophisticated through the use of the Filter Scheduler. The
-    Filter Scheduler is the default in Grizzly and enables filter on
-    things like Capacity, Availability Zone, Volume Types and
-    Capabilities as well as custom filters.
+    The cinder-api service is a WSGI app that authenticates and routes
+    requests throughout the Block Storage system. It can be used
+    directly (via API or via ``cinder`` command line tool) but it is
+    also accessed by the ``nova`` service and the horizon web
+    interface.
 
-**cinder-volume** The cinder-volume service is responsible for
-    managing Block Storage devices, specifically the back-end devices
-    themselves.
+**cinder-scheduler** 
+
+    The cinder-scheduler is responsible for scheduling/routing
+    requests to the appropriate volume service. As of Grizzly;
+    depending upon your configuration this may be simple round-robin
+    scheduling to the running volume services, or it can be more
+    sophisticated through the use of the Filter Scheduler. The Filter
+    Scheduler is the default in Grizzly and enables filter on things
+    like Capacity, Availability Zone, Volume Types and Capabilities as
+    well as custom filters.
+
+**cinder-volume** 
+
+    The cinder-volume service is responsible for managing Block
+    Storage devices, specifically the back-end devices themselves.
 
 In our setup, we will run all the cinder services on the same machine,
 although you can, in principle, spread them over multiple servers.
@@ -1061,40 +1193,11 @@ Let's now go back to the  **volume-node** and install the cinder
 packages::
 
     root@volume-node:~# apt-get install -y cinder-api cinder-scheduler cinder-volume \
-      iscsitarget open-iscsi iscsitarget-dkms python-mysqldb  python-cinderclient
-
-Ensure that the iscsi module has been installed by the
-iscsitarget-dkms package::
-
-    root@volume-node:~# dkms status
-    iscsitarget, 1.4.20.2, 3.5.0-37-generic, x86_64: installed
-
-It is possible that the installation of the ``iscsitarget-dkms``
-module compiled the modules for a newer version of the kernel. If this
-is the case, just restart the machine and then run::
-
-    root@volume-node:~# dkms autoinstall iscsitarget
-
-..
-   This is the *wrong* output of ``dkms status``::
-
-       root@volume-node:~# dkms status
-       iscsitarget, 1.4.20.2: added
-
-   Check the current running kernel version with `uname -a` and the
-   header version in /usr/src/ : they need to match.
-
-
-The file ``/etc/default/iscsitarget`` controls the startup of the
-iscsi daemon, it has to contain this line::
-
-    ISCSITARGET_ENABLE=true
-
-(please note that it is case sensitive)
+      open-iscsi python-mysqldb  python-cinderclient
 
 Ensure that the iscsi services are running::
 
-    root@volume-node:~# service iscsitarget start
+    root@volume-node:~# service service start
     root@volume-node:~# service open-iscsi start
 
 We will configure cinder in order to create volumes using LVM, but in
@@ -1170,7 +1273,7 @@ LVM configuration. A minimal configuration file will contain::
     [DEFAULT]
     rootwrap_config=/etc/cinder/rootwrap.conf
     api_paste_config = /etc/cinder/api-paste.ini
-    iscsi_helper=ietadm
+    iscsi_helper=tgtadm
     volume_name_template = volume-%s
     volume_group = cinder-volumes
     verbose = True
@@ -1186,9 +1289,6 @@ LVM configuration. A minimal configuration file will contain::
 it should differ from the standard one only for the options
 ``sql_connection``, ``rabbit_host``, ``iscsi_ip_address`` and
 ``iscsi_helper``.
-
-FIXME: it has to be ``ietadm`` or ``tgtadm``? I think ``ietadm`` is
-the correct one!
 
 Populate the cinder database::
 
@@ -1219,8 +1319,6 @@ options::
     root@volume-node:~# export OS_PASSWORD=keystoneAdmin
     root@volume-node:~# export OS_TENANT_NAME=admin
     root@volume-node:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
-
-As usual you can set the environment variables OS_USERNAME
 
 Test cinder by creating a volume::
 
@@ -1271,6 +1369,42 @@ You can easily check that a new LVM volume has been created::
       - currently set to     256
       Block device           252:0
 
+To show if the volume is actually served via iscsi you can run::
+
+   root@volume-node:~# tgtadm  --lld iscsi --op show --mode target
+   Target 1: iqn.2010-10.org.openstack:volume-1d1a75eb-1493-4fda-8eba-fa851cfd5040
+       System information:
+           Driver: iscsi
+           State: ready
+       I_T nexus information:
+       LUN information:
+           LUN: 0
+               Type: controller
+               SCSI ID: IET     00010000
+               SCSI SN: beaf10
+               Size: 0 MB, Block size: 1
+               Online: Yes
+               Removable media: No
+               Readonly: No
+               Backing store type: null
+               Backing store path: None
+               Backing store flags: 
+           LUN: 1
+               Type: disk
+               SCSI ID: IET     00010001
+               SCSI SN: beaf11
+               Size: 1074 MB, Block size: 512
+               Online: Yes
+               Removable media: No
+               Readonly: No
+               Backing store type: rdwr
+               Backing store path: /dev/cinder-volumes/volume-1d1a75eb-1493-4fda-8eba-fa851cfd5040
+               Backing store flags: 
+       Account information:
+       ACL information:
+           ALL
+
+
 Since the volume is not used by any VM, we can delete it with the ``cinder delete`` command::
 
     root@volume-node:~# cinder delete 1d1a75eb-1493-4fda-8eba-fa851cfd5040
@@ -1283,6 +1417,14 @@ Deleting the volume can take some time::
     +--------------------------------------+----------+--------------+------+-------------+----------+-------------+
     | 1d1a75eb-1493-4fda-8eba-fa851cfd5040 | deleting |     test     |  1   |     None    |  false   |             |
     +--------------------------------------+----------+--------------+------+-------------+----------+-------------+
+
+After a while the volume is deleted, removed from iscsi and LVM::
+
+    root@volume-node:~# cinder list
+
+    root@volume-node:~# tgtadm  --lld iscsi --op show --mode target
+    root@volume-node:~# lvdisplay 
+    root@volume-node:~#
 
 
 ``api-node``
@@ -1437,7 +1579,7 @@ is correct::
     admin_tenant_name = service
     admin_user = nova
     admin_password = novaServ
-    signing_dir = /tmp/keystone-signing
+    #signing_dir = /tmp/keystone-signing
     # Workaround for https://bugs.launchpad.net/nova/+bug/1154809
     auth_version = v2.0
 
@@ -1458,7 +1600,7 @@ configuration options <http://docs.openstack.org/trunk/openstack-compute/admin/c
     state_path=/var/lib/nova
     lock_path=/var/lock/nova
     force_dhcp_release=True
-    iscsi_helper=ietadm
+    iscsi_helper=tgtadm
     libvirt_use_virtio_for_bridges=True
     connection_type=libvirt
     root_helper=sudo nova-rootwrap /etc/nova/rootwrap.conf
@@ -1504,15 +1646,19 @@ Restart all the nova services::
     root@api-node:~# service nova-api restart
     nova-api stop/waiting
     nova-api start/running, process 26273
+
     root@api-node:~# service nova-conductor restart
     nova-conductor stop/waiting
     nova-conductor start/running, process 26296
+
     root@api-node:~# service nova-scheduler restart
     nova-scheduler stop/waiting
     nova-scheduler start/running, process 26311
+
     root@api-node:~# service nova-novncproxy restart
     nova-novncproxy stop/waiting
     nova-novncproxy start/running, process 26326
+
     root@api-node:~# service nova-cert restart
     nova-cert stop/waiting
     nova-cert start/running, process 26376
@@ -1618,15 +1764,33 @@ Let's just recap how the networking works in OpenStack
 OpenStack networking
 ~~~~~~~~~~~~~~~~~~~~
 
-FIXME: complete this section
+The nova-network is providing the networkig service in OpenStack and enables
+the communication between the instances and:
 
-* flat dhcp <= we use this
-* flat
-* ...
+* the rest of the stack services 
+* the outside world. 
 
-FIXME: during the tutorial, it's probably better to install the
-package first, and then, during the installation, explain how
-nova-network works.
+There are currently three kind of networks implemented by three "Network Manager" types:
+
+* Flat DHCP Network Manager: the implementation we are going to use in the tutorial. 
+  OpenStack starts a DHCP server (dnsmasq) to pass out IP addresses to VM instances
+  from the specified subnet in addition to manually configuring the networking bridge. 
+  IP addresses for VM instances are grabbed from a subnet specified by the network administrator.
+  
+* Flat Network Manager: a network administrator specifies a subnet where 
+  IP addresses for VM instances are grabbed from the subnet, and then injected into
+  the image on launch. This means the system adminstrator has to implement a method 
+  for the IP assigment: external DHCP or other means.
+  
+* VLAN Network Manager: In this mode, Compute creates a VLAN and bridge for each project.
+  For multiple machine installation, the VLAN Network Mode requires a switch that supports VLAN 
+  tagging (IEEE 802.1Q)
+
+
+..
+   FIXME: during the tutorial, it's probably better to install the
+   package first, and then, during the installation, explain how
+   nova-network works.
 
 ``nova-network`` configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1728,8 +1892,9 @@ following options are defined::
     default_floating_pool=public
     public_interface=eth2
 
-FIXME: ``auto_assign_floating_ip`` will only work if floating IPs are
-configured and there are floating IPs free!
+..
+   FIXME: ``auto_assign_floating_ip`` will only work if floating IPs are
+   configured and there are floating IPs free!
 
 ..
        # Not sure it's needed
@@ -1833,20 +1998,58 @@ As we did for the network node before staring it is good to quickly check if the
 remote ssh execution of the commands done in the `all nodes installation`_ section 
 worked without problems. You can again verify it by checking the ntp installation.
 
-Nova-compute 
+Nova-compute
 ++++++++++++
 
 In the next few rows we try to briefly explain what happens behind the scene when a new request 
 for starting an OpenStack instance is done. Note that this is very high level description. 
 
-1) The OpenStack API, EC2 API or the Horizon Web Interface (based again on OpenStack APIs) are used for creating the new instance request.
-2) Authentication is performed by keystone checking if the user is authorized for the requested operation.
-3) Message is then send to the scheduler with the new request.
-4) cheduler writes the message in the RabbitMQ queue asking a specific host matching the requirements to start the instance.
-5) The compute reads the message from the queue and starts booting the new instance asking for a fixed IP to the network service.
-6) The instance is at the end available from the outside world through the assigned IP. 
+1) Authentication is performed either by the web interface **horizon**
+   or **nova** command line tool:
 
-**FIXME: To be checked the described above workflow***
+   a) keystone is contacted and authentication is performed
+   b) a *token* is saved in the database and returned to the client
+      (horizon or nova cli) to be used with later interactions with
+      OpenStack services for this request.
+
+2) **nova-api** is contacted and a new request is created:
+
+   a) it checks via *keystone* the validity of the token
+   b) checks the authorization of the user
+   c) validates parameters and create a new request in the database
+   d) calls the scheduler via queue
+
+3) **nova-scheduler** find an appropriate host
+
+   a) reads the request
+   b) find an appropriate host via filtering and weighting
+   c) calls the choosen *nova-compute* host via queue
+
+4) **nova-compute** read the request and start an instance:
+
+   a) generates a proper configuration for the hypervisor 
+   b) get image URI via image id
+   c) download the image
+   d) request to allocate network via queue
+
+5) **nova-network** configure the network
+
+   a) allocates a valid private ip
+   b) if requested, it allocates a floating ip
+   c) configures the operating system as needed (in our case: dnsmasq
+      and iptables are configured)
+   d) updates the request status
+
+6) **nova-network** contacts *cinder* to provision the volume
+
+   a) gets connection parameters from cinder
+   b) uses iscsi to make the volume available on the local machine
+   c) asks the hypervisor to provision the local volume as virtual
+      volume of the specified virtual machine
+
+7) **horizon** or **nova** poll the status of the request by
+   contacting **nova-api** until it is ready.
+
 
 Software installation
 ~~~~~~~~~~~~~~~~~~~~~
@@ -1864,12 +2067,18 @@ dependencies.
 Network configuration
 ~~~~~~~~~~~~~~~~~~~~~
 
-Configure the internal bridge. In order to do that you will need to
-login using the console. 
+We need to configure an internal bridge. The bridge will be used by
+libvirt daemon to connect the network interface of a virtual machine
+to a physical network, in our case, **eth2** on the compute node.
 
-Open virt-manager, login as root and shutdown the *network*::
+In our setup, this is the same layer-2 network as the **eth1** network
+used for the internal network of OpenStack services; however, in
+production, you will probably want to separate the two network, either
+by using physically separated networks or by use of VLANs.
 
-    root@compute-1 # /etc/init.d/networking stop
+Please note that (using the naming convention of our setup) the
+**eth3** interface on the **network-node** must be in the same L2 network as
+**eth2** in the **compute-node**
 
 Update the ``/etc/network/interfaces`` file and configure a new
 bridge, called **br100** attached to the network interface ``eth2``::
@@ -1881,17 +2090,6 @@ bridge, called **br100** attached to the network interface ``eth2``::
         bridge-ports eth2
         bridge_stp   off
         bridge_fd    0
-
-This bridge must be on the same layer-2 network of the network node,
-and is used only for the communication among the OpenStack instances.
-
-Since nova-compute only attach new virtual interfaces to this bridge
-but it does not change the IP configuration (as nova-network does),
-you can also assign the internal IP address of the **compute-1** node
-(in our case, the **10.0.0.20** ip address) on the **br100**
-interface. However, on a production environment, for security reasons,
-you want to have two physically separated network for the instances
-and for the OpenStack services.
 
 Start the bridge::
 
@@ -1953,8 +2151,6 @@ and MySQL servers. The minimum information you have to provide in the
     # Compute #
     compute_driver=libvirt.LibvirtDriver
 
-    # network_host=10.0.0.7
-
 You can just replace the ``/etc/nova/nova.conf`` file with the content
 displayed above.
 
@@ -1962,7 +2158,7 @@ displayed above.
    On the ``/etc/nova/api-paste.conf`` we have to put the information
    on how to access the keystone authentication service. Ensure then that
    the following information are present in this file::
-   TA: I don't think it is needed as api-paste.conf file is not even prsent.
+   TA: I don't think it is needed as api-paste.conf file is not even present.
 
        [filter:authtoken]
        paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
@@ -2067,7 +2263,8 @@ you can check that the keypair has been created with::
     | gridka-api-node | fa:86:74:77:a2:55:29:d8:e7:06:4a:13:f7:ca:cb:12 |
     +-----------------+-------------------------------------------------+
 
-Let's get the ID of the available images, flavors and security groups::
+Let's get the ID of the available images, flavors and security
+groups::
 
     root@api-node:~# nova image-list
     +--------------------------------------+--------------+--------+--------+
@@ -2129,7 +2326,8 @@ Now we are ready to start our first instance::
     | metadata                            | {}                                   |
     +-------------------------------------+--------------------------------------+
 
-This command returns immediately, even if the OpenStack instance is not yet started::
+This command returns immediately, even if the OpenStack instance is
+not yet started::
 
     root@api-node:~# nova list
     +--------------------------------------+----------+--------+----------+
@@ -2187,9 +2385,10 @@ You can attach a volume to a running instance easily::
     | volumeId | 180a081a-065b-497e-998d-aa32c7c295cc |
     +----------+--------------------------------------+
 
-Inside the instnace, a new disk named ``/dev/vdb`` will appear. This disk is 
-*persistent*, which means that if you terminate the instance and then you attach
-the disk to a new instance, the content of the volume is persisted.
+Inside the instnace, a new disk named ``/dev/vdb`` will appear. This
+disk is *persistent*, which means that if you terminate the instance
+and then you attach the disk to a new instance, the content of the
+volume is persisted.
 
 
 Horizon
@@ -2220,16 +2419,6 @@ opening the URL ``http://172.16.0.6/horizon`` on your web browser
 
    Different scheduling policy and options can be set in the nova's configuration file.
 
-Recap
------
-
-Small recap on what has to be done for a service installation:
-
-* create database,
-* create user for the this database in way that in can connects and configure the service.
-* create user for the service which has role admin in the tenant service
-* define the endpoint
-
 
 References
 ----------
@@ -2237,10 +2426,60 @@ References
 As starting reference has been used the following `tutorial
 <https://github.com/mseknibilel/OpenStack-Grizzly-Install-Guide/blob/master/OpenStack_Grizzly_Install_Guide.rst>`_.
 
-We adapted the tutorial above with what we considered necessary for our purposes and for installing OpenStack on
-6 hosts.
+We adapted the tutorial above with what we considered necessary for
+our purposes and for installing OpenStack on 6 hosts.
 
-The official Grizzly tutorial can be found `here
-<http://docs.openstack.org/grizzly/openstack-compute/install/apt/content/>`_.
+The `official Grizzly tutorial <http://docs.openstack.org/grizzly/openstack-compute/install/apt/content/>`_.
 
 .. _`Openstack Compute Administration Guide`: http://docs.openstack.org/trunk/openstack-compute/admin/content/index.html
+
+For a very good explanation about the FlatDHCP netowrk configuration, also cfr. http://www.mirantis.com/blog/openstack-networking-flatmanager-and-flatdhcpmanager/
+
+
+Troubleshooting exercises
+-------------------------
+
+This is a list of exercises to help you understand how OpenStack
+components interact among them.
+
+* Remove the "admin" role from the glance user::
+
+    root@auth-node:~# keystone user-role-remove \
+      --user-id c938866a0a3c4266a25dc95fbfcc6718 \
+      --role-id fafa8117d1564d8c9ec4fe6dbf985c68 \
+      --tenant-id cb0e475306cc4c91b2a43b537b1a848b
+
+  and see what does **not** work anymore.
+
+* Fill the ``/var/lib/nova/instances`` directory by creating a big
+  file using dd, and try to start a virtual machine
+
+* shutdown one of the services at the time and see what does not work
+  anymore:
+
+  - rabbitmq
+  - mysql
+  - nova-api
+  - nova-network
+  - glance-api
+  - glance-registry
+  
+  specifically, try to start virtual machines both with the ``nova``
+  command line tool and via web interface.
+
+* Set a *wrong* password in ``/etc/nova/nova.conf`` file on the
+  **api-node** for the sql connection, restart all the nova services
+  and see what happen.
+
+* Do the same, but for the **glance-api** service
+
+* Do the same, but for the **glance-registry** service
+
+* Do the same on the previous services, but instead of put the wrong
+  sql password, write a wrong *keystone* password.
+
+* Try to remove ``iscsi_ip_address` from ``/etc/cinder/cinder.conf``
+  and restart the services. Then, try to create a volume and attach to
+  it. Debug it!
+
+* remove all the floating IPs and see what happen.

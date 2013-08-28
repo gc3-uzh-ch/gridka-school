@@ -1,0 +1,92 @@
+---
+- hosts: servers:computes
+  vars:
+    nodes:
+      - ip: 172.16.0.3
+        host: db-node.example.org
+      - ip: 172.16.0.4
+        host: auth-node.example.org
+      - ip: 172.16.0.5
+        host: image-node.example.org
+      - ip: 172.16.0.6
+        host: api-node.example.org
+      - ip: 172.16.0.7
+        host: network-node.example.org
+      - ip: 172.16.0.8
+        host: volume-node.example.org
+
+      - ip: 10.0.0.3
+        host: db-node
+      - ip: 10.0.0.4
+        host: auth-node
+      - ip: 10.0.0.5
+        host: image-node
+      - ip: 10.0.0.6
+        host: api-node
+      - ip: 10.0.0.7
+        host: network-node
+      - ip: 10.0.0.8
+        host: volume-node
+      - ip: 10.0.0.20
+        host: compute-1
+      - ip: 10.0.0.21
+        host: compute-2
+
+  tasks:
+    - action: yum name=$item state=present
+      with_items:
+        - kvm
+        - virt-manager
+        - libvirt
+        - bridge-utils
+        - tunctl
+      tags: packages
+
+    - action: service name=libvirtd state=started
+
+    - action: file path=/root/.ssh/id_rsa mode=0400 owner=root group=root
+      tags: ssh
+    - action: copy src=ssh_config dest=/root/.ssh/config
+      tags: ssh
+
+    - action: sysctl name=net.ipv4.ip_forward value=1 state=present reload=yes
+
+    - action: lineinfile dest=/etc/hosts regexp="${item.ip} ${item.host}" line="${item.ip} ${item.host}"
+      with_items: nodes
+
+    - action: shell brctl show br1 | grep eth1
+      register: eth1_in_br1
+      ignore_errors: True
+      tags: bridge
+
+    - name: add_eth1_to_br1
+      action: shell brctl addif br1 eth1
+      when: eth1_in_br1|failed
+      tags: bridge
+          
+
+- hosts: servers
+  tasks:
+    - name: ensure the ip address is correct
+      action: shell ifconfig br1 | grep 10.0.0.1
+
+    - name: check virtual machine files
+      action: file path=/var/lib/libvirt/images/${item}.img state=file
+      with_items:
+        - api-node
+        - auth-node
+        - db-node
+        - image-node
+        - network-node
+        - volume-node
+
+- hosts: computes
+  tasks:
+    - name: ensure the ip address is correct
+      action: shell ifconfig br1 | grep 10.0.0.2
+
+    - name: check virtual machine files
+      action: file path=/var/lib/libvirt/images/${item}.img state=file
+      with_items:
+        - compute-1
+        - compute-2

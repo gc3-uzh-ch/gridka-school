@@ -1,0 +1,23 @@
+[servers]
+gks-125.scc.kit.edu ansible_ssh_port=24
+gks-127.scc.kit.edu ansible_ssh_port=24
+gks-129.scc.kit.edu ansible_ssh_port=24
+gks-131.scc.kit.edu ansible_ssh_port=24
+gks-137.scc.kit.edu ansible_ssh_port=24
+gks-140.scc.kit.edu ansible_ssh_port=24
+gks-142.scc.kit.edu ansible_ssh_port=24
+gks-242.scc.kit.edu ansible_ssh_port=24
+gks-244.scc.kit.edu ansible_ssh_port=24
+gks-246.scc.kit.edu ansible_ssh_port=24
+
+[computes]
+gks-126.scc.kit.edu ansible_ssh_port=24
+gks-128.scc.kit.edu ansible_ssh_port=24
+gks-130.scc.kit.edu ansible_ssh_port=24
+gks-132.scc.kit.edu ansible_ssh_port=24
+gks-138.scc.kit.edu ansible_ssh_port=24
+gks-141.scc.kit.edu ansible_ssh_port=24
+gks-143.scc.kit.edu ansible_ssh_port=24
+gks-243.scc.kit.edu ansible_ssh_port=24
+gks-245.scc.kit.edu ansible_ssh_port=24
+gks-247.scc.kit.edu ansible_ssh_port=24
