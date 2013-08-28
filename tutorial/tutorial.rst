@@ -468,20 +468,25 @@ operate on it briefly.
 ``auth-node``
 -------------
 
-The **auth-node** will run *keystone*, the service used byt OpenStack
-to store information aobut users, passwords, and the available
-services.
+The **auth-node** will run *keystone*, also known *identity service*.
 
-This is thus the main endpoint of an OpenStack installation, so that
-by giving the URL of the keystone service a client can get all the
-information it needs to operate on that specific cloud. The keystone
-URL is also needed by all the various services, since they will need
-to authenticate the clients against keystone and, in some cases,
-discover all the services provided by the OpenStack installation in
-order to perform specific tasks.
+Keystone performs two main tasks:
 
-Before staring we can quickly check if the remote ssh execution of the
-commands done in the `all nodes installation`_ section worked without problems::
+* stores information about Authentication and Authorizations (*users*,
+  *passwords*, *authorization tokens*, *projects* (also known as
+  **tenants*) and *roles*
+* stores information about available *services* and the URI of the
+  *endpoints*.
+
+Every OpenStack client and service need to access keystone, first to
+discover other services, and then to authenticate and authorize each
+request. It is thus the main endpoint of an OpenStack installation, so
+that by giving the URL of the keystone service a client can get all
+the information it needs to operate on that specific cloud.
+
+Before starting we can quickly check if the remote ssh execution of
+the commands done in the `all nodes installation`_ section worked
+without problems::
 
     root@auth-node:~# dpkg -l ntp
     Desired=Unknown/Install/Remove/Purge/Hold
@@ -749,10 +754,15 @@ without the previous options::
     root@any-host:~# export OS_TENANT_NAME=admin
     root@any-host:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
     
-If you are going to use the last option it is usually a good practice to insert those environment
-variables in the root's .bashrc file so that they are loaded each time you open a new shell.
+If you are going to use the last option it is usually a good practice
+to insert those environment variables in the root's .bashrc file so
+that they are loaded each time you open a new shell.
 
-Please keep the connection to the auth-node open as we will need to operate on it briefly.
+Please keep the connection to the auth-node open as we will need to
+operate on it briefly.
+
+Further information about the keystone service can be found at in the
+`official documentation <http://docs.openstack.org/grizzly/openstack-compute/install/apt/content/ch_installing-openstack-identity-service.html>`_
 
 ``image-node``
 --------------
