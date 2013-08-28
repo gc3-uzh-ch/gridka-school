@@ -2631,3 +2631,4 @@ List of possible checks
    * FIXME: next time, use images with updated software, to avoid a
      long delay when running apt-get upgrade
    * missing info on the ec2 compatible interface
+   * missing info on flavors
