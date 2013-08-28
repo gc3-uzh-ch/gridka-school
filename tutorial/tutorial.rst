@@ -1,6 +1,12 @@
 GridKa School 2013 - Training Session on OpenStack
 ==================================================
 
+Teachers:
+
+* `Antonio Messina <antonio.s.messina@gmail.com>`_
+* `Tyanko Aleksiev <tyanko.alexiev@gmail.com>`_
+* `Jens-Christian Fischer <jens-christian.fischer@switch.ch>`_
+
 This guide is to be used as reference for the installation of
 OpenStack `Grizzly` during the: `GridKa School 2013 - Training Session
 on OpenStack`.
