@@ -2522,7 +2522,6 @@ access/secret keys and endpoint url::
     root@api-node:~# export EC2_SECRET_KEY=ff98e8529e2543aebf6f001c74d65b17
     root@api-node:~# export EC2_URL=http://api-node.example.org:8773/services/Cloud
 
-<<<<<<< HEAD
 Start a virtual machine using euca2ools
 +++++++++++++++++++++++++++++++++++++++
 
@@ -2727,6 +2726,7 @@ List of possible checks
    * FIXME: next time, use images with updated software, to avoid a
      long delay when running apt-get upgrade
    * missing info on the ec2 compatible interface
+   * not discussion about multi-node/single-node network
 
 .. elasticluster:
    on the node
@@ -2768,3 +2768,9 @@ List of possible checks
 
 .. elasticluster:
    move the cluster sections just below the cloud section.
+
+.. elasticluster: delete an instance, you will get an error and the vm
+   appear "building". Instead, it should be removed and re-created.
+
+.. elasticluster on centos: it seems it is not ignoring the
+   known_hosts, even though it's saying so. TO TEST
