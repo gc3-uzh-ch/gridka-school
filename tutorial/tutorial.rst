@@ -2521,6 +2521,77 @@ access/secret keys and endpoint url::
     root@api-node:~# export EC2_SECRET_KEY=ff98e8529e2543aebf6f001c74d65b17
     root@api-node:~# export EC2_URL=http://api-node.example.org:8773/services/Cloud
 
+Working with Flavors
+++++++++++++++++++++
+
+We have already seen, that there are a number of predefined flavors available
+that provide certain classes of compute nodes and define number of vCPUs, RAM and disk.::
+
+    root@api-node:~# nova flavor-list
+    +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
+    | ID | Name      | Memory_MB | Disk | Ephemeral | Swap | VCPUs | RXTX_Factor | Is_Public | extra_specs |
+    +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
+    | 1  | m1.tiny   | 512       | 0    | 0         |      | 1     | 1.0         | True      | {}          |
+    | 2  | m1.small  | 2048      | 20   | 0         |      | 1     | 1.0         | True      | {}          |
+    | 3  | m1.medium | 4096      | 40   | 0         |      | 2     | 1.0         | True      | {}          |
+    | 4  | m1.large  | 8192      | 80   | 0         |      | 4     | 1.0         | True      | {}          |
+    | 5  | m1.xlarge | 16384     | 160  | 0         |      | 8     | 1.0         | True      | {}          |
+    +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
+
+In order to create a new flavor, use the CLI like so::
+
+    root@api-node:~# nova flavor-create --is-public true x1.tiny 6 256 2 1
+
+Where the parameters are like this::
+
+    --is-public: controls if the image can be seen by all users
+    --ephemeral: size of ephemeral disk in GB (default 0)
+    --swap: size of swap in MB (default 0) 
+    --rxtx-factor: network throughput factor (use to limit network usage) (default 1)
+    x1.tiny:  the name of the flavor
+    6:   the unique id of the flavor (check flavor list to see the next free flavor)
+    256: Amount of RAM in MB
+    2:   Size of disk in GB
+    1:   Number of vCPUs
+
+If we check the list again, we will see, that the flavor has been created::
+
+...
+
+Change the flavor of an existing VM
+-----------------------------------
+
+You can change the flavor of an existing VM (effectively resizing it) by running the following 
+command.
+
+First lets find a running instance::
+
+    root@api-node:~# nova list --all-tenants
+    ...
+
+and see what flavor it has::
+
+    root@api-node:~# nova show ...
+
+Now resisze the VM by specifying the new flavor ID::
+
+    root@api-node:~# nova resize ... 6
+
+While the server is resizing, its status will be RESIZING::
+    
+    root@api-node:~# nova list --all-tenants
+
+Once the resize operation is done, the status will change to VERIFY_RESIZE and you will have to confirm
+that the resize operation worked::
+
+    root@api-node:~# nova resize-confirm ... 
+
+or, if things went wrong, revert the resize::
+
+    root@api-node:~# nova resize-revert ... 
+
+The status of the server will now be back to ACTIVE.
+
 
 References
 ----------
@@ -2631,4 +2702,3 @@ List of possible checks
    * FIXME: next time, use images with updated software, to avoid a
      long delay when running apt-get upgrade
    * missing info on the ec2 compatible interface
-   * missing info on flavors
