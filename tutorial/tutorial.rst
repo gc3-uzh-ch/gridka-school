@@ -1920,9 +1920,10 @@ following options are defined::
        vlan_interface=eth2
        flat_interface=eth2
 
-Restart the nova-network service with::
+Restart the nova-network service and the nova-api-metadata service with::
 
     root@network-node:~# service nova-network restart
+    root@network-node:~# service nova-api-metadata restart
 
 
 Nova network creation
@@ -2521,8 +2522,32 @@ access/secret keys and endpoint url::
     root@api-node:~# export EC2_SECRET_KEY=ff98e8529e2543aebf6f001c74d65b17
     root@api-node:~# export EC2_URL=http://api-node.example.org:8773/services/Cloud
 
+<<<<<<< HEAD
+Start a virtual machine using euca2ools
++++++++++++++++++++++++++++++++++++++++
+
+The command is similar to ``nova boot``::
+
+    root@api-node:~# euca-run-instances \
+      --access-key 445f486efe1a4eeea2c924d0252ff269 \
+      --secret-key ff98e8529e2543aebf6f001c74d65b17 \
+      -U http://api-node.example.org:8773/services/Cloud \
+      ami-00000001 -k gridka-api-node
+    RESERVATION	r-e9cq9p1o	acdbdb11d3334ed987869316d0039856	default
+    INSTANCE	i-00000007	ami-00000001			pending	gridka-api-node (acdbdb11d3334ed987869316d0039856, None)	0	m1.small	2013-08-29T07:55:15.000Z	nova				monitoring-disabled					instance-store	
+
+Instances created by euca2ools are, of course, visible with nova as
+well::
+
+    root@api-node:~# nova list
+    +--------------------------------------+---------------------------------------------+--------+----------------------------+
+    | ID                                   | Name                                        | Status | Networks                   |
+    +--------------------------------------+---------------------------------------------+--------+----------------------------+
+    | ec1e58e4-57f4-4429-8423-a44891a098e3 | Server ec1e58e4-57f4-4429-8423-a44891a098e3 | BUILD  | net1=10.99.0.3, 172.16.1.2 |
+    +--------------------------------------+---------------------------------------------+--------+----------------------------+
+
 Working with Flavors
-++++++++++++++++++++
+--------------------
 
 We have already seen, that there are a number of predefined flavors available
 that provide certain classes of compute nodes and define number of vCPUs, RAM and disk.::
@@ -2559,7 +2584,7 @@ If we check the list again, we will see, that the flavor has been created::
 ...
 
 Change the flavor of an existing VM
------------------------------------
++++++++++++++++++++++++++++++++++++
 
 You can change the flavor of an existing VM (effectively resizing it) by running the following 
 command.
@@ -2702,3 +2727,44 @@ List of possible checks
    * FIXME: next time, use images with updated software, to avoid a
      long delay when running apt-get upgrade
    * missing info on the ec2 compatible interface
+
+.. elasticluster:
+   on the node
+   (elasticluster)root@gks-246:[~] $ lsb_release -a
+   LSB Version:	:base-4.0-amd64:base-4.0-noarch:core-4.0-amd64:core-4.0-noarch:graphics-4.0-amd64:graphics-4.0-noarch:printing-4.0-amd64:printing-4.0-noarch
+   Distributor ID:	Scientific
+   Description:	Scientific Linux release 6.4 (Carbon)
+   Release:	6.4
+   Codename:	Carbon
+
+   (elasticluster)root@gks-246:[~] $ pip install elasticluster
+
+   (elasticluster)root@gks-246:[~] $ elasticluster list-templates
+   Traceback (most recent call last):
+     File "/root/elasticluster/bin/elasticluster", line 8, in <module>
+       load_entry_point('elasticluster==1.0.2', 'console_scripts', 'elasticluster')()
+     File "/root/elasticluster/lib/python2.6/site-packages/setuptools-0.6c11-py2.6.egg/pkg_resources.py", line 318, in load_entry_point
+     File "/root/elasticluster/lib/python2.6/site-packages/setuptools-0.6c11-py2.6.egg/pkg_resources.py", line 2221, in load_entry_point
+     File "/root/elasticluster/lib/python2.6/site-packages/setuptools-0.6c11-py2.6.egg/pkg_resources.py", line 1954, in load
+     File "/root/elasticluster/lib/python2.6/site-packages/elasticluster/main.py", line 32, in <module>
+       from elasticluster.subcommands import Start, SetupCluster
+     File "/root/elasticluster/lib/python2.6/site-packages/elasticluster/subcommands.py", line 27, in <module>
+       from elasticluster.conf import Configurator
+     File "/root/elasticluster/lib/python2.6/site-packages/elasticluster/conf.py", line 33, in <module>
+       from elasticluster.providers.gce import GoogleCloudProvider
+     File "/root/elasticluster/lib/python2.6/site-packages/elasticluster/providers/gce.py", line 37, in <module>
+       from oauth2client.tools import run
+     File "/root/elasticluster/lib/python2.6/site-packages/oauth2client/tools.py", line 27, in <module>
+       import argparse
+   ImportError: No module named argparse
+
+
+.. elasticluster:
+   still problems with default configuration. Comment all the clusters
+   but the needed one. If you change the name of the hobbes cloud you
+   get a useless configuration error: "c"
+
+   Also remove the id_dsa.cloud.pub key!
+
+.. elasticluster:
+   move the cluster sections just below the cloud section.
