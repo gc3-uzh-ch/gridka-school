@@ -2565,6 +2565,11 @@ that provide certain classes of compute nodes and define number of vCPUs, RAM an
 In order to create a new flavor, use the CLI like so::
 
     root@api-node:~# nova flavor-create --is-public true x1.tiny 6 256 2 1
+    +----+---------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
+    | ID | Name    | Memory_MB | Disk | Ephemeral | Swap | VCPUs | RXTX_Factor | Is_Public | extra_specs |
+    +----+---------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
+    | 6  | x1.tiny | 256       | 2    | 0         |      | 1     | 1.0         | True      | {}          |
+    +----+---------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
 
 Where the parameters are like this::
 
@@ -2580,10 +2585,22 @@ Where the parameters are like this::
 
 If we check the list again, we will see, that the flavor has been created::
 
-...
+    root@api-node:~# nova flavor-list
+    +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
+    | ID | Name      | Memory_MB | Disk | Ephemeral | Swap | VCPUs | RXTX_Factor | Is_Public | extra_specs |
+    +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
+    | 1  | m1.tiny   | 512       | 0    | 0         |      | 1     | 1.0         | True      | {}          |
+    | 2  | m1.small  | 2048      | 20   | 0         |      | 1     | 1.0         | True      | {}          |
+    | 3  | m1.medium | 4096      | 40   | 0         |      | 2     | 1.0         | True      | {}          |
+    | 4  | m1.large  | 8192      | 80   | 0         |      | 4     | 1.0         | True      | {}          |
+    | 5  | m1.xlarge | 16384     | 160  | 0         |      | 8     | 1.0         | True      | {}          |
+    | 6  | x1.tiny   | 256       | 2    | 0         |      | 1     | 1.0         | True      | {}          |
+    +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
 
 Change the flavor of an existing VM
 +++++++++++++++++++++++++++++++++++
+
+NOTE: This might or might not work on our test setup.
 
 You can change the flavor of an existing VM (effectively resizing it) by running the following 
 command.
@@ -2591,15 +2608,49 @@ command.
 First lets find a running instance::
 
     root@api-node:~# nova list --all-tenants
-    ...
+    +--------------------------------------+---------+--------+----------------------------+
+    | ID                                   | Name    | Status | Networks                   |
+    +--------------------------------------+---------+--------+----------------------------+
+    | bf619ff4-303a-417c-9631-d7147dd50585 | server1 | ACTIVE | net1=10.99.0.2, 172.16.1.1 |
+    +--------------------------------------+---------+--------+----------------------------+
 
 and see what flavor it has::
 
-    root@api-node:~# nova show ...
+    root@api-node:~# nova show bf619ff4-303a-417c-9631-d7147dd50585
+    +-------------------------------------+------------------------------------------------------------+
+    | Property                            | Value                                                      |
+    +-------------------------------------+------------------------------------------------------------+
+    | status                              | ACTIVE                                                     |
+    | updated                             | 2013-08-29T10:24:26Z                                       |
+    | OS-EXT-STS:task_state               | None                                                       |
+    | OS-EXT-SRV-ATTR:host                | compute-1                                                  |
+    | key_name                            | antonio                                                    |
+    | image                               | Cirros-0.3.0-x86_64 (a6d81f9c-8789-49da-a689-503b40bcd23c) |
+    | hostId                              | ccc0c0738aea619c49a17654f911a9e2419848aece435cb7f117f666   |
+    | OS-EXT-STS:vm_state                 | active                                                     |
+    | OS-EXT-SRV-ATTR:instance_name       | instance-00000012                                          |
+    | OS-EXT-SRV-ATTR:hypervisor_hostname | compute-1                                                  |
+    | flavor                              | m1.tiny (1)                                                |
+    | id                                  | bf619ff4-303a-417c-9631-d7147dd50585                       |
+    | security_groups                     | [{u'name': u'default'}]                                    |
+    | user_id                             | 13ff2976843649669c4911ec156eaa3f                           |
+    | name                                | server1                                                    |
+    | created                             | 2013-08-29T10:24:15Z                                       |
+    | tenant_id                           | acdbdb11d3334ed987869316d0039856                           |
+    | OS-DCF:diskConfig                   | MANUAL                                                     |
+    | metadata                            | {}                                                         |
+    | accessIPv4                          |                                                            |
+    | accessIPv6                          |                                                            |
+    | net1 network                        | 10.99.0.2, 172.16.1.1                                      |
+    | progress                            | 0                                                          |
+    | OS-EXT-STS:power_state              | 1                                                          |
+    | OS-EXT-AZ:availability_zone         | nova                                                       |
+    | config_drive                        |                                                            |
+    +-------------------------------------+------------------------------------------------------------+
 
 Now resisze the VM by specifying the new flavor ID::
 
-    root@api-node:~# nova resize ... 6
+    root@api-node:~# nova resize bf619ff4-303a-417c-9631-d7147dd50585 6
 
 While the server is resizing, its status will be RESIZING::
     
@@ -2608,11 +2659,11 @@ While the server is resizing, its status will be RESIZING::
 Once the resize operation is done, the status will change to VERIFY_RESIZE and you will have to confirm
 that the resize operation worked::
 
-    root@api-node:~# nova resize-confirm ... 
+    root@api-node:~# nova resize-confirm bf619ff4-303a-417c-9631-d7147dd50585
 
 or, if things went wrong, revert the resize::
 
-    root@api-node:~# nova resize-revert ... 
+    root@api-node:~# nova resize-revert bf619ff4-303a-417c-9631-d7147dd50585 
 
 The status of the server will now be back to ACTIVE.
 
