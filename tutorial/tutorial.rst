@@ -2056,7 +2056,7 @@ for starting an OpenStack instance is done. Note that this is very high level de
       and iptables are configured)
    d) updates the request status
 
-6) **nova-network** contacts *cinder* to provision the volume
+6) **nova-api** contacts *cinder* to provision the volume
 
    a) gets connection parameters from cinder
    b) uses iscsi to make the volume available on the local machine
