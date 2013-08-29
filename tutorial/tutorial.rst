@@ -2656,6 +2656,7 @@ List of possible checks
      long delay when running apt-get upgrade
    * missing info on the ec2 compatible interface
    * missing info on flavors
+   * not discussion about multi-node/single-node network
 
 .. elasticluster:
    on the node
@@ -2697,3 +2698,9 @@ List of possible checks
 
 .. elasticluster:
    move the cluster sections just below the cloud section.
+
+.. elasticluster: delete an instance, you will get an error and the vm
+   appear "building". Instead, it should be removed and re-created.
+
+.. elasticluster on centos: it seems it is not ignoring the
+   known_hosts, even though it's saying so. TO TEST
