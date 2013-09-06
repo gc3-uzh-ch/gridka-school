@@ -1,6 +1,13 @@
 Experimental tutorial Python and boto library
 =============================================
 
+.. class:: small
+
+   This tutorial is licensed ©2013, licensed under a `Creative
+   Commons Attribution/Share-Alike (BY-SA) license
+   <http://creativecommons.org/licenses/by-sa/3.0/>`__.
+
+
 basic configuration
 -------------------
 
