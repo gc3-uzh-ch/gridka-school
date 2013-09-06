@@ -2321,7 +2321,7 @@ groups::
 Now we are ready to start our first instance::
 
     root@api-node:~# nova boot --image 79af6953-6bde-463d-8c02-f10aca227ef4 \
-      --flavor m1.tiny --key_name gridka-api-node server-1
+      --security-group default --flavor m1.tiny --key_name gridka-api-node server-1
     +-------------------------------------+--------------------------------------+
     | Property                            | Value                                |
     +-------------------------------------+--------------------------------------+
