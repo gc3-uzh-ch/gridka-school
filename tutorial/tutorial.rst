@@ -414,7 +414,7 @@ what you want in a production environment.
 
 After changing this line you have to restart the MySQL server::
 
-    root@db-node # restart mysql
+    root@db-node # service mysql restart
 
 Check that MySQL is actually running and listening on all the interfaces
 using the ``netstat`` command::
@@ -540,7 +540,7 @@ following command::
 
 Restart of the keystone service is again required::
 
-    root@auth-node:~# restart keystone
+    root@auth-node:~# service keystone restart
 
 
 Note on keystone authentication
@@ -971,8 +971,8 @@ Like we did with keystone, we need to populate the glance database::
 
 Now we are ready to restart the glance services::
 
-    root@image-node:~# restart glance-api
-    root@image-node:~# restart glance-registry
+    root@image-node:~# service glance-api restart
+    root@image-node:~# service glance-registry restart
 
 As we did for keystone, we can set environment variables in order to
 access glance::
