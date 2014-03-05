@@ -1,4 +1,4 @@
-GridKa School 2013 - Training Session on OpenStack
+GridKa School 2014 - Training Session on OpenStack
 ==================================================
 
 .. class:: small
@@ -12,14 +12,13 @@ Teachers:
 
 * `Antonio Messina <antonio.s.messina@gmail.com>`_
 * `Tyanko Aleksiev <tyanko.alexiev@gmail.com>`_
-* `Jens-Christian Fischer <jens-christian.fischer@switch.ch>`_
 
 This guide is to be used as reference for the installation of
-OpenStack `Grizzly` during the: `GridKa School 2013 - Training Session
+OpenStack `Havana` during the: `GridKa School 2014 - Training Session
 on OpenStack`.
 
 Goal of the tutorial is to end up with a small installation of
-OpenStack Grizzly on a set of different Ubuntu 12.04 virtual
+OpenStack Havana on a set of different Ubuntu 12.04 virtual
 machines.
 
 Since our focus is to explain the most basic components of OpenStack
@@ -354,10 +353,10 @@ Connect to the **db-node**::
 
     root@gks-NNN:[~] $ ssh root@db-node
 
-Add the OpenStack Grizzly repository::
+Add the OpenStack Havana repository::
 
     root@db-nodes:# apt-get install -y ubuntu-cloud-keyring
-    root@db-nodes:# echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/grizzly main > /etc/apt/sources.list.d/grizzly.list
+    root@db-nodes:# echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/havana main > /etc/apt/sources.list.d/havana.list
 
 Update the system (can take a while...)::
  
@@ -380,7 +379,7 @@ going to work on them. The following command has to run on the **physical machin
     root@gks-NNN:[~] $ for host in auth-node image-node api-node \
         network-node volume-node compute-1 compute-2
     do
-    ssh -n root@$host "(apt-get install -y ubuntu-cloud-keyring; echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/grizzly main > /etc/apt/sources.list.d/grizzly.list; apt-get update -y; apt-get upgrade -y; apt-get install -y ntp) >& /dev/null &"
+    ssh -n root@$host "(apt-get install -y ubuntu-cloud-keyring; echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/havana main > /etc/apt/sources.list.d/havana.list; apt-get update -y; apt-get upgrade -y; apt-get install -y ntp) >& /dev/null &"
     done
 
 
@@ -415,7 +414,7 @@ what you want in a production environment.
 
 After changing this line you have to restart the MySQL server::
 
-    root@db-node # service mysql restart
+    root@db-node # restart mysql
 
 Check that MySQL is actually running and listening on all the interfaces
 using the ``netstat`` command::
@@ -541,7 +540,7 @@ following command::
 
 Restart of the keystone service is again required::
 
-    root@auth-node:~# service keystone restart
+    root@auth-node:~# restart keystone
 
 
 Note on keystone authentication
@@ -614,7 +613,7 @@ correct environment variables::
 
 Create the **admin** user::
 
-    root@auth-node:~# keystone user-create --name=admin --pass=keystoneAdmin
+    root@auth-node:~# keystone user-create --name=admin --pass=keystoneAdmin --tenant admin
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
@@ -634,20 +633,26 @@ Go on by creating the different roles::
     |    id    | fafa8117d1564d8c9ec4fe6dbf985c68 |
     |   name   |              admin               |
     +----------+----------------------------------+
-    root@auth-node:~# keystone role-create --name=KeystoneAdmin
-    +----------+----------------------------------+
-    | Property |              Value               |
-    +----------+----------------------------------+
-    |    id    | a0bf13dda5814865a487c3717ffcd2dc |
-    |   name   |          KeystoneAdmin           |
-    +----------+----------------------------------+
-    root@auth-node:~# keystone role-create --name=KeystoneServiceAdmin
-    +----------+----------------------------------+
-    | Property |              Value               |
-    +----------+----------------------------------+
-    |    id    | faf84767d48e466abdc72626ace70e04 |
-    |   name   |       KeystoneServiceAdmin       |
-    +----------+----------------------------------+
+
+    ..
+       root@auth-node:~# keystone role-create --name=KeystoneAdmin
+       +----------+----------------------------------+
+       | Property |              Value               |
+       +----------+----------------------------------+
+       |    id    | a0bf13dda5814865a487c3717ffcd2dc |
+       |   name   |          KeystoneAdmin           |
+       +----------+----------------------------------+
+       
+       root@auth-node:~# keystone role-create --name=KeystoneServiceAdmin
+       +----------+----------------------------------+
+       | Property |              Value               |
+       +----------+----------------------------------+
+       |    id    | faf84767d48e466abdc72626ace70e04 |
+       |   name   |       KeystoneServiceAdmin       |
+       +----------+----------------------------------+
+
+::
+
     root@auth-node:~# keystone role-create --name=Member
     +----------+----------------------------------+
     | Property |              Value               |
@@ -669,8 +674,10 @@ the whole OpenStack installation!**
 Assign administrative roles to the admin user::
 
     root@auth-node:~# keystone user-role-add --user admin --role admin --tenant admin
-    root@auth-node:~# keystone user-role-add --user admin --role KeystoneAdmin --tenant admin
-    root@auth-node:~# keystone user-role-add --user admin --role KeystoneServiceAdmin --tenant admin
+
+    ..
+       root@auth-node:~# keystone user-role-add --user admin --role KeystoneAdmin --tenant admin
+       root@auth-node:~# keystone user-role-add --user admin --role KeystoneServiceAdmin --tenant admin
 
 Creation of the endpoint
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -769,7 +776,7 @@ Please keep the connection to the auth-node open as we will need to
 operate on it briefly.
 
 Further information about the keystone service can be found at in the
-`official documentation <http://docs.openstack.org/grizzly/openstack-compute/install/apt/content/ch_installing-openstack-identity-service.html>`_
+`official documentation <http://docs.openstack.org/havana/install-guide/install/apt/content/ch_keystone.html>`_
 
 ``image-node``
 --------------
@@ -818,23 +825,11 @@ and an endpoint associated with it. The following commands assume you
 already set the environment variables needed to run keystone without
 specifying login, password and endpoint all the times.
 
-First of all, we need to get the **id** of the **service** tenant::
+First of all we create a `glance` user for keystone, belonging to the
+`service` tenant. You could also use the `admin` user, but it's better
+not to mix things::
 
-    root@auth-node:~# keystone tenant-get service
-    +-------------+----------------------------------+
-    |   Property  |              Value               |
-    +-------------+----------------------------------+
-    | description |                                  |
-    |   enabled   |               True               |
-    |      id     | cb0e475306cc4c91b2a43b537b1a848b |
-    |     name    |             service              |
-    +-------------+----------------------------------+
-
-then we need to create a keystone user for the glance service,
-associated with the **service** tenant::
-
-    root@auth-node:~# keystone user-create --name=glance --pass=glanceServ \
-      --tenant-id cb0e475306cc4c91b2a43b537b1a848b
+    root@auth-node:~# keystone user-create --name=glance --pass=glanceServ --tenant=service
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
@@ -903,13 +898,18 @@ On the **image-node** install the **glance** package::
 
 To configure the glance service we need to edit a few files in ``/etc/glance``:
 
-In the ``/etc/glance/glance-api-paste.ini`` file, we need to adjust
-the **filter:authtoken** section so that it matches the values we used
+Information on how to connect to the MySQL database are stored in the
+``/etc/glance/glance-api.conf`` file. The syntax is similar to the one
+used in the ``/etc/keystone/keystone.conf`` file,  but the name of the
+option is ``sql_connection`` instead::
+
+    sql_connection = mysql://glanceUser:glancePass@10.0.0.3/glance
+
+Also, we need to adjust
+the **keystone_authtoken** section so that it matches the values we used
 when we created the keystone **glance** user::
 
-    [filter:authtoken]
-    paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
-    delay_auth_decision = true
+    [keystone_authtoken]
     auth_host = 10.0.0.4
     auth_port = 35357
     auth_protocol = http
@@ -917,10 +917,27 @@ when we created the keystone **glance** user::
     admin_user = glance
     admin_password = glanceServ
 
-Similar changes have to be done on the ``/etc/glance/glance-registry-paste.ini`` file::
+On this file, we also need to specify the RabbitMQ host (default is
+``localhost``). The other rabbit parameters should be fine::
 
-    [filter:authtoken]
-    paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
+    rabbit_host = 10.0.0.3
+
+
+
+Finally, we need to specify which paste pipeline we are using. We are not
+entering into details here, just check that the following option is present::
+
+    [paste_deploy]
+    flavor = keystone
+
+Similar changes have to be done on the
+``/etc/glance/glance-registry.conf`` file, for MySQL::
+
+    sql_connection = mysql://glanceUser:glancePass@10.0.0.3/glance
+
+the keystone endpoint::
+
+    [keystone_authtoken]
     auth_host = 10.0.0.4
     auth_port = 35357
     auth_protocol = http
@@ -943,30 +960,7 @@ Similar changes have to be done on the ``/etc/glance/glance-registry-paste.ini``
    directly to the database, effectively deprecating the glance-registry service.
 
 
-Information on how to connect to the MySQL database are stored in the
-``/etc/glance/glance-api.conf`` file. The syntax is similar to the one
-used in the ``/etc/keystone/keystone.conf`` file,  but the name of the
-option is ``sql_connection`` instead::
-
-    sql_connection = mysql://glanceUser:glancePass@10.0.0.3/glance
-
-On this file, we also need to specify the RabbitMQ host (default is
-``localhost``). The other rabbit parameters should be fine::
-
-    rabbit_host = 10.0.0.3
-
-Finally, we need to specify which paste pipeline we are using. We are not
-entering into details here, just check that the following option is present::
-
-    [paste_deploy]
-    flavor = keystone
-
-Similar changes need to be done in the
-``/etc/glance/glance-registry.conf``, both for the MySQL connection::
-
-    sql_connection = mysql://glanceUser:glancePass@10.0.0.3/glance
-
-and for the paste pipeline::
+and the paste pipeline::
 
     [paste_deploy]
     flavor = keystone
@@ -977,8 +971,8 @@ Like we did with keystone, we need to populate the glance database::
 
 Now we are ready to restart the glance services::
 
-    root@image-node:~# service glance-api restart
-    root@image-node:~# service glance-registry restart
+    root@image-node:~# restart glance-api
+    root@image-node:~# restart glance-registry
 
 As we did for keystone, we can set environment variables in order to
 access glance::
@@ -1094,11 +1088,11 @@ Cinder is actually composed of different services:
 **cinder-scheduler** 
 
     The cinder-scheduler is responsible for scheduling/routing
-    requests to the appropriate volume service. As of Grizzly;
+    requests to the appropriate volume service. As of Havana;
     depending upon your configuration this may be simple round-robin
     scheduling to the running volume services, or it can be more
     sophisticated through the use of the Filter Scheduler. The Filter
-    Scheduler is the default in Grizzly and enables filter on things
+    Scheduler is the default in Havana and enables filter on things
     like Capacity, Availability Zone, Volume Types and Capabilities as
     well as custom filters.
 
@@ -1492,22 +1486,11 @@ ec2
     compatibility layer on top of the nova service, which allows you
     to use the same APIs you would use with Amazon EC2
 
-First of all, we need to get the **id** of the **service** tenant::
-
-    root@auth-node:~# keystone tenant-get service
-    +-------------+----------------------------------+
-    |   Property  |              Value               |
-    +-------------+----------------------------------+
-    | description |                                  |
-    |   enabled   |               True               |
-    |      id     | cb0e475306cc4c91b2a43b537b1a848b |
-    |     name    |             service              |
-    +-------------+----------------------------------+
-
-then we need to create a keystone user for the nova service, 
+First of all we need to create a keystone user for the nova service,
 associated with the **service** tenant::
 
-    root@auth-node:~# keystone user-create --name=nova --pass=novaServ --tenant-id cb0e475306cc4c91b2a43b537b1a848b
+    root@auth-node:~# keystone user-create \
+        --name=nova --pass=novaServ --tenant service
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
@@ -1589,8 +1572,9 @@ nova installation and configuration
 
 Now we can continue the installation on the **api-node**::
 
-    root@api-node:~# apt-get install -y nova-api nova-cert novnc \
-    nova-consoleauth nova-scheduler nova-novncproxy nova-doc nova-conductor 
+    root@api-node:~# apt-get install -y nova-novncproxy novnc nova-api \
+      nova-ajax-console-proxy nova-cert nova-conductor \
+      nova-consoleauth nova-doc nova-scheduler python-novaclient
 
 The file ``/etc/nova/api-paste.ini`` is similar to what we have seen
 for cinder and glance. Check that the **[filter:authtoken]** section
@@ -1635,14 +1619,11 @@ configuration options <http://docs.openstack.org/trunk/openstack-compute/admin/c
     volumes_path=/var/lib/nova/volumes
     enabled_apis=ec2,osapi_compute,metadata
 
-    # compute_scheduler_driver=nova.scheduler.simple.SimpleScheduler
+    rpc_backend = nova.rpc.impl_kombu
     rabbit_host=10.0.0.3
-    nova_url=http://10.0.0.6:8774/v1.1/
-    sql_connection=mysql://novaUser:novaPass@10.0.0.3/nova
 
-    # Auth
-    use_deprecated_auth=false
-    auth_strategy=keystone
+
+    sql_connection=mysql://novaUser:novaPass@10.0.0.3/nova
 
     # Imaging service
     glance_api_servers=10.0.0.5:9292
@@ -1661,6 +1642,15 @@ configuration options <http://docs.openstack.org/trunk/openstack-compute/admin/c
     # Cinder #
     volume_api_class=nova.volume.cinder.API
     osapi_volume_listen_port=5900
+    
+    auth_strategy=keystone
+    [keystone_authtoken]
+    auth_host = 10.0.0.4
+    auth_port = 35357
+    auth_protocol = http
+    admin_tenant_name = service
+    admin_user = nova
+    admin_password = novaServ
 
 Sync the nova database::
 
@@ -1683,6 +1673,10 @@ Restart all the nova services::
     root@api-node:~# service nova-novncproxy restart
     nova-novncproxy stop/waiting
     nova-novncproxy start/running, process 26326
+
+    root@api-node:~# service nova-consoleauth restart
+    nova-novncproxy stop/waiting
+    nova-novncproxy start/running, process 26370
 
     root@api-node:~# service nova-cert restart
     nova-cert stop/waiting
@@ -1712,13 +1706,14 @@ without having to specify the credentials via command line options::
 you can check the status of the nova service::
 
     root@api-node:~# nova service-list
-    +----------------+----------+----------+---------+-------+----------------------------+
-    | Binary         | Host     | Zone     | Status  | State | Updated_at                 |
-    +----------------+----------+----------+---------+-------+----------------------------+
-    | nova-cert      | api-node | internal | enabled | up    | 2013-08-16T16:24:14.000000 |
-    | nova-conductor | api-node | internal | enabled | up    | 2013-08-16T16:24:15.000000 |
-    | nova-scheduler | api-node | internal | enabled | up    | 2013-08-16T16:24:20.000000 |
-    +----------------+----------+----------+---------+-------+----------------------------+
+    +------------------+----------+----------+---------+-------+----------------------------+
+    | Binary           | Host     | Zone     | Status  | State | Updated_at                 |
+    +------------------+----------+----------+---------+-------+----------------------------+
+    | nova-cert        | api-node | internal | enabled | up    | 2013-08-16T16:24:14.000000 |
+    | nova-conductor   | api-node | internal | enabled | up    | 2013-08-16T16:24:15.000000 |
+    | nova-scheduler   | api-node | internal | enabled | up    | 2013-08-16T16:24:20.000000 |
+    | nova-consoleauth | api-node | internal | enabled | up    | 2013-08-16T16:24:20.000000 |
+    +------------------+----------+----------+---------+-------+----------------------------+
 
 but you can also work with glance images::
 
@@ -2678,13 +2673,8 @@ The status of the server will now be back to ACTIVE.
 References
 ----------
 
-As starting reference has been used the following `tutorial
-<https://github.com/mseknibilel/OpenStack-Grizzly-Install-Guide/blob/master/OpenStack_Grizzly_Install_Guide.rst>`_.
-
 We adapted the tutorial above with what we considered necessary for
 our purposes and for installing OpenStack on 6 hosts.
-
-The `official Grizzly tutorial <http://docs.openstack.org/grizzly/openstack-compute/install/apt/content/>`_.
 
 .. _`Openstack Compute Administration Guide`: http://docs.openstack.org/trunk/openstack-compute/admin/content/index.html
 
