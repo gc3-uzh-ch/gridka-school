@@ -14,11 +14,11 @@ Teachers:
 * `Tyanko Aleksiev <tyanko.alexiev@gmail.com>`_
 
 This guide is to be used as reference for the installation of
-OpenStack `Havana` during the: `GridKa School 2014 - Training Session
+OpenStack `Icehouse` during the: `GridKa School 2014 - Training Session
 on OpenStack`.
 
 Goal of the tutorial is to end up with a small installation of
-OpenStack Havana on a set of different Ubuntu 12.04 virtual
+OpenStack Icehouse on a set of different Ubuntu 14.04 virtual
 machines.
 
 Since our focus is to explain the most basic components of OpenStack
@@ -34,7 +34,7 @@ Tutorial overview
 For this tutorial we will work in teams. Each team is composed of 2
 people and will have assigned two physical machines to work with.
 
-One of the nodes will run the 6 VMs hosting the **central services**. 
+One of the nodes will run the 7 VMs hosting the **central services**. 
 They are called as follows:
 
 * ``db-node``:  runs *MySQL* and *RabbitMQ*
@@ -48,13 +48,19 @@ They are called as follows:
 * ``api-node``: runs most of the **nova** service: *nova-api*,
   *horizon*, *nova-scheduler*, *nova-conductor* and *nova-console*.
 
-* ``network-node``: runs the network services:
-  *nova-network* and nova-metadata* (not Neutron/Quantum)
+* ``network-node``: runs the legacy network services:
+  *nova-network* and *nova-metadata*.
 
 * ``volume-node``: runs **cinder**, the volume manager, composed of
   the *cinder-api*, *cinder-scheduler* and *cinder-volume* services
 
-while the other will run 2 VMs hosting the **compute nodes** for your
+The legacy ``nova-network`` service is going to be deprecated in the next
+OpenStack release. Thus, on the last day we will install the service which will
+become its de facto substitute. The 7th node will be installed with: 
+
+* ``neutron-node``: runs **neutron**, the NaaS manager. 
+
+The other node will run 2 VMs hosting the **compute nodes** for your
 stack:
 
 * ``compute-1``: runs *nova-compute*
@@ -102,7 +108,7 @@ Virtual Machines
 ++++++++++++++++
 
 The physical nodes already have the KVM virtual machines we will use
-for the tutorial. These are Ubuntu 12.04 LTS machines with very basic
+for the tutorial. These are Ubuntu 14.04 LTS machines with very basic
 configuration, including the IP configuration and the correct hostname.
 
 Start the Virtual Machines
@@ -342,7 +348,7 @@ different machines. The server that receive the requests then write on
 the database some information related to the request and communicate
 with the other services via RabbitMQ.
 
-cloud repository and ntp package
+update system and install ntp package
 ++++++++++++++++++++++++++++++++
 
 The following steps need to be done on all the machines. We are going
@@ -352,11 +358,6 @@ the process on the other nodes. Please login to the db-node and:
 Connect to the **db-node**::
 
     root@gks-NNN:[~] $ ssh root@db-node
-
-Add the OpenStack Havana repository::
-
-    root@db-nodes:# apt-get install -y ubuntu-cloud-keyring
-    root@db-nodes:# echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/havana main > /etc/apt/sources.list.d/havana.list
 
 Update the system (can take a while...)::
  
@@ -379,9 +380,11 @@ going to work on them. The following command has to run on the **physical machin
     root@gks-NNN:[~] $ for host in auth-node image-node api-node \
         network-node volume-node compute-1 compute-2
     do
-    ssh -n root@$host "(apt-get install -y ubuntu-cloud-keyring; echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/havana main > /etc/apt/sources.list.d/havana.list; apt-get update -y; apt-get upgrade -y; apt-get install -y ntp) >& /dev/null &"
+    ssh -n root@$host "(apt-get update -y; apt-get upgrade -y; apt-get install -y ntp) >& /dev/null &"
     done
 
+**Note:** Icehouse is in the main repository for Ubuntu 14.04. This means we are not supposed to install
+any additional OpenStack repositories. For info regarding OpenStack and Ubuntu Support Schedule go `here <https://wiki.ubuntu.com/ServerTeam/CloudArchive>_`. 
 
 MySQL installation
 ++++++++++++++++++
@@ -412,9 +415,31 @@ interface. Please note that in this way you will not be able to
 contact it using the *public* interface (172.16.0.3), which is usually
 what you want in a production environment.
 
+The OpenStack official guide states that some of the options of InnoDB storage
+engine must be set in the configuration file. In order to do that add the following
+lines in the ``InnoDB`` section of  the ``/etc/mysql/my.cf`` file::
+
+    default-storage-engine = innodb
+    collation-server = utf8_general_ci
+    init-connect = 'SET NAMES utf8'
+    character-set-server = utf8
+
 After changing this line you have to restart the MySQL server::
 
     root@db-node # service mysql restart
+
+**T0_DO**:: You must remove the anonymous users that are created automatically during 
+mysql installation. Check if the installation goes to the end, if true add the commands 
+for removing the anonymous users: mysql_install_db and mysql_secure_installation, output::
+
+    Change the root password? [Y/n] n
+    Remove anonymous users? [Y/n] Y
+    Disallow root login remotely? [Y/n] Y
+    Remove test database and access to it? [Y/n] Y
+    Reload privilege tables now? [Y/n] Y
+
+See `here <http://docs.openstack.org/icehouse/install-guide/install/apt/content/basics-database-controller.html>`_ for
+referencing the **TO-DO**. 
 
 Check that MySQL is actually running and listening on all the interfaces
 using the ``netstat`` command::
@@ -470,6 +495,13 @@ command::
 Please keep the connection to the db-node open as we will need to
 operate on it briefly.
 
+
+**TO-DO** In the doc it says we could change the password for RabbitMQ by::
+ 
+     rabbitmqctl change_password guest RABBIT_PASS
+
+This implies changing the ``rabbit_password`` in the conf. file for
+all the OpenStack services we are going to install. Do we really need that?
 
 ``auth-node``
 -------------
@@ -1025,7 +1057,7 @@ uploaded on the image store::
     +--------------------------------------+--------------+-------------+------------------+---------+--------+
 
 You can easily find ready-to-use images on the web. An image for the
-`Ubuntu Server 12.04 "Precise" (amd64)
+`Ubuntu Server 14.04 "Precise" (amd64)
 <http://cloud-images.ubuntu.com/precise/current/precise-server-cloudimg-amd64-disk1.img>`_
 can be found at the `Ubuntu Cloud Images archive
 <http://cloud-images.ubuntu.com/>`_, you can download it and upload
@@ -1088,11 +1120,11 @@ Cinder is actually composed of different services:
 **cinder-scheduler** 
 
     The cinder-scheduler is responsible for scheduling/routing
-    requests to the appropriate volume service. As of Havana;
+    requests to the appropriate volume service. As of Icehouse;
     depending upon your configuration this may be simple round-robin
     scheduling to the running volume services, or it can be more
     sophisticated through the use of the Filter Scheduler. The Filter
-    Scheduler is the default in Havana and enables filter on things
+    Scheduler is the default in Icehouse and enables filter on things
     like Capacity, Availability Zone, Volume Types and Capabilities as
     well as custom filters.
 
@@ -2083,6 +2115,11 @@ the host node does not support *nested virtualization*, we install
 
 This will also install the **nova-compute** package and all its
 dependencies.
+
+In order to allow the compute nodes to access the MySQL server you must 
+install the **MySQL python library**:: 
+
+    root@compute-1 # apt-get install -y python-mysqldb
 
 
 Network configuration
