@@ -384,7 +384,7 @@ going to work on them. The following command has to run on the **physical machin
     done
 
 **Note:** Icehouse is in the main repository for Ubuntu 14.04. This means we are not supposed to install
-any additional OpenStack repositories. For info regarding OpenStack and Ubuntu Support Schedule go `here <https://wiki.ubuntu.com/ServerTeam/CloudArchive>_`. 
+any additional OpenStack repositories. For info regarding OpenStack and Ubuntu Support Schedule go `here <https://wiki.ubuntu.com/ServerTeam/CloudArchive>`_. 
 
 MySQL installation
 ++++++++++++++++++
@@ -438,8 +438,8 @@ for removing the anonymous users: mysql_install_db and mysql_secure_installation
     Remove test database and access to it? [Y/n] Y
     Reload privilege tables now? [Y/n] Y
 
-See `here <http://docs.openstack.org/icehouse/install-guide/install/apt/content/basics-database-controller.html>`_ for
-referencing the **TO-DO**. 
+See `here <http://docs.openstack.org/icehouse/install-guide/install/apt/content/basics-database-controller.html>`_ for info on 
+TO-DO. 
 
 Check that MySQL is actually running and listening on all the interfaces
 using the ``netstat`` command::
