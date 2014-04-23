@@ -428,7 +428,7 @@ After changing this line you have to restart the MySQL server::
 
     root@db-node # service mysql restart
 
-**T0_DO**:: You must remove the anonymous users that are created automatically during 
+**TO-DO**:: You must remove the anonymous users that are created automatically during 
 mysql installation. Check if the installation goes to the end, if true add the commands 
 for removing the anonymous users: mysql_install_db and mysql_secure_installation, output::
 
