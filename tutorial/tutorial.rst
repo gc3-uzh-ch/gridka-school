@@ -527,12 +527,12 @@ the commands done in the `all nodes installation`_ section worked
 without problems::
 
     root@auth-node:~# dpkg -l ntp
+    Desired=Unknown/Install/Remove/Purge/Hold
     | Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend
     |/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)
-    ||/ Name                                          Version                                       Description
-    +++-=============================================-=============================================-========+========================================
-    ii  ntp                                           1:4.2.6.p3+dfsg-1ubuntu3.1                    Network Time Protocol daemon and utility programs
-
+    ||/ Name                                          Version                     Architecture                Description
+    +++-=============================================-===========================-===========================-===============================================================================================
+    ii  ntp                                           1:4.2.6.p5+dfsg-3ubuntu2    amd64                       Network Time Protocol daemon and utility programs
 
 which confirmed ntp is installed as required.
 
@@ -568,7 +568,6 @@ option is::
 
     connection = <protocol>://<user>:<password>@<host>/<db_name>
 
-and can be found in the ``[sql]`` section of the configuration file.
 So in our case you need to replace the default option with::
 
     connection = mysql://keystone:gridka@10.0.0.3/keystone
@@ -632,7 +631,7 @@ users we will create for the various services (image, volume, nova
 etc...). The following commands will work assuming you already set the
 correct environment variables::
 
-    root@auth-node:~# keystone tenant-create --name=admin
+    root@auth-node:~# keystone tenant-create --name=admin --description='Admin Tenant'
     +-------------+----------------------------------+
     |   Property  |              Value               |
     +-------------+----------------------------------+
@@ -643,7 +642,7 @@ correct environment variables::
     +-------------+----------------------------------+
 
 
-    root@auth-node:~# keystone tenant-create --name=service
+    root@auth-node:~# keystone tenant-create --name=service --description='Service Tenant'
     +-------------+----------------------------------+
     |   Property  |              Value               |
     +-------------+----------------------------------+
@@ -656,17 +655,18 @@ correct environment variables::
 
 Create the **admin** user:: 
 
-    rootauth-node:~# keystone user-create --name=admin --pass=gridka --tenant_id=b705c26e14ff4f9ba73390d153df531a
-    +----------+-------------------------------------------------------------------------------------------------------------------------+
-    | Property |                                                          Value                                                          |
-    +----------+-------------------------------------------------------------------------------------------------------------------------+
-    | email    | None                                                                                                                    |
-    | enabled  | True                                                                                                                    |
-    | id       | d5f862b1038f4a0da971677b7919f83c                                                                                        |
-    | name     | admin                                                                                                                   |
-    | password | $6$rounds=40000$t4/2XnytWxFiHwYs$v5Cxai9Q3/A/DZ6YdgW5GjySQhQOuxIVK4e9T3V8p/S3Wt.jswblWylVWMNJ9VglcrM5FXlNq4632XkFzV54o/ |
-    | tenantId | b705c26e14ff4f9ba73390d153df531a                                                                                        |
-    +----------+-------------------------------------------------------------------------------------------------------------------------+
+    root@auth-node:~# keystone user-create --name=admin --pass=gridka --tenant=admin
+    +----------+----------------------------------+
+    | Property |              Value               |
+    +----------+----------------------------------+
+    |  email   |                                  |
+    | enabled  |               True               |
+    |    id    | 74db0e6534d34aafadf8b7b54c4890ed |
+    |   name   |              admin               |
+    | tenantId | b705c26e14ff4f9ba73390d153df531a | 
+    | username |              admin               |
+    +----------+----------------------------------+
+
 
 
 Go on by creating the different roles::
@@ -679,22 +679,11 @@ Go on by creating the different roles::
     | name     | admin                            |
     +----------+----------------------------------+
 
-For accessing the OpenStack dashboard users should have a special ``_member_`` role.:: 
-
-    root@auth-node:~# keystone role-create --name=_member_
-
-    +----------+----------------------------------+
-    | Property |              Value               |
-    +----------+----------------------------------+
-    | id       | a2b67df28d634319afb47e80e1eeafb8 |
-    | name     | _member_                         |
-    +----------+----------------------------------+
-
 These roles are checked by different services. It is not really easy
 to know which service checks for which role, but on a very basic
 installation you can just live with ``_member_`` (to be used for all the
 standard users) and ``admin`` (to be used for the OpenStack
-administrators).
+administrators). ``_member_`` role is defined by default and is already available. 
 
 Roles are assigned to an user **per-tenant**. However, if you have the
 admin role on just one tenant **you actually are the administrator of
@@ -702,11 +691,7 @@ the whole OpenStack installation!**
 
 Assign administrative roles to the admin user::
 
-    root@auth-node:~# keystone user-role-add --user=<admin_user_id> --role=<admin_role_id> --tenant_id=<admin_tenant_id> 
-
-Assign also a _member_ role to the admin user::
-
-    root@auth-node:~# keystone user-role-add --user=<admin_user_id> --role=<member_role_id> --tenant_id=<admin_tenant_id>
+    root@auth-node:~# keystone user-role-add --user=admin --role=admin --tenant=admin 
 
 Creation of the endpoint
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -769,7 +754,6 @@ To get a listing of the available services the command is::
 while a list of endpoints is shown by the command::
 
     root@auth-node:~# keystone endpoint-list
-    WARNING: Bypassing authentication using a token & endpoint (authentication credentials are being ignored).
     +----------------------------------+-----------+----------------------------------------+---------------------------+-----------------------------------------+----------------------------------+
     |                id                |   region  |               publicurl                |        internalurl        |                 adminurl                |            service_id            |
     +----------------------------------+-----------+----------------------------------------+---------------------------+-----------------------------------------+----------------------------------+
@@ -779,8 +763,8 @@ while a list of endpoints is shown by the command::
 From now on, you can access keystone using the admin user either by
 using the following command line options::
 
-    root@any-host:~# keystone --os_username admin --os_tenant_name admin
-                    --os_password gridka --os_auth_url http://10.0.0.4:5000/v2.0
+    root@any-host:~# keystone --os-username admin --os-tenant-name admin
+                    --os-password gridka --os-auth-url http://10.0.0.4:5000/v2.0
                     <subcommand>
 
 or by setting the following environment variables and run keystone
