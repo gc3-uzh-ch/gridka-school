@@ -495,13 +495,12 @@ command::
 Please keep the connection to the db-node open as we will need to
 operate on it briefly.
 
-
-**TO-DO** In the doc it says we could change the password for RabbitMQ by::
+The message broker uses guest as default user name and password. You can change 
+that password by simply doing::
  
-     rabbitmqctl change_password guest RABBIT_PASS
+     rabbitmqctl change_password guest gridka 
 
-This implies changing the ``rabbit_password`` in the conf. file for
-all the OpenStack services we are going to install. Do we really need that?
+This will change the default password to **gridka** 
 
 ``auth-node``
 -------------
@@ -785,6 +784,12 @@ operate on it briefly.
 Further information about the keystone service can be found at in the
 `official documentation <http://http://docs.openstack.org/icehouse/install-guide/install/apt/content/ch_keystone.html>_`
 
+OpenStack clients ???
+~~~~~~~~~~~~~~~~~~~~~
+**TO-DO** Shell we say something about OpenStack clients too?
+Ref `here: <http://docs.openstack.org/icehouse/install-guide/install/apt/content/ch_clients.html>_`.
+
+
 ``image-node``
 --------------
 
@@ -825,7 +830,9 @@ On the **db-node** create the database and the MySQL user::
 
     root@db-node:~# mysql -u root -p
     mysql> CREATE DATABASE glance;
-    mysql> GRANT ALL ON glance.* TO 'glanceUser'@'%' IDENTIFIED BY 'glancePass';
+    mysql> GRANT ALL ON glance.* TO 'glance'@'%' IDENTIFIED BY 'gridka';
+    mysql> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost' IDENTIFIED BY 'gridka';
+    mysql> exit;
 
 On the **auth-node** instead we need to create an **image** service
 and an endpoint associated with it. The following commands assume you
@@ -836,7 +843,7 @@ First of all we create a `glance` user for keystone, belonging to the
 `service` tenant. You could also use the `admin` user, but it's better
 not to mix things::
 
-    root@auth-node:~# keystone user-create --name=glance --pass=glanceServ --tenant=service
+    root@auth-node:~# keystone user-create --name=glance --pass=gridka
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
@@ -847,20 +854,9 @@ not to mix things::
     | tenantId | cb0e475306cc4c91b2a43b537b1a848b |
     +----------+----------------------------------+
 
-..
-   FIXME: is this really needed??? Yes! Otherwise, you will get::
-
-       root@image-node:~# glance image-list
-       Request returned failure status.
-       Invalid OpenStack Identity credentials.
-
-   and in the keystone.log file::
-
-       2013-08-16 16:34:19  WARNING [keystone.common.wsgi] Authorization failed. The request you have made requires authentication. from 10.0.0.5
-
 Then we need to give admin permissions to it::
 
-    root@auth-node:~# keystone user-role-add --tenant service --user glance --role admin
+    root@auth-node:~# keystone user-role-add --tenant=service --user=glance --role=admin
 
 Please note that we could have created only one user for all the services, 
 but this is a cleaner solution.
@@ -873,7 +869,8 @@ We need then to create the **image** service::
     |   Property  |              Value               |
     +-------------+----------------------------------+
     | description |       Glance Image Service       |
-    |      id     | 6cb0cf7a81bc4489a344858398d40222 |
+    |   enabled   |               True               |
+    |      id     | 001faa841170487f80db7e22883b049b |
     |     name    |              glance              |
     |     type    |              image               |
     +-------------+----------------------------------+
@@ -901,20 +898,29 @@ glance installation and configuration
 
 On the **image-node** install the **glance** package::
 
-    root@image-node:~# apt-get install glance python-mysqldb
+    root@image-node:~# apt-get install glance python-glanceclient 
 
 To configure the glance service we need to edit a few files in ``/etc/glance``:
 
-Information on how to connect to the MySQL database are stored in the
-``/etc/glance/glance-api.conf`` file. The syntax is similar to the one
-used in the ``/etc/keystone/keystone.conf`` file,  but the name of the
-option is ``sql_connection`` instead::
+Information on how to connect to the MySQL database is stored in the
+``/etc/glance/glance-api.conf`` and ``/etc/glance-registry.conf`` files. 
+The syntax is similar to the one used in the ``/etc/keystone/keystone.conf``
+file, the name of the option is ``connection`` again. Please edit both files
+and it change to::
 
-    sql_connection = mysql://glanceUser:glancePass@10.0.0.3/glance
+    connection = mysql://glance:gridka@10.0.0.4/glance
 
-Also, we need to adjust
-the **keystone_authtoken** section so that it matches the values we used
-when we created the keystone **glance** user::
+The Image Service has to be configured to use the message broker. Configuration
+information is stored in ``/etc/glance/glance-api.conf``. Please open the file 
+and change as follows in the ``[DEFAULT] section``::
+
+     [DEFAULT]
+     ...
+     rabbit_host = 10.0.0.4
+     rabbit_password = gridka
+
+Also, we need to adjustthe **keystone_authtoken** section so that it matches the values we used
+when we created the keystone **glance** user in both in ``glance-api.conf`` and ``glance-registry.conf``::
 
     [keystone_authtoken]
     auth_host = 10.0.0.4
@@ -922,35 +928,14 @@ when we created the keystone **glance** user::
     auth_protocol = http
     admin_tenant_name = service
     admin_user = glance
-    admin_password = glanceServ
-
-On this file, we also need to specify the RabbitMQ host (default is
-``localhost``). The other rabbit parameters should be fine::
-
-    rabbit_host = 10.0.0.3
-
-
+    admin_password = gridka
 
 Finally, we need to specify which paste pipeline we are using. We are not
-entering into details here, just check that the following option is present::
+entering into details here, just check that the following option is present again
+in both ``glance-api.conf`` and ``glance-registry.conf``::
 
     [paste_deploy]
     flavor = keystone
-
-Similar changes have to be done on the
-``/etc/glance/glance-registry.conf`` file, for MySQL::
-
-    sql_connection = mysql://glanceUser:glancePass@10.0.0.3/glance
-
-the keystone endpoint::
-
-    [keystone_authtoken]
-    auth_host = 10.0.0.4
-    auth_port = 35357
-    auth_protocol = http
-    admin_tenant_name = service
-    admin_user = glance
-    admin_password = glanceServ
 
 .. Very interesting: we misspelled the password here, but we only get
    errors when getting the list of VM from horizon. Booting VM from
@@ -967,14 +952,9 @@ the keystone endpoint::
    directly to the database, effectively deprecating the glance-registry service.
 
 
-and the paste pipeline::
-
-    [paste_deploy]
-    flavor = keystone
-
 Like we did with keystone, we need to populate the glance database::
 
-    root@image-node:~# glance-manage db_sync
+    root@image-node:~# /bin/sh -c "glance-manage db_sync" glance 
 
 Now we are ready to restart the glance services::
 
@@ -985,7 +965,7 @@ As we did for keystone, we can set environment variables in order to
 access glance::
 
     root@image-node:~# export OS_USERNAME=admin
-    root@image-node:~# export OS_PASSWORD=keystoneAdmin
+    root@image-node:~# export OS_PASSWORD=gridka
     root@image-node:~# export OS_TENANT_NAME=admin
     root@image-node:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
 
@@ -1005,21 +985,23 @@ The command line tool to manage images is ``glance``. Uploading an image is easy
     +------------------+--------------------------------------+
     | checksum         | 50bdc35edb03a38d91b1b071afb20a3c     |
     | container_format | bare                                 |
-    | created_at       | 2013-08-16T14:38:12                  |
+    | created_at       | 2014-04-24T14:51:50                  |
     | deleted          | False                                |
     | deleted_at       | None                                 |
     | disk_format      | qcow2                                |
-    | id               | 79af6953-6bde-463d-8c02-f10aca227ef4 |
+    | id               | ee83e7df-a39c-496f-8be4-b604c9594d0e |
     | is_public        | True                                 |
     | min_disk         | 0                                    |
     | min_ram          | 0                                    |
     | name             | cirros-0.3.0                         |
-    | owner            | 1ce38185a0c941f1b09605c7bfb15a31     |
+    | owner            | c5709d092e3a46b6b895d31f90593640     |
     | protected        | False                                |
     | size             | 9761280                              |
     | status           | active                               |
-    | updated_at       | 2013-08-16T14:38:12                  |
+    | updated_at       | 2014-04-24T14:51:51                  |
+    | virtual_size     | None                                 |
     +------------------+--------------------------------------+
+
 
 Using ``glance`` command you can also list the images currently
 uploaded on the image store::
@@ -1033,7 +1015,7 @@ uploaded on the image store::
 
 You can easily find ready-to-use images on the web. An image for the
 `Ubuntu Server 14.04 "Precise" (amd64)
-<http://cloud-images.ubuntu.com/precise/current/precise-server-cloudimg-amd64-disk1.img>`_
+<http://cloud-images.ubuntu.com/trusty/current/trusty-server-cloudimg-amd64-disk1.img>`_
 can be found at the `Ubuntu Cloud Images archive
 <http://cloud-images.ubuntu.com/>`_, you can download it and upload
 using glance as we did before.
@@ -1056,7 +1038,7 @@ The cirros image we uploaded before, having an image id of
 ``79af6953-6bde-463d-8c02-f10aca227ef4``, will be found in::
 
     root@image-node:~# ls -l /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4 
-    -rw-r----- 1 glance glance 9761280 Aug 16 16:38 /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4
+    -rw-r----- 1 glance glance 9761280 Apr 24 16:38 /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4
 
 
 ``volume-node``
