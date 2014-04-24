@@ -527,12 +527,12 @@ the commands done in the `all nodes installation`_ section worked
 without problems::
 
     root@auth-node:~# dpkg -l ntp
-    Desired=Unknown/Install/Remove/Purge/Hold
     | Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend
     |/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)
-    ||/ Name                          Version                       Description
-    +++-=============================-=============================-==========================================================================
-    ii  ntp                           1:4.2.6.p3+dfsg-1ubuntu3.1    Network Time Protocol daemon and utility programs
+    ||/ Name                                          Version                                       Description
+    +++-=============================================-=============================================-========+========================================
+    ii  ntp                                           1:4.2.6.p3+dfsg-1ubuntu3.1                    Network Time Protocol daemon and utility programs
+
 
 which confirmed ntp is installed as required.
 
@@ -544,7 +544,9 @@ and password for the keystone service::
 
     root@db-node:~# mysql -u root -p
     mysql> CREATE DATABASE keystone;
-    mysql> GRANT ALL ON keystone.* TO 'keystoneUser'@'%' IDENTIFIED BY 'keystonePass';
+    mysql> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY 'gridka'; 
+    mysql> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY 'gridka';
+    mysql> exit
 
 Please note that almost every OpenStack service will need a private
 database, which means that we are going to run commands similar to the
@@ -552,8 +554,13 @@ previous one a lot of times.
 
 Go to the **auth-node** and install the keystone package::
 
-    root@auth-node:~# apt-get install keystone python-mysqldb -y
-        
+    root@auth-node:~# apt-get install keystone
+
+The installation process creates a SQLite database in ``/var/lib/keystone`` directory. Please delete
+it so that it does not get used by mistake.:: 
+
+    root@auth-node:~# rm /var/lib/keystone/keystone.db        
+ 
 Update the value of the ``connection`` option in the
 ``/etc/keystone/keystone.conf`` file, in order to match the hostname,
 database name, user and password you've just created. The syntax of this
@@ -561,9 +568,10 @@ option is::
 
     connection = <protocol>://<user>:<password>@<host>/<db_name>
 
-so in our case you need to replace the default option with::
+and can be found in the ``[sql]`` section of the configuration file.
+So in our case you need to replace the default option with::
 
-    connection = mysql://keystoneUser:keystonePass@10.0.0.3/keystone
+    connection = mysql://keystone:gridka@10.0.0.3/keystone
 
 Now you are ready to bootstrap the keystone database using the
 following command::
@@ -573,7 +581,6 @@ following command::
 Restart of the keystone service is again required::
 
     root@auth-node:~# service keystone restart
-
 
 Note on keystone authentication
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -602,15 +609,17 @@ command line options may change.
 In our case, since we don't have an admin user yet and we need to use
 the admin token, we will set the following environment variables::
 
-    root@auth-node:~# export SERVICE_TOKEN=ADMIN
-    root@auth-node:~# export SERVICE_ENDPOINT=http://auth-node.example.org:35357/v2.0
-
+    root@auth-node:~# export OS_SERVICE_TOKEN=ADMIN
+    root@auth-node:~# export OS_SERVICE_ENDPOINT=http://auth-node.example.org:35357/v2.0
 
 Creation of the admin user
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to work with keystone we have to create an admin user and
 a few basic projects and roles.
+
+**TO-DO** Delete info regarding the projects if not used any more 
+in the commands.
 
 Please note that we will sometimes use the word ``tenant`` instead of
 ``project``, since the latter is actually the new name of the former,
@@ -627,34 +636,38 @@ correct environment variables::
     +-------------+----------------------------------+
     |   Property  |              Value               |
     +-------------+----------------------------------+
-    | description |                                  |
-    |   enabled   |               True               |
-    |      id     | 1ce38185a0c941f1b09605c7bfb15a31 |
-    |     name    |              admin               |
+    | description | Admin Tenant                     |
+    | enabled     | True                             |
+    | id          | b705c26e14ff4f9ba73390d153df531a |
+    | name        | admin                            |
     +-------------+----------------------------------+
+
 
     root@auth-node:~# keystone tenant-create --name=service
     +-------------+----------------------------------+
     |   Property  |              Value               |
     +-------------+----------------------------------+
-    | description |                                  |
-    |   enabled   |               True               |
-    |      id     | cb0e475306cc4c91b2a43b537b1a848b |
-    |     name    |             service              |
+    | description | Service Tenant                   |
+    | enabled     | True                             |
+    | id          | 8e2267351b2446df92691ff45d734431 |
+    | name        | service                          |
     +-------------+----------------------------------+
 
-Create the **admin** user::
 
-    root@auth-node:~# keystone user-create --name=admin --pass=keystoneAdmin --tenant admin
-    +----------+----------------------------------+
-    | Property |              Value               |
-    +----------+----------------------------------+
-    |  email   |                                  |
-    | enabled  |               True               |
-    |    id    | 9e8ec4fa52004fd2afa121e2eb0d15b0 |
-    |   name   |              admin               |
-    | tenantId |                                  |
-    +----------+----------------------------------+
+Create the **admin** user:: 
+
+    rootauth-node:~# keystone user-create --name=admin --pass=gridka --tenant_id=b705c26e14ff4f9ba73390d153df531a
+    +----------+-------------------------------------------------------------------------------------------------------------------------+
+    | Property |                                                          Value                                                          |
+    +----------+-------------------------------------------------------------------------------------------------------------------------+
+    | email    | None                                                                                                                    |
+    | enabled  | True                                                                                                                    |
+    | id       | d5f862b1038f4a0da971677b7919f83c                                                                                        |
+    | name     | admin                                                                                                                   |
+    | password | $6$rounds=40000$t4/2XnytWxFiHwYs$v5Cxai9Q3/A/DZ6YdgW5GjySQhQOuxIVK4e9T3V8p/S3Wt.jswblWylVWMNJ9VglcrM5FXlNq4632XkFzV54o/ |
+    | tenantId | b705c26e14ff4f9ba73390d153df531a                                                                                        |
+    +----------+-------------------------------------------------------------------------------------------------------------------------+
+
 
 Go on by creating the different roles::
 
@@ -662,40 +675,24 @@ Go on by creating the different roles::
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
-    |    id    | fafa8117d1564d8c9ec4fe6dbf985c68 |
-    |   name   |              admin               |
+    | id       | 9b14250f5bd94cd59902a771965a86f6 |
+    | name     | admin                            |
     +----------+----------------------------------+
 
-    ..
-       root@auth-node:~# keystone role-create --name=KeystoneAdmin
-       +----------+----------------------------------+
-       | Property |              Value               |
-       +----------+----------------------------------+
-       |    id    | a0bf13dda5814865a487c3717ffcd2dc |
-       |   name   |          KeystoneAdmin           |
-       +----------+----------------------------------+
-       
-       root@auth-node:~# keystone role-create --name=KeystoneServiceAdmin
-       +----------+----------------------------------+
-       | Property |              Value               |
-       +----------+----------------------------------+
-       |    id    | faf84767d48e466abdc72626ace70e04 |
-       |   name   |       KeystoneServiceAdmin       |
-       +----------+----------------------------------+
+For accessing the OpenStack dashboard users should have a special ``_member_`` role.:: 
 
-::
+    root@auth-node:~# keystone role-create --name=_member_
 
-    root@auth-node:~# keystone role-create --name=Member
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
-    |    id    | 0e0c6303551b4afcbfbc084a9ea917c1 |
-    |   name   |              Member              |
+    | id       | a2b67df28d634319afb47e80e1eeafb8 |
+    | name     | _member_                         |
     +----------+----------------------------------+
 
 These roles are checked by different services. It is not really easy
 to know which service checks for which role, but on a very basic
-installation you can just live with ``Member`` (to be used for all the
+installation you can just live with ``_member_`` (to be used for all the
 standard users) and ``admin`` (to be used for the OpenStack
 administrators).
 
@@ -705,11 +702,11 @@ the whole OpenStack installation!**
 
 Assign administrative roles to the admin user::
 
-    root@auth-node:~# keystone user-role-add --user admin --role admin --tenant admin
+    root@auth-node:~# keystone user-role-add --user=<admin_user_id> --role=<admin_role_id> --tenant_id=<admin_tenant_id> 
 
-    ..
-       root@auth-node:~# keystone user-role-add --user admin --role KeystoneAdmin --tenant admin
-       root@auth-node:~# keystone user-role-add --user admin --role KeystoneServiceAdmin --tenant admin
+Assign also a _member_ role to the admin user::
+
+    root@auth-node:~# keystone user-role-add --user=<admin_user_id> --role=<member_role_id> --tenant_id=<admin_tenant_id>
 
 Creation of the endpoint
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -725,17 +722,15 @@ own service and endpoint.
 
 The "**identity**" service is created with the following command::
 
-    root@auth-node:~# keystone service-create --name keystone --type identity \
-        --description 'Keystone Identity Service'
-    WARNING: Bypassing authentication using a token & endpoint (authentication credentials are being ignored).
-    +-------------+----------------------------------+
-    |   Property  |              Value               |
-    +-------------+----------------------------------+
-    | description |    Keystone Identity Service     |
-    |      id     | 28b2812e31334d4494a8a434d3e6fc65 |
-    |     name    |             keystone             |
-    |     type    |             identity             |
-    +-------------+----------------------------------+
+     root@auth-node:~# keystone service-create --name=keystone --type=identity --description='Keystone Identity Service'
+     +-------------+----------------------------------+
+     |   Property  |              Value               |
+     +-------------+----------------------------------+
+     | description | Keystone Identity Service        |
+     | id          | 616aac479b8f4d3a8ea6446fb6dd1709 |
+     | name        | keystone                         |
+     | type        | identity                         |
+     +-------------+----------------------------------+
 
 The output will print the **id** associated with this service. This is
 needed by the next command, and is passed as argument of the
@@ -744,22 +739,19 @@ needed by the next command, and is passed as argument of the
 The following command will create an endpoint associated to this
 service::
 
-    root@auth-node:~# keystone endpoint-create --region RegionOne \
-        --publicurl 'http://auth-node.example.org:5000/v2.0' \
-        --adminurl 'http://auth-node.example.org:35357/v2.0' \
-        --internalurl 'http://10.0.0.4:5000/v2.0' \
-        --service-id 28b2812e31334d4494a8a434d3e6fc65
-    WARNING: Bypassing authentication using a token & endpoint (authentication credentials are being ignored).
-    +-------------+-----------------------------------------+
-    |   Property  |                  Value                  |
-    +-------------+-----------------------------------------+
-    |   adminurl  | http://auth-node.example.org:35357/v2.0 |
-    |      id     |     945edccaa68747698f61bf123228e882    |
-    | internalurl |        http://10.0.0.4:5000/v2.0        |
-    |  publicurl  |  http://auth-node.example.org:5000/v2.0 |
-    |    region   |                RegionOne                |
-    |  service_id |     28b2812e31334d4494a8a434d3e6fc65    |
-    +-------------+-----------------------------------------+
+      root@auth-node:~# keystone endpoint-create --publicurl=http://auth-node.example.org:5000/v2.0 --adminurl=http://10.0.0.4:35357/v2.0 \ 
+      --internalurl=http://10.0.0.4:5000/v2.0 --service_id=616aac479b8f4d3a8ea6446fb6dd1709 
+      +-------------+--------------------------------------------+
+      |   Property  |               Value                        |
+      +-------------+--------------------------------------------+
+      | adminurl    | http://10.0.0.4:35357/v2.0                 |
+      | id          | 116fe61f3b314dc4b6be1d246ce62844           |
+      | internalurl | http://10.0.0.4:5000/v2.0                  | 
+      | publicurl   | http://auth-node.example.org:5000/v2.0     |
+      | region      | regionOne                                  |
+      | service_id  | 616aac479b8f4d3a8ea6446fb6dd1709           |
+      +-------------+--------------------------------------------+
+ 
 
 The argument of the ``--region`` option is the region name. For
 simplicity we will always use the name ``RegionOne`` since we are
@@ -768,11 +760,10 @@ doing a very simple installation with one availability region only.
 To get a listing of the available services the command is::
 
     root@auth-node:~# keystone service-list
-    WARNING: Bypassing authentication using a token & endpoint (authentication credentials are being ignored).
     +----------------------------------+----------+----------+---------------------------+
     |                id                |   name   |   type   |        description        |
     +----------------------------------+----------+----------+---------------------------+
-    | 28b2812e31334d4494a8a434d3e6fc65 | keystone | identity | Keystone Identity Service |
+    | 616aac479b8f4d3a8ea6446fb6dd1709 | keystone | identity | Keystone Identity Service |
     +----------------------------------+----------+----------+---------------------------+
 
 while a list of endpoints is shown by the command::
@@ -782,23 +773,23 @@ while a list of endpoints is shown by the command::
     +----------------------------------+-----------+----------------------------------------+---------------------------+-----------------------------------------+----------------------------------+
     |                id                |   region  |               publicurl                |        internalurl        |                 adminurl                |            service_id            |
     +----------------------------------+-----------+----------------------------------------+---------------------------+-----------------------------------------+----------------------------------+
-    | 945edccaa68747698f61bf123228e882 | RegionOne | http://auth-node.example.org:5000/v2.0 | http://10.0.0.4:5000/v2.0 | http://auth-node.example.org:35357/v2.0 | 28b2812e31334d4494a8a434d3e6fc65 |
+    | 116fe61f3b314dc4b6be1d246ce62844 | RegionOne | http://auth-node.example.org:5000/v2.0 | http://10.0.0.4:5000/v2.0 | http://auth-node.example.org:35357/v2.0 | 28b2812e31334d4494a8a434d3e6fc65 |
     +----------------------------------+-----------+----------------------------------------+---------------------------+-----------------------------------------+----------------------------------+
 
 From now on, you can access keystone using the admin user either by
 using the following command line options::
 
-    root@any-host:~# keystone --os-user admin --os-tenant-name admin \
-                    --os-password keystoneAdmin --os-auth-url http://auth-node.example.org:5000/v2.0 \
-                    <subcommand> 
+    root@any-host:~# keystone --os_username admin --os_tenant_name admin
+                    --os_password gridka --os_auth_url http://10.0.0.4:5000/v2.0
+                    <subcommand>
 
 or by setting the following environment variables and run keystone
 without the previous options::
 
     root@any-host:~# export OS_USERNAME=admin
-    root@any-host:~# export OS_PASSWORD=keystoneAdmin
+    root@any-host:~# export OS_PASSWORD=gridka
     root@any-host:~# export OS_TENANT_NAME=admin
-    root@any-host:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
+    root@any-host:~# export OS_AUTH_URL=http://10.0.0.4:5000/v2.0
     
 If you are going to use the last option it is usually a good practice
 to insert those environment variables in the root's .bashrc file so
@@ -808,7 +799,7 @@ Please keep the connection to the auth-node open as we will need to
 operate on it briefly.
 
 Further information about the keystone service can be found at in the
-`official documentation <http://docs.openstack.org/havana/install-guide/install/apt/content/ch_keystone.html>`_
+`official documentation <http://http://docs.openstack.org/icehouse/install-guide/install/apt/content/ch_keystone.html>_`
 
 ``image-node``
 --------------
