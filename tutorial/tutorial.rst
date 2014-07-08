@@ -24,9 +24,13 @@ machines.
 Since our focus is to explain the most basic components of OpenStack
 to ease a later deployment on a production environment, the various
 services will be installed on different machines, that is the most
-common setup on production. Moreover, having different services on
+desirable setup on production. Moreover, having different services on
 different machines will help to better understand the dependencies
-among the various services.
+among the various services. Some very useful considerations about OpenStack
+services distribution can found `here <http://docs.openstack.org/openstack-ops/content/cloud_controller_design.html>`_. 
+Moreover, we will try to summarize the best practices for every OpenStack
+service considered in this tutorial in its relative section. 
+
 
 Tutorial overview
 -----------------
@@ -34,7 +38,7 @@ Tutorial overview
 For this tutorial we will work in teams. Each team is composed of 2
 people and will have assigned two physical machines to work with.
 
-One of the nodes will run the 7 VMs hosting the **central services**. 
+One of the nodes will run the 6 VMs hosting the **central services**. 
 They are called as follows:
 
 * ``db-node``:  runs *MySQL* and *RabbitMQ*
@@ -54,17 +58,17 @@ They are called as follows:
 * ``volume-node``: runs **cinder**, the volume manager, composed of
   the *cinder-api*, *cinder-scheduler* and *cinder-volume* services
 
-The legacy ``nova-network`` service is going to be deprecated in the next
-OpenStack release. Thus, on the last day we will install the service which will
-become its de facto substitute. The 7th node will be installed with: 
 
-* ``neutron-node``: runs **neutron**, the NaaS manager. 
-
-The other node will run 2 VMs hosting the **compute nodes** for your
-stack:
+The other node will run 3 VMs hosting the **compute nodes** and the
+**neutron-node** for your stack.
 
 * ``compute-1``: runs *nova-compute*
 * ``compute-2``: runs *nova-compute*
+* ``neutron-node``: runs **neutron**, the NaaS manager. 
+
+The legacy ``nova-network`` service is going to be deprecated although 
+it isn't clear exactly when. Thus, on the last day we will install the 
+service which will become its de facto substitute. 
 
 How to access the physical nodes
 ++++++++++++++++++++++++++++++++
@@ -82,25 +86,25 @@ Physical machines are assigned as follow:
 +---------+------------------+---------------+
 | team    | central services | compute nodes |
 +=========+==================+===============+
-| team 01 | gks-125          | gks-126       |
+| team 01 | gks-NNN          | gks-NNN       |
 +---------+------------------+---------------+
-| team 02 | gks-127          | gks-128       |
+| team 02 | gks-NNN          | gks-NNN       |
 +---------+------------------+---------------+
-| team 03 | gks-129          | gks-130       |
+| team 03 | gks-NNN          | gks-NNN       |
 +---------+------------------+---------------+
-| team 04 | gks-131          | gks-132       |
+| team 04 | gks-NNN          | gks-NNN       |
 +---------+------------------+---------------+
-| team 05 | gks-137          | gks-138       |
+| team 05 | gks-NNN          | gks-NNN       |
 +---------+------------------+---------------+
-| team 06 | gks-140          | gks-141       |
+| team 06 | gks-NNN          | gks-NNN       |
 +---------+------------------+---------------+
-| team 07 | gks-142          | gks-143       |
+| team 07 | gks-NNN          | gks-NNN       |
 +---------+------------------+---------------+
-| team 08 | gks-242          | gks-243       |
+| team 08 | gks-NNN          | gks-NNN       |
 +---------+------------------+---------------+
-| team 09 | gks-244          | gks-245       |
+| team 09 | gks-NNN          | gks-NNN       |
 +---------+------------------+---------------+
-| team 10 | gks-246          | gks-247       |
+| team 10 | gks-NNN          | gks-NNN       |
 +---------+------------------+---------------+
 
 
@@ -141,6 +145,7 @@ and on the *other* physical node::
 
     root@gks-002:[~] $ virsh start compute-1
     root@gks-002:[~] $ virsh start compute-2
+    root@gks-002:[~] $ virsh start neutron-node
 
 Access the Virtual Machines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -154,8 +159,12 @@ In order to connect using **ssh** please do::
 
      ssh root@hostname 
 
-where **hostname** is one of those listed above. All the Virtual
-Machines have the same password: **user@gridka**
+where **hostname** is one of those listed above. We recommed to use the
+**ssh** mode for accessing the hosts because it will easy your interaction
+with the VM and provide more suitable interface in case you want to
+copy/paste some of the commands in the tutorial. 
+
+All the Virtual Machines have the same password: **user@gridka**
 
 Network Setup
 +++++++++++++
