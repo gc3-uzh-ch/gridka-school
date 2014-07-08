@@ -1,4 +1,4 @@
-GridKa School 2013 - Working with the cloud
+GridKa School 2014 - Working with the cloud
 ===========================================
 
 This document is intended to be used after you have installed a working Grizzly
@@ -6,6 +6,23 @@ cloud. It shows common tasks and how to use the CLI to handle them. It also give
 you a bit more detail on where important bits and pieces of the system are
 located.
 
+Versioning
+-----------
+
+You may find yourself in a situation where you would like to work on version of
+OpenStack which is not the one that comes with the current Ubuntu LTS. Bellow some usefull notes taken from: https://wiki.ubuntu.com/ServerTeam/CloudArchive
+
+* The Canonical Cloud Archive allows to install newer versions of OpenStack (on Ubuntu 12.04 or Ubuntu 14.04, etc) when they become available.
+* Canonical commits to maintain and support new OpenStack versions for current LST for at least 12 Months after they release. 
+* Canonical stops introducing new features of Openstack for the current LTS when a new one is out. 
+* The last version is maintained for 3 years (until the end of the life cycle of current LTS)
+* In order to allow for relatively easy upgrades, and still adhere to Ubuntu processes and policy, Canonical elected to have archive.canonical.com be the home of the Ubuntu Cloud archive.
+* As of now, Canonical has no plans to build or host OpenStack packages for non-LTS releases of Ubuntu Server in the Ubuntu Cloud archive.
+* In order to anable and use a specific version: 
+
+   `sudo apt-get install python-software-properties`
+   `sudo add-apt-repository cloud-archive:openstack_release_name`
+   `apt-get update && apt-get dist-upgrade`
 
 Log Files
 ---------
