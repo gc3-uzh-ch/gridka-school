@@ -790,6 +790,23 @@ while a list of endpoints is shown by the command::
     | 09a7ee7514554e80a6eebb61267a92cb | regionOne | http://auth-node.example.org:5000/v2.0 | http://10.0.0.4:5000/v2.0 | http://10.0.0.4:35357/v2.0 | 55d743c4f2a646a1905f30b92276da5a |
     +----------------------------------+-----------+----------------------------------------+---------------------------+----------------------------+----------------------------------+
 
+Some notes on the type of URLs: 
+
+* *publicurl* is used for accessing the OpenStack services' API from 
+the outside world. 
+* *internalurl* is used for communication and sevice provisioning between
+the OpenStack services. 
+* *adminurl* is used when specific administration commands are given for 
+the configuration of OpenStack. 
+
+Still sometimes is not easy to undestand why one url is used but not
+the other. 
+
+Some commands permit to choose the type of url, eg is glance which can
+be called with the following option::
+
+      glance -d --os-endpoint-type <TYPE_OF_URL> COMMAND
+
 From now on, you can access keystone using the admin user either by
 using the following command line options::
 
@@ -813,12 +830,12 @@ Please keep the connection to the auth-node open as we will need to
 operate on it briefly.
 
 Further information about the keystone service can be found at in the
-`official documentation <http://docs.openstack.org/icehouse/install-guide/install/apt/content/ch_keystone.html>_`
+`official documentation <http://docs.openstack.org/icehouse/install-guide/install/apt/content/ch_keystone.html>`_
 
 OpenStack clients ???
 ~~~~~~~~~~~~~~~~~~~~~
 **TO-DO** Shell we say something about OpenStack clients too?
-Ref `here: <http://docs.openstack.org/icehouse/install-guide/install/apt/content/ch_clients.html>_`.
+Ref `here: <http://docs.openstack.org/icehouse/install-guide/install/apt/content/ch_clients.html>`_.
 
 
 ``image-node``
@@ -839,7 +856,7 @@ only do the minimal changes to match our configuration.
 Glance is actually composed of two different services:
 
 * **glance-api** accepts API calls for dicovering the available
-  images, their metadata and is used also to retrieve them. It
+  images and their metadata and is used also to retrieve them. It
   supports two protocol versions: v1 and v2; when using v1, it does
   not directly access the database but instead it talks to the
   **glance-registry** service
@@ -880,17 +897,17 @@ not to mix things::
     +----------+----------------------------------+
     |  email   |                                  |
     | enabled  |               True               |
-    |    id    | c938866a0a3c4266a25dc95fbfcc6718 |
+    |    id    | 36813160162449d7a912548c054a6ef9 |
     |   name   |              glance              |
-    | tenantId | cb0e475306cc4c91b2a43b537b1a848b |
-    +----------+----------------------------------+
-
+    | username |              glance              |
+    +----------+----------------------------------+ 
+    
 Then we need to give admin permissions to it::
 
     root@auth-node:~# keystone user-role-add --tenant=service --user=glance --role=admin
 
-Please note that we could have created only one user for all the services, 
-but this is a cleaner solution.
+Note that the command does not print any confirmation on successful completion.
+Please note that we could have created only one user for all the services, but this is a cleaner solution.
 
 We need then to create the **image** service::
 
@@ -901,10 +918,10 @@ We need then to create the **image** service::
     +-------------+----------------------------------+
     | description |       Glance Image Service       |
     |   enabled   |               True               |
-    |      id     | 001faa841170487f80db7e22883b049b |
+    |      id     | 05429191756f4852b935c81c19c21424 |
     |     name    |              glance              |
     |     type    |              image               |
-    +-------------+----------------------------------+
+    +-------------+----------------------------------+ 
 
 and the related endpoint::
 
@@ -916,12 +933,12 @@ and the related endpoint::
     +-------------+---------------------------------------+
     |   Property  |                 Value                 |
     +-------------+---------------------------------------+
-    |   adminurl  | http://image-node.example.org:9292/v2 |
-    |      id     |    e1080682380d4f90bfa7016916c40d91   |
+    |   adminurl  |        http://10.0.0.5:9292/v2        |
+    |      id     |    3cc1713aaf644c8abf72fadc75697864   |
     | internalurl |        http://10.0.0.5:9292/v2        |
     |  publicurl  | http://image-node.example.org:9292/v2 |
     |    region   |               RegionOne               |
-    |  service_id |    6cb0cf7a81bc4489a344858398d40222   |
+    |  service_id |    05429191756f4852b935c81c19c21424   |
     +-------------+---------------------------------------+
 
 glance installation and configuration
@@ -929,7 +946,7 @@ glance installation and configuration
 
 On the **image-node** install the **glance** package::
 
-    root@image-node:~# apt-get install glance python-glanceclient 
+    root@image-node:~# apt-get install glance python-mysqldb 
 
 To configure the glance service we need to edit a few files in ``/etc/glance``:
 
@@ -947,8 +964,9 @@ and change as follows in the ``[DEFAULT] section``::
 
      [DEFAULT]
      ...
-     rabbit_host = 10.0.0.4
-     rabbit_password = gridka
+     rpc_backend = rabbit
+     rabbit_host = 10.0.0.3
+     rabbit_password = user@gridka
 
 Also, we need to adjustthe **keystone_authtoken** section so that it matches the values we used
 when we created the keystone **glance** user in both in ``glance-api.conf`` and ``glance-registry.conf``::
@@ -1007,6 +1025,10 @@ First of all, let's download a very small test image::
 
     root@image-node:~# wget https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img
 
+.. Note that if the --os-endpoint-type is not specified glance will try to use 
+   publicurl and if the image-node.example.org is not in /etc/hosts an error 
+   will be issued.  
+
 The command line tool to manage images is ``glance``. Uploading an image is easy::
 
     root@image-node:~# glance image-create --name cirros-0.3.0 --is-public=true \
@@ -1033,6 +1055,22 @@ The command line tool to manage images is ``glance``. Uploading an image is easy
     | virtual_size     | None                                 |
     +------------------+--------------------------------------+
 
+.. Maybe it is worthy to explain all the options we use: 
+   * *--name* is the name which will be seen in the Horizon UI 
+   * *--is-public* is a binary option which specifies if the uploaded
+     image should be publicaly available/visible/used or access should
+     be limited to *all* the users of the tenant from where the user 
+     uploading the images comes.
+   * *--container-format* is the container format of image. It refers to 
+     whether the virtual machine image is in a file format that also contains
+     metadata about the actual virtual machine. Note that the container format
+     string is not currently used by Glance or other OpenStack components, so it
+     is safe to simply specify bare as the container format if you are unsure. 
+     Acceptable formats: ami, ari, aki, bare, and ovf.
+   * *--disk-format* is the disk format of a virtual machine image is the format of
+     the underlying disk image. Virtual appliance vendors have different formats for
+     laying out the information contained in a virtual machine disk image.  
+     Acceptable formats: raw, vhd, vmdk, vdi, iso, qcow2, aki, ari, ami.  
 
 Using ``glance`` command you can also list the images currently
 uploaded on the image store::
@@ -1043,6 +1081,12 @@ uploaded on the image store::
     +--------------------------------------+--------------+-------------+------------------+---------+--------+
     | 79af6953-6bde-463d-8c02-f10aca227ef4 | cirros-0.3.0 | qcow2       | bare             | 9761280 | active |
     +--------------------------------------+--------------+-------------+------------------+---------+--------+
+
+The cirros image we uploaded before, having an image id of
+``79af6953-6bde-463d-8c02-f10aca227ef4``, will be found in::
+
+    root@image-node:~# ls -l /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4 
+    -rw-r----- 1 glance glance 9761280 Apr 24 16:38 /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4
 
 You can easily find ready-to-use images on the web. An image for the
 `Ubuntu Server 14.04 "Precise" (amd64)
@@ -1065,12 +1109,13 @@ secret keys for the s3 store, or rdb configuration options.
 
 Please refer to the official documentation to change these values.
 
-The cirros image we uploaded before, having an image id of
-``79af6953-6bde-463d-8c02-f10aca227ef4``, will be found in::
+Another improvement you may want to consider in a production environment
+is the Glance Image Cache which enables the Glance server with an 
+optional local image cache. Using this option multiple endpoints can
+serve the same image file resulting in high availabilty. This way you 
+installation can also scale and serve a higher numer of requests. 
 
-    root@image-node:~# ls -l /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4 
-    -rw-r----- 1 glance glance 9761280 Apr 24 16:38 /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4
-
+More detailed information can be found `here <http://docs.openstack.org/developer/glance/cache.html>`_  
 
 ``volume-node``
 +++++++++++++++
