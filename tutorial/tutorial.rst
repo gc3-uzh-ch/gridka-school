@@ -1182,7 +1182,8 @@ On the **db-node** create the database and the MySQL user::
 
     root@db-node:~# mysql -u root -p
     mysql> CREATE DATABASE cinder;
-    mysql> GRANT ALL ON cinder.* TO 'cinderUser'@'%' IDENTIFIED BY 'cinderPass';
+    mysql> GRANT ALL ON cinder.* TO 'cinder'@'%' IDENTIFIED BY 'gridka';
+    mysql> GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'%' IDENTIFIED BY 'gridka';
 
 On the **auth-node** create a keystone user, a "volume" service and
 its endpoint, like we did for the *glance* service. The following
@@ -1192,33 +1193,35 @@ times.
 
 First of all, we need to get the **id** of the **service** tenant::
 
+
     root@auth-node:~# keystone tenant-get service
     +-------------+----------------------------------+
     |   Property  |              Value               |
     +-------------+----------------------------------+
-    | description |                                  |
+    | description |          Service Tenant          |
     |   enabled   |               True               |
-    |      id     | cb0e475306cc4c91b2a43b537b1a848b |
+    |      id     | a389a8f0d9a54af4ba96dcaa20a828c8 |
     |     name    |             service              |
     +-------------+----------------------------------+
 
 then we need to create a keystone user for the cinder service, 
 associated with the **service** tenant::
 
-    root@auth-node:~# keystone user-create --name=cinder --pass=cinderServ --tenant-id cb0e475306cc4c91b2a43b537b1a848b
+    keystone user-create --name=cinder --pass=gridka --tenant-id=a389a8f0d9a54af4ba96dcaa20a828c8
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
     |  email   |                                  |
     | enabled  |               True               |
-    |    id    | 68b76e9a95674646b09c37d36f13838f |
+    |    id    | 9c8172ba531146bca9a3e64d5667f715 |
     |   name   |              cinder              |
-    | tenantId | cb0e475306cc4c91b2a43b537b1a848b |
+    | tenantId | a389a8f0d9a54af4ba96dcaa20a828c8 |
+    | username |              cinder              |
     +----------+----------------------------------+
 
 Then we need to give admin permissions to it::
 
-       root@auth-node:~# keystone user-role-add --tenant service --user cinder --role admin
+    root@auth-node:~# keystone user-role-add --tenant service --user cinder --role admin
 
 We need then to create the **volume** service::
 
@@ -1228,10 +1231,11 @@ We need then to create the **volume** service::
     |   Property  |              Value               |
     +-------------+----------------------------------+
     | description |   Volume Service of OpenStack    |
-    |      id     | 2561a51dd7494651862a44e34d637e1e |
+    |   enabled   |               True               |
+    |      id     | 9196c7e637f04e26b9246ee6116dd21c |
     |     name    |              cinder              |
     |     type    |              volume              |
-    +-------------+----------------------------------+
+    +-------------+----------------------------------+  
 
 and the related endpoint, using the service id we just got::
         
@@ -1244,12 +1248,12 @@ and the related endpoint, using the service id we just got::
     +-------------+------------------------------------------------------+
     |   Property  |                        Value                         |
     +-------------+------------------------------------------------------+
-    |   adminurl  | http://volume-node.example.org:8776/v1/$(tenant_id)s |
-    |      id     |           3f77c8eca16e436c86bf1935e1e7d334           |
+    |   adminurl  |        http://10.0.0.8:8776/v1/$(tenant_id)s         |
+    |      id     |           b7216435f3864c70a66e5e3b54bb488e           |
     | internalurl |        http://10.0.0.8:8776/v1/$(tenant_id)s         |
     |  publicurl  | http://volume-node.example.org:8776/v1/$(tenant_id)s |
     |    region   |                      RegionOne                       |
-    |  service_id |           2561a51dd7494651862a44e34d637e1e           |
+    |  service_id |           9196c7e637f04e26b9246ee6116dd21c           |
     +-------------+------------------------------------------------------+
 
 Please note that the URLs need to be quoted using the (') character
@@ -1372,23 +1376,27 @@ LVM configuration. A minimal configuration file will contain::
 
 it should differ from the standard one only for the options
 ``sql_connection``, ``rabbit_host``, ``iscsi_ip_address`` and
-``iscsi_helper``.
+.. is already set to tgtadm in IceHouse``iscsi_helper``.
 
 Populate the cinder database::
 
     root@volume-node:~# cinder-manage db sync
 
+    2014-08-21 14:19:13.676 3576 INFO migrate.versioning.api [-] 0 -> 1... 
+    ....
+    2014-08-21 14:19:19.168 3576 INFO migrate.versioning.api [-] 3 -> 4... 
+    2014-08-21 14:19:20.270 3576 INFO 004_volume_type_to_uuid [-] Created foreign key volume_type_extra_specs_ibfk_1
+    2014-08-21 14:19:20.548 3576 INFO migrate.versioning.api [-] 5 -> 6... 
+    ....
+    2014-08-21 14:19:25.102 3576 INFO migrate.versioning.api [-] 20 -> 21... 
+    2014-08-21 14:19:25.184 3576 INFO 021_add_default_quota_class [-] Added default quota class data into the DB.
+    ....
+    2014-08-21 14:19:25.395 3576 INFO migrate.versioning.api [-] done
+
+
 Restart cinder services::
 
-    root@volume-node:~# service cinder-api restart
-    cinder-api start/running, process 1625
-
-    root@volume-node:~# service cinder-volume restart
-    cinder-volume start/running, process 1636
-
-    root@volume-node:~# service cinder-scheduler restart
-    cinder-scheduler start/running, process 1655
-
+    root@volume-node:~# for i in api volume scheduler; do service cinder-${i} restart; done  
             
 Testing cinder
 ~~~~~~~~~~~~~~
@@ -1400,7 +1408,7 @@ are going to set the environment variables and run cinder without
 options::
 
     root@volume-node:~# export OS_USERNAME=admin
-    root@volume-node:~# export OS_PASSWORD=keystoneAdmin
+    root@volume-node:~# export OS_PASSWORD=gridka
     root@volume-node:~# export OS_TENANT_NAME=admin
     root@volume-node:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
 
@@ -1413,10 +1421,11 @@ Test cinder by creating a volume::
     |     attachments     |                  []                  |
     |  availability_zone  |                 nova                 |
     |       bootable      |                false                 |
-    |      created_at     |      2013-08-15T11:48:13.409780      |
+    |      created_at     |      2014-08-21T12:48:30.524319      |
     | display_description |                 None                 |
     |     display_name    |                 test                 |
-    |          id         | 1d1a75eb-1493-4fda-8eba-fa851cfd5040 |
+    |      encrypted      |                False                 |
+    |          id         | 4d04a3d2-0fa7-478d-9314-ca6f52ef08d5 |
     |       metadata      |                  {}                  |
     |         size        |                  1                   |
     |     snapshot_id     |                 None                 |
@@ -1425,6 +1434,7 @@ Test cinder by creating a volume::
     |     volume_type     |                 None                 |
     +---------------------+--------------------------------------+
 
+
 Shortly after, a ``cinder list`` command should show you the newly
 created volume::
 
@@ -1432,14 +1442,14 @@ created volume::
     +--------------------------------------+-----------+--------------+------+-------------+----------+-------------+
     |                  ID                  |   Status  | Display Name | Size | Volume Type | Bootable | Attached to |
     +--------------------------------------+-----------+--------------+------+-------------+----------+-------------+
-    | 1d1a75eb-1493-4fda-8eba-fa851cfd5040 | available |     test     |  1   |     None    |  false   |             |
+    | 4d04a3d2-0fa7-478d-9314-ca6f52ef08d5 | available |     test     |  1   |     None    |  false   |             |
     +--------------------------------------+-----------+--------------+------+-------------+----------+-------------+
 
 You can easily check that a new LVM volume has been created::
 
     root@volume-node:~# lvdisplay 
       --- Logical volume ---
-      LV Name                /dev/cinder-volume/volume-1d1a75eb-1493-4fda-8eba-fa851cfd5040
+      LV Name                /dev/cinder-volume/volume-4d04a3d2-0fa7-478d-9314-ca6f52ef08d5
       VG Name                cinder-volume
       LV UUID                RRGmob-jMZC-4Mdm-kTBv-Qc6M-xVsC-gEGhOg
       LV Write Access        read/write
@@ -1453,10 +1463,12 @@ You can easily check that a new LVM volume has been created::
       - currently set to     256
       Block device           252:0
 
+**tgtadm DOES NOT SHOW ANY OUTPUT WHEN THE VOLUME IS NOT ATTACHED, MOVE TO THE TESTING SECTION** 
+
 To show if the volume is actually served via iscsi you can run::
 
    root@volume-node:~# tgtadm  --lld iscsi --op show --mode target
-   Target 1: iqn.2010-10.org.openstack:volume-1d1a75eb-1493-4fda-8eba-fa851cfd5040
+   Target 1: iqn.2010-10.org.openstack:volume-4d04a3d2-0fa7-478d-9314-ca6f52ef08d5
        System information:
            Driver: iscsi
            State: ready
@@ -1482,7 +1494,7 @@ To show if the volume is actually served via iscsi you can run::
                Removable media: No
                Readonly: No
                Backing store type: rdwr
-               Backing store path: /dev/cinder-volumes/volume-1d1a75eb-1493-4fda-8eba-fa851cfd5040
+               Backing store path: /dev/cinder-volumes/volume-4d04a3d2-0fa7-478d-9314-ca6f52ef08d5
                Backing store flags: 
        Account information:
        ACL information:
@@ -1491,7 +1503,7 @@ To show if the volume is actually served via iscsi you can run::
 
 Since the volume is not used by any VM, we can delete it with the ``cinder delete`` command::
 
-    root@volume-node:~# cinder delete 1d1a75eb-1493-4fda-8eba-fa851cfd5040
+    root@volume-node:~# cinder delete 4d04a3d2-0fa7-478d-9314-ca6f52ef08d5 
 
 Deleting the volume can take some time::
 
@@ -1499,16 +1511,18 @@ Deleting the volume can take some time::
     +--------------------------------------+----------+--------------+------+-------------+----------+-------------+
     |                  ID                  |  Status  | Display Name | Size | Volume Type | Bootable | Attached to |
     +--------------------------------------+----------+--------------+------+-------------+----------+-------------+
-    | 1d1a75eb-1493-4fda-8eba-fa851cfd5040 | deleting |     test     |  1   |     None    |  false   |             |
+    | 4d04a3d2-0fa7-478d-9314-ca6f52ef08d5 | deleting |     test     |  1   |     None    |  false   |             |
     +--------------------------------------+----------+--------------+------+-------------+----------+-------------+
 
 After a while the volume is deleted, removed from iscsi and LVM::
 
     root@volume-node:~# cinder list
 
+**AGAIN MOVE TO THE TESTING SECTION, AS HERE IS NOT RELEVANT**::
+    
     root@volume-node:~# tgtadm  --lld iscsi --op show --mode target
+
     root@volume-node:~# lvdisplay 
-    root@volume-node:~#
 
 
 ``api-node``
