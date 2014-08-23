@@ -244,6 +244,7 @@ On the compute node, moreover, we will need to manually create a
 network which connects the two physical nodes.
 
 `Next: Installation of basic services <basic_services.rst>`_
+
 ..
    Installation:
    -------------
