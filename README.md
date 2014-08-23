@@ -8,8 +8,8 @@ GridKa School 2014 - Training Session on OpenStack
 
 Teachers:
 
-* [Antonio Messina](antonio.s.messina@gmail.com)
-* [Tyanko Aleksiev](tyanko.alexiev@gmail.com>)
+* [Antonio Messina](mailto:antonio.s.messina@gmail.com)
+* [Tyanko Aleksiev](mailto:tyanko.alexiev@gmail.com)
 
 
 This guide is to be used as reference for the installation of
