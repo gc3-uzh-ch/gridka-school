@@ -1,8 +1,7 @@
+Keystone: Identity service
+--------------------------
 
-``auth-node``
--------------
-
-The **auth-node** will run *keystone*, also known *identity service*.
+The **auth-node** will run *keystone*, also known as *identity service*.
 
 Keystone performs two main tasks:
 
@@ -12,10 +11,10 @@ Keystone performs two main tasks:
 * stores information about available *services* and the URI of the
   *endpoints*.
 
-Every OpenStack client and service need to access keystone, first to
+Every OpenStack client and service needs to access keystone, first to
 discover other services, and then to authenticate and authorize each
 request. It is thus the main endpoint of an OpenStack installation, so
-that by giving the URL of the keystone service a client can get all
+that by giving the URL of the keystone service, a client can get all
 the information it needs to operate on that specific cloud.
 
 In order to facilitate your understanding during this part we add the 
@@ -24,7 +23,7 @@ are going on:
 
 * *User* is a user of OpenStack.
 * *Service catalog* provides a catalog of available OpenStack services with their APIs.
-* *Token* is arbitrary bit of text used to access resources. Each token has a
+* *Token* is an arbitrary bit of text used to access resources. Each token has a
   scope which describes which resource are accessible with it.
 * *Tenant* A container which is used to group or isolate resources and/or identify objects.
   Depending on the case a tenant may map to customer, account, organization or project.
@@ -50,6 +49,21 @@ which confirmed ntp is installed as required.
 Keystone
 ++++++++
 
+Keystone stores information about different, independent services:
+
+* Users, passwords and tenants
+* authorization tokens
+* service catalog
+
+These can be stored on different locations, for instance you can store
+tokens using `memcached
+<http://memcached.org/>`_, user/password/tenant informations on LDAP,
+and the service catalog on a file.
+
+However, the easiest way to configure keystone and possibly the most
+common is to use MySQL for all of them, therefore this is how we are
+going to configure it.
+
 On the **db-node** you need to create a database and a pair of user
 and password for the keystone service::
 
@@ -57,6 +71,7 @@ and password for the keystone service::
     mysql> CREATE DATABASE keystone;
     mysql> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY 'gridka'; 
     mysql> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY 'gridka';
+    mysql> flush privileges;
     mysql> exit
 
 Please note that almost every OpenStack service will need a private
@@ -65,24 +80,28 @@ previous one a lot of times.
 
 Go to the **auth-node** and install the keystone package::
 
-    root@auth-node:~# apt-get install keystone python-mysqldb
+    root@auth-node:~# aptitude install keystone python-mysqldb
 
-This step installes also the keystone-pythonclient package 
-(as a dependency of the keystone package) which is the CLI for
-interactig with keystone.
+This step installes also the `keystone-pythonclient` package (as a
+dependency of the keystone package) which is the CLI for interactig
+with keystone.
 
-**TO CHECK** Database initialisation without python-mysqldb to be 
-installed exits with the following error: **014-08-20 15:33:20.956 13334 CRITICAL keystone [-] ImportError: No module named MySQLdb**
+..
+   **NOTE** Installing keystone *without* installing also
+   python-mysqldb can lead to the following error:
+   **014-08-20 15:33:20.956 13334 CRITICAL keystone [-] ImportError: No module named MySQLdb**
 
-The installation process creates a SQLite database in ``/var/lib/keystone`` directory. Please delete
-it so that it does not get used by mistake.:: 
+The default installation will create an SQLite database in
+``/var/lib/keystone/keystone.db``, but as we already stated this is
+not going to be used and can be safely removed.::
 
-    root@auth-node:~# rm /var/lib/keystone/keystone.db        
+    root@auth-node:~# rm /var/lib/keystone/keystone.db
  
-Update the value of the ``connection`` option in the
+In order to use the MySQL database we just created, update the value
+of the ``connection`` option in section ``[database]`` of the
 ``/etc/keystone/keystone.conf`` file, in order to match the hostname,
-database name, user and password you've just created. The syntax of this
-option is::
+database name, user and password we used. The syntax of this option
+is::
 
     connection = <protocol>://<user>:<password>@<host>/<db_name>
 
@@ -99,8 +118,9 @@ Restart of the keystone service is again required::
 
     root@auth-node:~# service keystone restart
 
-Note on keystone authentication
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The chicken and egg problem
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to create users, projects or roles in keystone you need to
 access it using an administrative user (which is not automatically
@@ -129,14 +149,12 @@ the admin token, we will set the following environment variables::
     root@auth-node:~# export OS_SERVICE_TOKEN=ADMIN
     root@auth-node:~# export OS_SERVICE_ENDPOINT=http://auth-node.example.org:35357/v2.0
 
+
 Creation of the admin user
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to work with keystone we have to create an admin user and
 a few basic projects and roles.
-
-**TO-DO** Delete info regarding the projects if not used any more 
-in the commands.
 
 Please note that we will sometimes use the word ``tenant`` instead of
 ``project``, since the latter is actually the new name of the former,
@@ -169,7 +187,7 @@ correct environment variables::
     |     name    |             service              |
     +-------------+----------------------------------+
 
-Create the **admin** user:: 
+Create the **admin** user::
 
     root@auth-node:~# keystone user-create --name=admin --pass=gridka --tenant=admin
     +----------+----------------------------------+
@@ -206,9 +224,10 @@ the whole OpenStack installation!**
 
 Assign administrative roles to the admin and _member_ users::
 
-    root@auth-node:~# keystone user-role-add --user=admin --role=admin --tenant=admin 
+    root@auth-node:~# keystone user-role-add --user=admin --role=admin --tenant=admin
 
 Note that the command does not print any confirmation on successful completion. 
+
 
 Creation of the endpoint
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -216,8 +235,10 @@ Creation of the endpoint
 Keystone is not only used to store information about users, passwords
 and projects, but also to store a catalog of the available services
 the OpenStack cloud is offering. To each service is then assigned an
-*endpoint* which basically consists of a set of three urls (public,
-internal, administrative) and a region.
+*endpoint* which basically consists of a set of three URLs (`public`,
+`internal`, `admin`). Each set of URLs is associated with a specific
+region, so that you can use the same keystone instance to give
+information about multiple regions.
 
 Of course keystone itself is a service ("identity") so it needs its
 own service and endpoint.
@@ -236,15 +257,14 @@ The "**identity**" service is created with the following command::
      +-------------+----------------------------------+
 
 
-The output will print the **id** associated with this service. This is
-needed by the next command, and is passed as argument of the
-``--service-id`` option.
-
 The following command will create an endpoint associated to this
 service::
 
-      root@auth-node:~# keystone endpoint-create --publicurl=http://auth-node.example.org:5000/v2.0 --adminurl=http://10.0.0.4:35357/v2.0 \ 
-      --internalurl=http://10.0.0.4:5000/v2.0 --service_id=616aac479b8f4d3a8ea6446fb6dd1709 
+      root@auth-node:~# keystone endpoint-create \
+      --publicurl http://auth-node.example.org:5000/v2.0 \
+      --adminurl http://auth-node.example.org:35357/v2.0 \
+      --internalurl http://10.0.0.4:5000/v2.0 \
+      --region RegionOne --service keystone
       +-------------+----------------------------------------+
       |   Property  |                 Value                  |
       +-------------+----------------------------------------+
@@ -252,13 +272,13 @@ service::
       |      id     |    09a7ee7514554e80a6eebb61267a92cb    |
       | internalurl |       http://10.0.0.4:5000/v2.0        |
       |  publicurl  | http://auth-node.example.org:5000/v2.0 |
-      |    region   |               regionOne                |
+      |    region   |               RegionOne                |
       |  service_id |    55d743c4f2a646a1905f30b92276da5a    |
       +-------------+----------------------------------------+ 
 
 The argument of the ``--region`` option is the region name. For
-simplicity we will always use the name ``RegionOne`` since we are
-doing a very simple installation with one availability region only.
+simplicity we will always use the name ``RegionOne`` since we only
+have one datacenter...
 
 To get a listing of the available services the command is::
 
@@ -280,26 +300,25 @@ while a list of endpoints is shown by the command::
 
 Some notes on the type of URLs: 
 
-* *publicurl* is used for accessing the OpenStack services' API from 
-the outside world. 
-* *internalurl* is used for communication and sevice provisioning between
-the OpenStack services. 
-* *adminurl* is used when specific administration commands are given for 
-the configuration of OpenStack. 
+* *publicurl* is the URL of the client API, and it's used by command
+  line clients and external applications.
+* *internalurl* is similar to the `publicurl`, but it's meant to be
+  used by other OpenStack services, that might not have access to the
+  public address of the API, but might be able to access directly the
+  internal interface of the API node.
+* *adminurl* is used to expose the administrative API. For instance,
+  in keystone, creation and deletion of an user is considered an
+  `administrative` action and therefore will use this URL.
 
-Still sometimes is not easy to undestand why one url is used but not
-the other. 
-
-Some commands permit to choose the type of url, eg is glance which can
-be called with the following option::
-
-      glance -d --os-endpoint-type <TYPE_OF_URL> COMMAND
+OpenStack command line tools also allow to change the default endpoint
+type. Please refer to the manpage of those commands and look for
+`endpoint-type`.
 
 From now on, you can access keystone using the admin user either by
 using the following command line options::
 
-    root@any-host:~# keystone --os-username admin --os-tenant-name admin
-                    --os-password gridka --os-auth-url http://10.0.0.4:5000/v2.0
+    root@any-host:~# keystone --os-username admin --os-tenant-name admin \
+        --os-password gridka --os-auth-url http://auth-node.example.org:5000/v2.0
                     <subcommand>
 
 or by setting the following environment variables and run keystone
@@ -308,21 +327,32 @@ without the previous options::
     root@any-host:~# export OS_USERNAME=admin
     root@any-host:~# export OS_PASSWORD=gridka
     root@any-host:~# export OS_TENANT_NAME=admin
-    root@any-host:~# export OS_AUTH_URL=http://10.0.0.4:5000/v2.0
-    
-If you are going to use the last option it is usually a good practice
-to insert those environment variables in the root's .bashrc file so
-that they are loaded each time you open a new shell.
+    root@any-host:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
 
-Please keep the connection to the auth-node open as we will need to
+If you are going to use the last option it is usually a good practice
+to insert those environment variables in the root's ``.bashrc`` file,
+or even better on a separate file, for instance ``~/os-credentials``,
+that you can load whenever you need to with::
+
+    root@any-host:~# . ~/os-credentials
+
+Of course, in this case it would be better **not** to put the password
+in the file, so that the various openstack commands will prompt for
+the password, and you will not risk saving sensible information on disk...
+
+Please keep the connection to the `auth-node` open as we will need to
 operate on it briefly.
 
 Further information about the keystone service can be found at in the
 `official documentation <http://docs.openstack.org/icehouse/install-guide/install/apt/content/ch_keystone.html>`_
 
-OpenStack clients ???
-~~~~~~~~~~~~~~~~~~~~~
-**TO-DO** Shell we say something about OpenStack clients too?
-Ref `here: <http://docs.openstack.org/icehouse/install-guide/install/apt/content/ch_clients.html>`_.
+`Next: Glance - Image Service <glance.rst>`_
+
+.. NOTE:
+
+   OpenStack clients ???
+   ~~~~~~~~~~~~~~~~~~~~~
+   **TO-DO** Shell we say something about OpenStack clients too?
+   Ref `here: <http://docs.openstack.org/icehouse/install-guide/install/apt/content/ch_clients.html>`_.
 
 

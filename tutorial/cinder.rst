@@ -1,9 +1,10 @@
-``volume-node``
-+++++++++++++++
+Cinder - Block storage service
+==============================
 
-As we did for the image node before staring it is good to quickly check if the
-remote ssh execution of the commands done in the `all nodes installation`_ section 
-worked without problems. You can again verify it by checking the ntp installation.
+As we did for the image node before staring it is good to quickly
+check if the remote ssh execution of the commands done in the `all
+nodes installation`_ section worked without problems. You can again
+verify it by checking the ntp installation.
 
 Cinder
 ++++++

@@ -37,7 +37,7 @@ Table of contents
 * [Tutorial overview](tutorial/overview.rst)
 * [OpenStack overview](tutorial/openstack_overview.rst)
 * [Installation of basic services](tutorial/basic_services.rst) (MySQL and RabbitMQ)
-* [Keystone](tutorial/keystone.rst) (Authentication)
+* [Keystone](tutorial/keystone.rst) (Identity service)
 * [Glance](tutorial/glance.rst) (Image service)
 * [Cinder](tutorial/cinder.rst) (Block storage service)
 * [Nova API](tutorial/nova_api.rst) (Compute service)
