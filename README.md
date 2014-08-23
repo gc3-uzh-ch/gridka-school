@@ -1,12 +1,10 @@
 GridKa School 2014 - Training Session on OpenStack
 ==================================================
 
-.. class:: small
-
-   This tutorial is licensed ©2013, licensed under a `Creative
-   Commons Attribution/Share-Alike (BY-SA) license
-   <http://creativecommons.org/licenses/by-sa/3.0/>`__.
-
+<sub>
+   This tutorial is licensed ©2014, licensed under a
+   [Creative Commons Attribution/Share-Alike (BY-SA) license](http://creativecommons.org/licenses/by-sa/3.0/).
+</sub>
 
 Teachers:
 
@@ -28,7 +26,7 @@ services will be installed on different machines, that is the most
 desirable setup on production. Moreover, having different services on
 different machines will help to better understand the dependencies
 among the various services. Some very useful considerations about OpenStack
-services distribution can found `here <http://docs.openstack.org/openstack-ops/content/cloud_controller_design.html>`_. 
+services distribution can found [here](http://docs.openstack.org/openstack-ops/content/cloud_controller_design.html).
 Moreover, we will try to summarize the best practices for every OpenStack
 service considered in this tutorial in its relative section. 
 
