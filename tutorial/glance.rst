@@ -6,7 +6,7 @@ Glance - Image Service
 
 As we did for the auth node before staring it is good to quickly check
 if the remote ssh execution of the commands done in the `all nodes
-installation`_ section worked without problems. You can again verify
+installation <basic_services.rst#all-nodes-installation>`_ section worked without problems. You can again verify
 it by checking the ntp installation.
 
 Glance

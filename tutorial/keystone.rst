@@ -33,7 +33,7 @@ are going on:
   operations, basically a set of rights and privileges (usually inside a tenant for example).  
 
 Before starting we can quickly check if the remote ssh execution of
-the commands done in the `all nodes installation`_ section worked
+the commands done in the `all nodes installation <basic_services.rst#all-nodes-installation>`_ section worked
 without problems::
 
     root@auth-node:~# dpkg -l ntp
