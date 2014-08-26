@@ -165,6 +165,15 @@ and MySQL servers. The minimum information you have to provide in the
     # Compute #
     compute_driver=libvirt.LibvirtDriver
 
+..
+    # Cinder
+    cinder_catalog_info = volume:cinder:internalURL
+    # This option has to be set, otherwise cinder
+    # will try to use the publicURL (by default) which will
+    # generate a "ConnectionError" message because
+    # compute hosts have no public interface. 
+    # Lets leave this as an exercise for the students.   
+
 You can just replace the ``/etc/nova/nova.conf`` file with the content
 displayed above.
 
