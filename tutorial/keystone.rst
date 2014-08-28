@@ -69,9 +69,9 @@ and password for the keystone service::
 
     root@db-node:~# mysql -u root -p
     mysql> CREATE DATABASE keystone;
-    mysql> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY 'gridka'; 
+    mysql> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY 'gridka';
     mysql> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY 'gridka';
-    mysql> flush privileges;
+    mysql> FLUSH PRIVILEGES;
     mysql> exit
 
 Please note that almost every OpenStack service will need a private
@@ -117,6 +117,15 @@ following command::
 Restart of the keystone service is again required::
 
     root@auth-node:~# service keystone restart
+
+Keystone by default listens to two different ports::
+
+    root@auth-node:~# netstat -tnlp
+    Active Internet connections (servers and established)
+    Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+    tcp        0      0 0.0.0.0:35357           0.0.0.0:*               LISTEN      3080/python     
+    tcp        0      0 0.0.0.0:5000            0.0.0.0:*               LISTEN      3080/python     
+    [...]
 
 
 The chicken and egg problem

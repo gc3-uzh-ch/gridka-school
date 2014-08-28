@@ -6,6 +6,14 @@ GridKa School 2014 - Training Session on OpenStack
    [Creative Commons Attribution/Share-Alike (BY-SA) license](http://creativecommons.org/licenses/by-sa/3.0/).
 </sub>
 
+**WARNING WARNING WARNING***
+This guide is currently *broken*, and it doesn't work out of the
+box. This is **intentional**: studens are requested to find the
+bugs!!!
+
+A new, corrected version will be released after the GridKa school is terminated.
+**WARNING WARNING WARNING***
+
 Teachers:
 
 * [Antonio Messina](mailto:antonio.s.messina@gmail.com)

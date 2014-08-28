@@ -44,7 +44,7 @@ On the **db-node** create the database and the MySQL user::
     mysql> CREATE DATABASE glance;
     mysql> GRANT ALL ON glance.* TO 'glance'@'%' IDENTIFIED BY 'gridka';
     mysql> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost' IDENTIFIED BY 'gridka';
-    mysql> flush privileges;
+    mysql> FLUSH PRIVILEGES;
     mysql> exit;
 
 On the **auth-node** instead we need to create an **image** service
@@ -167,7 +167,8 @@ in both ``glance-api.conf`` and ``glance-registry.conf``::
     [paste_deploy]
     flavor = keystone
 
-.. Very interesting: we misspelled the password here, but we only get
+.. Grizzly note:
+   Very interesting: we misspelled the password here, but we only get
    errors when getting the list of VM from horizon. Booting VM from
    nova actually worked!!! 
    
@@ -209,6 +210,9 @@ First of all, let's download a very small test image::
 .. Note that if the --os-endpoint-type is not specified glance will try to use 
    publicurl and if the image-node.example.org is not in /etc/hosts an error 
    will be issued.  
+
+(You can also download an Ubuntu distribution from the official
+`Ubuntu Cloud Images <https://cloud-images.ubuntu.com/>`_ website)
 
 The command line tool to manage images is ``glance``. Uploading an image is easy::
 
@@ -266,7 +270,7 @@ uploaded on the image store::
 The cirros image we uploaded before, having an image id of
 ``79af6953-6bde-463d-8c02-f10aca227ef4``, will be found in::
 
-    root@image-node:~# ls -l /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4 
+    root@image-node:~# ls -l /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4
     -rw-r----- 1 glance glance 9761280 Apr 24 16:38 /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4
 
 You can easily find ready-to-use images on the web. An image for the
@@ -275,6 +279,22 @@ You can easily find ready-to-use images on the web. An image for the
 can be found at the `Ubuntu Cloud Images archive
 <http://cloud-images.ubuntu.com/>`_, you can download it and upload
 using glance as we did before.
+
+If you want to get further information about `qcow2` images, you will
+need to install `qemu-utils` package and run `qemu-img info <image
+name`.
+
+::
+    root@image-node:~# apt-get install -y qemu-utils
+    [...]
+    root@image-node:~# qemu-img info /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4
+    image: /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4 
+    file format: qcow2
+    virtual size: 39M (41126400 bytes)
+    disk size: 9.3M
+    cluster_size: 65536
+    Format specific information:
+    compat: 0.10
 
 
 Further improvements

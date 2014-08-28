@@ -14,13 +14,24 @@ allows manipulation of volumes, volume types (similar to compute
 flavors) and volume snapshots.
 
 Note that a volume may only be attached to one instance at a
-time. This is not a *shared storage* solution like a SAN of NFS on
-which multiple servers can attach to.
+time. This is not a *shared storage* solution like NFS, where multiple
+servers can mount the same filesystem. Instead, it's more like a SAN,
+where volumes are created, and then accessed by one single server at a
+time, and used as a raw block device.
+
+It is important to say that cinder volumes are usually *persistent*,
+so they are never deleted automatically, and must be deleted manually
+via web, command line or API.
 
 Volumes created by cinder are served via iSCSI to the compute node,
 which will provide them to the VM as regular sata disk. These volumes
 can be stored on different backends: LVM (the default one), Ceph,
 GlusterFS, NFS or various appliances from IBM, NetApp etc.
+
+Possible usecase cinder volume are:
+* as a backend for a database
+* as a device to be exported via NFS/Lustre/GlusterFS to other VMs
+* as a mean for backing up important data created from within a VM
 
 Cinder is actually composed of different services:
 
@@ -66,6 +77,8 @@ On the **db-node** create the database and the MySQL user::
     mysql> CREATE DATABASE cinder;
     mysql> GRANT ALL ON cinder.* TO 'cinder'@'%' IDENTIFIED BY 'gridka';
     mysql> GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'%' IDENTIFIED BY 'gridka';
+    mysql> FLUSH PRIVILEGES;
+    mysql> exit
 
 On the **auth-node** create a keystone user, a "volume" service and
 its endpoint, like we did for the *glance* service. The following
@@ -73,23 +86,11 @@ commands assume you already set the environment variables needed to
 run keystone without specifying login, password and endpoint all the
 times.
 
-First of all, we need to get the **id** of the **service** tenant::
-
-
-    root@auth-node:~# keystone tenant-get service
-    +-------------+----------------------------------+
-    |   Property  |              Value               |
-    +-------------+----------------------------------+
-    | description |          Service Tenant          |
-    |   enabled   |               True               |
-    |      id     | a389a8f0d9a54af4ba96dcaa20a828c8 |
-    |     name    |             service              |
-    +-------------+----------------------------------+
-
-then we need to create a keystone user for the cinder service, 
+First of all we need to create a keystone user for the cinder service, 
 associated with the **service** tenant::
 
-    keystone user-create --name=cinder --pass=gridka --tenant-id=a389a8f0d9a54af4ba96dcaa20a828c8
+    root@auth-node:~# keystone user-create --name=cinder \
+    --pass=gridka --tenant service
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
@@ -125,7 +126,7 @@ and the related endpoint, using the service id we just got::
       --publicurl 'http://volume-node.example.org:8776/v1/$(tenant_id)s' \
       --adminurl 'http://volume-node.example.org:8776/v1/$(tenant_id)s' \
       --internalurl 'http://10.0.0.8:8776/v1/$(tenant_id)s' \
-      --service-id 2561a51dd7494651862a44e34d637e1e \
+      --region RegionOne --service cinder
 
     +-------------+------------------------------------------------------+
     |   Property  |                        Value                         |
@@ -165,7 +166,7 @@ packages::
 
 Ensure that the iscsi services are running::
 
-    root@volume-node:~# service open-iscsi start
+    root@volume-node:~# service open-iscsi restart
 
 We will configure cinder in order to create volumes using LVM, but in
 order to do that we have to provide a volume group called
@@ -183,14 +184,14 @@ Create a physical device on the ``/dev/vdb`` disk::
     root@volume-node:~# pvcreate /dev/vdb
       Physical volume "/dev/vdb" successfully created
 
-create a volume group called **cinder-volume** on it::
+create a volume group called **cinder-volumes** on it::
 
     root@volume-node:~# vgcreate cinder-volumes /dev/vdb
-      Volume group "cinder-volume" successfully created
+      Volume group "cinder-volumes" successfully created
 
 check that the volume group has been created::
 
-    root@volume-node:~# vgdisplay
+    root@volume-node:~# vgdisplay cinder-volumes
       --- Volume group ---
       VG Name               cinder-volumes
       System ID             
@@ -215,49 +216,69 @@ check that the volume group has been created::
 cinder configuration
 ~~~~~~~~~~~~~~~~~~~~
 
-In file ``/etc/cinder/api-paste.ini`` edit the **filter:authtoken**
-section and ensure that information about the keystone user and
-endpoint are correct, specifically the options ``service_host``,
-``admin_tenant_name``, ``admin_user`` and ``admin_password``::
+..
+   In file ``/etc/cinder/api-paste.ini`` edit the **filter:authtoken**
+   section and ensure that information about the keystone user and
+   endpoint are correct, specifically the options ``service_host``,
+   ``admin_tenant_name``, ``admin_user`` and ``admin_password``::
 
-    [filter:authtoken]
-    paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
-    service_protocol = http
-    service_host = 10.0.0.4
-    service_port = 5000
-    auth_host = 10.0.0.4
-    auth_port = 35357
-    auth_protocol = http
-    admin_tenant_name = service
-    admin_user = cinder
-    admin_password = cinderServ
-    signing_dir = /var/lib/cinder
+       [filter:authtoken]
+       paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
+       service_protocol = http
+       service_host = 10.0.0.4
+       service_port = 5000
+       auth_host = 10.0.0.4
+       auth_port = 35357
+       auth_protocol = http
+       admin_tenant_name = service
+       admin_user = cinder
+       admin_password = cinderServ
+       signing_dir = /var/lib/cinder
 
-The  ``/etc/cinder/cinder.conf`` file contains instead information
-about the MySQL and RabbitMQ host, and information about the iscsi and
-LVM configuration. A minimal configuration file will contain::
+Now let's configure Cinder. The main file is
+``/etc/cinder/cinder.conf``.
+
+First of all, we need to configure the information to connect to MySQL
+and RabbitMQ, as usual. Update the section ``[DEFAULT]`` and add
+``sql_connection``, ``rabbit_host`` and ``rabbit_password`` options::
 
     [DEFAULT]
-    rootwrap_config=/etc/cinder/rootwrap.conf
-    api_paste_config = /etc/cinder/api-paste.ini
-    iscsi_helper=tgtadm
-    volume_name_template = volume-%s
-    volume_group = cinder-volumes
-    verbose = True
-    auth_strategy = keystone
-    state_path = /var/lib/cinder
-    lock_path = /var/lock/cinder
-    volumes_dir = /var/lib/cinder/volumes
-    sql_connection = mysql://cinderUser:cinderPass@10.0.0.3/cinder
-    rabbit_host=10.0.0.3
-    iscsi_ip_address=10.0.0.8
+    [...]
+    sql_connection = mysql://cinder:gridka@10.0.0.3/cinder
+    rpc_backend = cinder.openstack.common.rpc.impl_kombu
+    rabbit_host = 10.0.0.3
+    rabbit_password = gridka
+
+Default values for all the other options should be fine. Please note
+that here you can change the name of the LVM volume group to use, and
+the default name to be used when creating volumes.
 
 .. iscsi_ip_address is needed otherwise, in our case, it will try to
    connect using 192.168. network which is not reachable from the
    OpenStack VMs.
 
-it should differ from the standard one only for the options
-``sql_connection``, ``rabbit_host``, ``iscsi_ip_address`` and
+In some cases, you might need to define the ``iscsi_ip_address``,
+which is the IP address used to serve the volumes via iSCSI. This IP
+must be reachable by the compute nodes, and in some cases you may have
+a different network for this kind of traffic.
+
+::
+    [DEFAULT]
+    [...]
+    iscsi_ip_address = 10.0.0.8
+
+
+Finally, let's add a section for `keystone` authentication::
+
+    [keystone_authtoken]
+    auth_uri = http://10.0.0.4:5000
+    auth_host = 10.0.0.4
+    auth_port = 35357
+    auth_protocol = http
+    admin_tenant_name = service
+    admin_user = cinder
+    admin_password = gridka
+
 .. is already set to tgtadm in IceHouse``iscsi_helper``.
 
 Populate the cinder database::
@@ -278,8 +299,9 @@ Populate the cinder database::
 
 Restart cinder services::
 
-    root@volume-node:~# for i in api volume scheduler; do service cinder-${i} restart; done  
-            
+    root@volume-node:~# for serv in cinder-{api,volume,scheduler}; do service $serv restart; done
+
+
 Testing cinder
 ~~~~~~~~~~~~~~
 
@@ -329,10 +351,10 @@ created volume::
 
 You can easily check that a new LVM volume has been created::
 
-    root@volume-node:~# lvdisplay 
+    root@volume-node:~# lvdisplay /dev/cinder-volumes
       --- Logical volume ---
-      LV Name                /dev/cinder-volume/volume-4d04a3d2-0fa7-478d-9314-ca6f52ef08d5
-      VG Name                cinder-volume
+      LV Name                /dev/cinder-volumes/volume-4d04a3d2-0fa7-478d-9314-ca6f52ef08d5
+      VG Name                cinder-volumes
       LV UUID                RRGmob-jMZC-4Mdm-kTBv-Qc6M-xVsC-gEGhOg
       LV Write Access        read/write
       LV Status              available
@@ -347,43 +369,46 @@ You can easily check that a new LVM volume has been created::
 
 **tgtadm DOES NOT SHOW ANY OUTPUT WHEN THE VOLUME IS NOT ATTACHED, MOVE TO THE TESTING SECTION** 
 
-To show if the volume is actually served via iscsi you can run::
+..
+   To show if the volume is actually served via iscsi you can run::
 
-   root@volume-node:~# tgtadm  --lld iscsi --op show --mode target
-   Target 1: iqn.2010-10.org.openstack:volume-4d04a3d2-0fa7-478d-9314-ca6f52ef08d5
-       System information:
-           Driver: iscsi
-           State: ready
-       I_T nexus information:
-       LUN information:
-           LUN: 0
-               Type: controller
-               SCSI ID: IET     00010000
-               SCSI SN: beaf10
-               Size: 0 MB, Block size: 1
-               Online: Yes
-               Removable media: No
-               Readonly: No
-               Backing store type: null
-               Backing store path: None
-               Backing store flags: 
-           LUN: 1
-               Type: disk
-               SCSI ID: IET     00010001
-               SCSI SN: beaf11
-               Size: 1074 MB, Block size: 512
-               Online: Yes
-               Removable media: No
-               Readonly: No
-               Backing store type: rdwr
-               Backing store path: /dev/cinder-volumes/volume-4d04a3d2-0fa7-478d-9314-ca6f52ef08d5
-               Backing store flags: 
-       Account information:
-       ACL information:
-           ALL
+      root@volume-node:~# tgtadm  --lld iscsi --op show --mode target
+      Target 1: iqn.2010-10.org.openstack:volume-4d04a3d2-0fa7-478d-9314-ca6f52ef08d5
+          System information:
+              Driver: iscsi
+              State: ready
+          I_T nexus information:
+          LUN information:
+              LUN: 0
+                  Type: controller
+                  SCSI ID: IET     00010000
+                  SCSI SN: beaf10
+                  Size: 0 MB, Block size: 1
+                  Online: Yes
+                  Removable media: No
+                  Readonly: No
+                  Backing store type: null
+                  Backing store path: None
+                  Backing store flags: 
+              LUN: 1
+                  Type: disk
+                  SCSI ID: IET     00010001
+                  SCSI SN: beaf11
+                  Size: 1074 MB, Block size: 512
+                  Online: Yes
+                  Removable media: No
+                  Readonly: No
+                  Backing store type: rdwr
+                  Backing store path: /dev/cinder-volumes/volume-4d04a3d2-0fa7-478d-9314-ca6f52ef08d5
+                  Backing store flags: 
+          Account information:
+          ACL information:
+              ALL
 
 
-Since the volume is not used by any VM, we can delete it with the ``cinder delete`` command::
+Since the volume is not used by any VM, we can delete it with the
+``cinder delete`` command (you can use the volume `Display Name`
+instead of the volume `id` if this is uniqe)::
 
     root@volume-node:~# cinder delete 4d04a3d2-0fa7-478d-9314-ca6f52ef08d5 
 
@@ -396,14 +421,26 @@ Deleting the volume can take some time::
     | 4d04a3d2-0fa7-478d-9314-ca6f52ef08d5 | deleting |     test     |  1   |     None    |  false   |             |
     +--------------------------------------+----------+--------------+------+-------------+----------+-------------+
 
-After a while the volume is deleted, removed from iscsi and LVM::
+After a while, the volume is deleted, and LV is deleted::
 
     root@volume-node:~# cinder list
+    root@volume-node:~# cinder list
+    +----+--------+--------------+------+-------------+----------+-------------+
+    | ID | Status | Display Name | Size | Volume Type | Bootable | Attached to |
+    +----+--------+--------------+------+-------------+----------+-------------+
+    +----+--------+--------------+------+-------------+----------+-------------+
+    root@volume-node:~# lvs
+      LV     VG        Attr      LSize Pool Origin Data%  Move Log Copy%  Convert
+      root   golden-vg -wi-ao--- 7.76g                                           
+      swap_1 golden-vg -wi-ao--- 2.00g 
 
-**AGAIN MOVE TO THE TESTING SECTION, AS HERE IS NOT RELEVANT**::
-    
-    root@volume-node:~# tgtadm  --lld iscsi --op show --mode target
+`[Next: Nova API - Compute service] <nova_api.rst>`_
 
-    root@volume-node:~# lvdisplay 
+..
+   **AGAIN MOVE TO THE TESTING SECTION, AS HERE IS NOT RELEVANT**::
+       
+       root@volume-node:~# tgtadm  --lld iscsi --op show --mode target
+
+       root@volume-node:~# lvdisplay 
 
 

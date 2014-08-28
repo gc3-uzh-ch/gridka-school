@@ -85,7 +85,7 @@ intended to be used for both scenarios.
 Now please move on the db-node where we have to install the MySQL server.
 In order to do that please execute::
 
-    root@db-node # aptitude install mysql-server python-mysqldb
+    root@db-node # aptitude install -y mysql-server python-mysqldb
 
 you will be prompted for a password, it is better to specify a *good*
 one, since the MySQL server will be accessible also via internet. You
@@ -124,7 +124,7 @@ After changing this line you have to restart the MySQL server::
 By default Ubuntu 14.04 allows access also from the network. This is a
 security risk, so you may want to disable it.
 
-There is a script caled `mysql_secure_installation` that helps you
+There is a script called ``mysql_secure_installation`` that helps you
 modifying some of the defaults found in standard installations, we
 would suggest you to run it before proceeding::
 
