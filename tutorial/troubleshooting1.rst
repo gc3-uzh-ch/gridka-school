@@ -273,7 +273,7 @@ resolve its hostname?
 
    There are two way to solve this issue:
 
-   1) ad a "public" ip to the physical node, to be used as router for the
+   1) add a "public" ip to the physical node, to be used as router for the
       openstack nodes (similar to having a *real* router on the public network)::
 
           [root@gks-061 ~]# ifconfig br1:0 172.16.0.1/16
