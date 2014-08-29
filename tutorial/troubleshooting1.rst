@@ -1,3 +1,325 @@
+Troubleshooting
+===============
+
+Floating IPs
+------------
+
+Problem
+~~~~~~~
+
+The setup of our testbed is quite irregular, since we are using
+private IPs for the floating ip range, and the machines are not
+connected to a "real" network, but instead are connected to a virtual
+bridge in a physical machine.
+
+Because of that, the current configuration is **not** working as
+expected. You will realize this trying to ping `www.google.com` form
+within a virtual machine.
+
+Also connecting to a virtual machine from the physical node will not
+work.
+
+To debug this, you will need to understand the following commands:
+* tcpdump
+* iptables
+* route
+* ip
+* ping
+* nc
+
+Since these are two different problems, you need to analyze them
+separately.
+
+1) First, ping from `www.google.com` from a virtual machine, and check
+   what happens to packets coming out from the virtual machine.
+2) Then, try to understand what happen when you try to connect to a VM
+   (tcp port 22) from a physical machine (`gks-NNN`).
+
+Bonus question: since we are not able to ping google, how can we
+resolve its hostname?
+
+..
+   troubleshooting the problem
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Let's recap what happens when you assign a floating IP to a VM (doing
+   it manually or using `auto_assign_floating_ip` is the same)
+
+   * The floating IP is assigned to the public interface of the
+     network-node (check with `ip addr show`)
+
+   * Firewall rules are added to the `nat` table of the network
+     node. Specifically:
+     - DNAT rule to redirect all traffic to the floating IP towards the
+       private IP of the VM
+     - SNAT rule to modify all packets originated on the VM and directed
+       to the interned, replacing the source address (the private IP)
+       with the floating IP
+
+   * The packet is then routed on the default gateway.
+
+   To debug this, let's ping google from the VM, and then use tcpdump to
+   see where the packets goes.
+
+   * First, run tcpdump on the compute node, to check if it's actually
+     coming out::
+
+        root@compute-1:~# tcpdump -i br100 -n icmp
+        tcpdump: WARNING: br100: no IPv4 address assigned
+        tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+        listening on br100, link-type EN10MB (Ethernet), capture size 65535 bytes
+        10:13:31.513718 IP 10.99.0.2 > 173.194.113.145: ICMP echo request, id 56064, seq 90, length 64
+
+     yes, it is.
+
+   * Then, check if the packets arrives to the integration network of the
+     network-node::
+
+         root@network-node:~# tcpdump -i br100 icmp -n
+         tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+         listening on br100, link-type EN10MB (Ethernet), capture size 65535 bytes
+         10:14:13.532368 IP 10.99.0.2 > 173.194.113.145: ICMP echo request, id 56064, seq 132, length 64
+
+     Yes!
+
+   * The packet should be NAT-ted and routed towards the default gateway,
+     which is 10.0.0.1 and is connected to the `eth0` interface::
+
+         root@network-node:~# ip route 
+         default via 10.0.0.1 dev eth0 
+         10.0.0.0/24 dev eth0  proto kernel  scope link  src 10.0.0.7 
+         10.99.0.0/22 dev br100  proto kernel  scope link  src 10.99.0.1 
+         172.16.0.0/16 dev eth1  proto kernel  scope link  src 172.16.0.7 
+
+     Let's see what happen on the `eth0` interface::
+
+         root@network-node:~# tcpdump -i eth0 -n icmp
+         tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+         listening on eth0, link-type EN10MB (Ethernet), capture size 65535 bytes
+         10:15:53.570698 IP 10.99.0.2 > 173.194.113.145: ICMP echo request, id 56064, seq 232, length 64
+
+   * Uhm, NAT is not working, let's check the iptables rules::
+
+         root@network-node:~# iptables -L -t nat -v 
+         Chain PREROUTING (policy ACCEPT 15 packets, 4523 bytes)
+          pkts bytes target     prot opt in     out     source               destination         
+            20  3456 nova-network-PREROUTING  all  --  any    any     anywhere             anywhere            
+            15  4523 nova-api-metadat-PREROUTING  all  --  any    any     anywhere             anywhere            
+
+         Chain INPUT (policy ACCEPT 21 packets, 4859 bytes)
+          pkts bytes target     prot opt in     out     source               destination         
+
+         Chain OUTPUT (policy ACCEPT 74 packets, 7961 bytes)
+          pkts bytes target     prot opt in     out     source               destination         
+            23  3948 nova-network-OUTPUT  all  --  any    any     anywhere             anywhere            
+            74  7961 nova-api-metadat-OUTPUT  all  --  any    any     anywhere             anywhere            
+
+         Chain POSTROUTING (policy ACCEPT 63 packets, 4298 bytes)
+          pkts bytes target     prot opt in     out     source               destination         
+            24  4032 nova-network-POSTROUTING  all  --  any    any     anywhere             anywhere            
+            63  4298 nova-api-metadat-POSTROUTING  all  --  any    any     anywhere             anywhere            
+            63  4298 nova-postrouting-bottom  all  --  any    any     anywhere             anywhere            
+
+         Chain nova-api-metadat-OUTPUT (1 references)
+          pkts bytes target     prot opt in     out     source               destination         
+
+         Chain nova-api-metadat-POSTROUTING (1 references)
+          pkts bytes target     prot opt in     out     source               destination         
+
+         Chain nova-api-metadat-PREROUTING (1 references)
+          pkts bytes target     prot opt in     out     source               destination         
+
+         Chain nova-api-metadat-float-snat (1 references)
+          pkts bytes target     prot opt in     out     source               destination         
+
+         Chain nova-api-metadat-snat (1 references)
+          pkts bytes target     prot opt in     out     source               destination         
+            63  4298 nova-api-metadat-float-snat  all  --  any    any     anywhere             anywhere            
+
+         Chain nova-network-OUTPUT (1 references)
+          pkts bytes target     prot opt in     out     source               destination         
+             0     0 DNAT       all  --  any    any     anywhere             172.16.1.1           to:10.99.0.2
+
+         Chain nova-network-POSTROUTING (1 references)
+          pkts bytes target     prot opt in     out     source               destination         
+             0     0 ACCEPT     all  --  any    any     10.99.0.0/22         network-node        
+            11  3171 ACCEPT     all  --  any    any     10.99.0.0/22         10.99.0.0/22         ! ctstate DNAT
+             0     0 SNAT       all  --  any    any     10.99.0.2            anywhere             ctstate DNAT to:172.16.1.1
+
+         Chain nova-network-PREROUTING (1 references)
+          pkts bytes target     prot opt in     out     source               destination         
+             8   480 DNAT       tcp  --  any    any     anywhere             169.254.169.254      tcp dpt:http to:10.0.0.7:8775
+             0     0 DNAT       all  --  any    any     anywhere             172.16.1.1           to:10.99.0.2
+
+         Chain nova-network-float-snat (1 references)
+          pkts bytes target     prot opt in     out     source               destination         
+             0     0 SNAT       all  --  any    any     10.99.0.2            10.99.0.2            to:172.16.1.1
+             0     0 SNAT       all  --  any    eth1    10.99.0.2            anywhere             to:172.16.1.1
+
+         Chain nova-network-snat (1 references)
+          pkts bytes target     prot opt in     out     source               destination         
+            13   861 nova-network-float-snat  all  --  any    any     anywhere             anywhere            
+             0     0 SNAT       all  --  any    eth1    10.99.0.0/22         anywhere             to:10.0.0.7
+
+         Chain nova-postrouting-bottom (1 references)
+          pkts bytes target     prot opt in     out     source               destination         
+            13   861 nova-network-snat  all  --  any    any     anywhere             anywhere            
+            63  4298 nova-api-metadat-snat  all  --  any    any     anywhere             anywhere            
+
+
+     The relevant rules for us are in ``nova-network-snat``::
+
+             0     0 SNAT       all  --  any    eth1    10.99.0.0/22         anywhere             to:10.0.0.7
+
+     After a while, you realize what's "wrong" with this rule: the packet
+     is SNAT-ted only when it's coming out from the `eth1`
+     interface. Why? Because the `public network` is on that network, but
+     our default gateway is on the `eth0` interface!
+
+   * The first think you may try is to set `public_interface`
+     configuration option on ``/etc/nova/nova.conf`` to `eth0` and
+     restart nova-network (to do it cleanly, also delete the test
+     instance and restart it)::
+
+         root@network-node:~# sed -i 's/public_interface.*/public_interface=eth0/' /etc/nova/nova.conf 
+         root@network-node:~# service nova-network restart
+         nova-network stop/waiting
+         nova-network start/running, process 2168
+
+     and after the VM is started::
+
+         root@network-node:~# ip addr show eth0
+         2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+             link/ether 52:54:00:61:8e:f1 brd ff:ff:ff:ff:ff:ff
+             inet 10.0.0.7/24 brd 10.0.0.255 scope global eth0
+                valid_lft forever preferred_lft forever
+             inet 172.16.1.1/32 scope global eth0
+                valid_lft forever preferred_lft forever
+
+     ping still doesn't work.
+
+   * Let's see what happen again on the network node::
+
+         root@network-node:~# tcpdump -i eth0 -n icmp
+         tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+         listening on eth0, link-type EN10MB (Ethernet), capture size 65535 bytes
+         10:25:17.823400 IP 172.16.1.1 > 173.194.113.148: ICMP echo request, id 52224, seq 14, length 64
+
+     so, the IP is actually coming out from the network node, on the
+     "right" interface, and with the *right* IP address. Why don't we see
+     the ping replies?
+
+   * Let's now check on the physical node::
+
+         [root@gks-061 ~]# tcpdump -i br1 -n icmp
+         tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+         listening on br1, link-type EN10MB (Ethernet), capture size 65535 bytes
+         10:27:45.694425 IP 10.99.0.2 > 173.194.113.148: ICMP echo request, id 56320, seq 2, length 64
+         10:27:45.694504 IP 172.16.1.1 > 173.194.113.148: ICMP echo request, id 56320, seq 2, length 64
+
+     No wonder here: the first packet, coming from 10.99.0.2 is the one
+     flowing from the VM to the network node, that we are seeing because
+     we use one big bridge for all the interfaces. The second packet is
+     the one translated by the network node, and directed to the
+     "gateway". You can check this by also viewing the mac addresses::
+
+         [root@gks-061 ~]# tcpdump -i br1 -n icmp -e
+         tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+         listening on br1, link-type EN10MB (Ethernet), capture size 65535 bytes
+         10:29:25.523369 fa:16:3e:20:5f:65 > 52:54:00:25:67:05, ethertype IPv4 (0x0800), length 98: 10.99.0.2 > 173.194.113.144: ICMP echo request, id 59136, seq 0, length 64
+         10:29:25.523446 52:54:00:61:8e:f1 > 00:30:48:d4:5f:99, ethertype IPv4 (0x0800), length 98: 172.16.1.1 > 173.194.113.144: ICMP echo request, id 59136, seq 0, length 64
+         [root@gks-061 ~]# ip addr show br1
+         4: br1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN 
+             link/ether 00:30:48:d4:5f:99 brd ff:ff:ff:ff:ff:ff
+             inet 10.0.0.1/24 brd 10.0.0.255 scope global br1
+             inet6 fe80::230:48ff:fed4:5f99/64 scope link 
+                valid_lft forever preferred_lft forever
+
+     The second packet has destination mac address of the physical node,
+     which is correct. The first packet instead has the mac address of
+     the network node::
+
+         root@network-node:~# ip addr show br100
+         5: br100: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+             link/ether 52:54:00:25:67:05 brd ff:ff:ff:ff:ff:ff
+             inet 10.99.0.1/22 brd 10.99.3.255 scope global br100
+                valid_lft forever preferred_lft forever
+
+     again correct, because this is the default gateway for the VM.
+
+   * What happen on the routing from within the physical node?::
+
+         [root@gks-061 ~]# ip route 
+         10.0.0.0/24 dev br1  proto kernel  scope link  src 10.0.0.1 
+         141.52.174.0/24 dev eth0  proto kernel  scope link  src 141.52.174.61 
+         default via 141.52.174.1 dev eth0 
+
+     Default gateway is `eth0`, but if you check with tcpdump you will
+     see that the packet is not forwarded. Looking at iptables rules for
+     the `filter` and `nat` tables will make evident that the physical
+     node is not forwarding the packets (nor NAT-ting them, since the
+     network we are using for public access is not actually public)
+
+
+   You should have realized by now that there are two problems at the
+   same time:
+
+   * routing: ICMP reply packets are not routed to the correct interface,
+     because the physical node do not know that 172.16.0.0/16 network is
+     behind the `br1` interface
+   * firewall: the physical node do not allow forwarding of the packets
+     (`iptables -L FORWARD`) nor is NAT-ting the packets in order to use
+     a *real* public IP address.
+
+   There are two way to solve this issue:
+
+   1) ad a "public" ip to the physical node, to be used as router for the
+      openstack nodes (similar to having a *real* router on the public network)::
+
+          [root@gks-061 ~]# ifconfig br1:0 172.16.0.1/16
+
+      enable NAT-ting for those IP addresses::
+
+          [root@gks-061 ~]# iptables -A POSTROUTING -t nat -o eth0 -s 172.16.0.0/16 -j MASQUERADE
+
+      finally, modify the routing on the **network-node**, so that
+      packets are sent to the physical machine using the correct network::
+
+          root@network-node:~# route del default gw 10.0.0.1
+          root@network-node:~# route add default gw 172.16.0.1 dev eth1
+
+      In this case, the floating IPs are all added to interface `eth1` of
+      the network-node, so you need to put `public_interface=eth1` in ``/etc/nova/nova.conf``
+
+   2) an alternative approach, that does not modify the network
+      configuration of the **network-node**, but instead:
+
+      modify the `public_interface` option in ``/etc/nova/nova.conf`` and
+      set it to `eth0`. In this case, packets will go to the physical
+      machine on the interface `br1`.
+
+      You also need to tell the physical machine *where* the
+      172.16.0.0/16 network lives, by modifying its routing table::
+
+          [root@gks-061 ~]# route add -net 172.16.0.0/16 dev br1
+
+      and, like we did before, add a rule to the firewall to MASQUERADE
+      the outgoing traffic, needed because we are using private IPs
+      instead of public ones::
+
+          [root@gks-061 ~]# iptables -A POSTROUTING -t nat -o eth0 -s 172.16.0.0/16 -j MASQUERADE
+
+
+   Please note that those changes (especially those in the physical
+   machine) are only needed because of the specific configuration of the
+   testbed.
+
+   On a production environment, the public IP are actually public, and
+   your API servers will use this network to access internet, so there is
+   no need to change the default routing table on the network node, and
+   there is no need to set any NAT rule since the IP are public and
+   routing happens on some network device already set up.
+
 Troubleshooting challenge session
 ---------------------------------
 
@@ -12,54 +334,9 @@ Then, you will have to check that the installation is working
 (actually, find what is *not* working as expected) and try to fix the
 problem.
 
-Floating IPs
-++++++++++++
-
-Floating IPs do not work currently. The problem is that the default
-gateway of the network node is **not** in the correct network.
-
-For instance, you can't ping google from within the VM, and you can't
-access the public IP of the VM from the physical node.
-
-To fix this, we need to:
-
-1) give an IP address on the br1 interface on the physical node
-   (emulating the router of the public network)
-2) add a SNAT rule for IPs in the 172.16.0.0/16 network
-2) update the default gateway on the network node.
-
-
-On the physical node::
-
-    [root@gks-061 ~]# ifconfig br1:0 172.16.0.1/16
-    [root@gks-061 ~]# iptables -A POSTROUTING -t nat -s 172.16.0.0/16 -j MASQUERADE
-
-on the network node::
-
-    root@network-node:~# route -n
-    Kernel IP routing table
-    Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
-    0.0.0.0         10.0.0.1        0.0.0.0         UG    0      0        0 eth0
-    10.0.0.0        0.0.0.0         255.255.255.0   U     0      0        0 eth0
-    10.99.0.0       0.0.0.0         255.255.252.0   U     0      0        0 br100
-    172.16.0.0      0.0.0.0         255.255.0.0     U     0      0        0 eth1
-    root@network-node:~# route del default gw 10.0.0.1
-    root@network-node:~# route add default gw 172.16.0.1 dev eth1
-    root@network-node:~# 
-
-Please note that those changes (especially those in the physical
-machine) are only needed because of the specific configuration of the
-testbed.
-
-On a production environment, the public IP are actually public, and
-your API servers will use this network to access internet, so there is
-no need to change the default routing table on the network node, and
-there is no need to set any NAT rule since the IP are public and
-routing happens on some network device already set up.
-
 
 proposed sabotages (but you can be creative!)
-+++++++++++++++++++++++++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * Remove the "admin" role from one of the "nova", "glance", "cinder"
   users::
@@ -113,8 +390,15 @@ proposed sabotages (but you can be creative!)
   the ``/etc/nova/nova.conf`` configuration file. (if you are very
   mean, you can replace the floating IPs with similar but invalid ones)
 
+* change the value of `public_interface` in ``/etc/nova/nova.conf`` on
+  the **network-node**
+
+* delete all floating IPs and re-create them adding option
+  ``--interface eth0``. Then, start a VM and see what happens to the
+  interfaces of the network-node
+
 cinder <-> glance
------------------
+~~~~~~~~~~~~~~~~~
 
 In the default configuration, if you try to `boot from image (creates
 a new volume)` it will fail.
@@ -158,7 +442,7 @@ test with::
 
 
 List of possible checks
-+++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~~~
 
 * upload an image
 * start an instance using ``nova``

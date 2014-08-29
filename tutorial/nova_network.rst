@@ -109,17 +109,18 @@ Network configuration on the **network-node** will look like:
 +-------+------------------+-----------------------------------------------------+
 | iface | network          | usage                                               |
 +=======+==================+=====================================================+
-| eth0  | 10.0.0.0/24      | internal network                                    |
+| eth0  | 10.0.0.0/24      | `management network`                                |
+|       |                  |(internal network of the OS services)                |
 +-------+------------------+-----------------------------------------------------+
-| eth1  | 172.16.0.0/24    | public network                                      |
+| eth1  | 172.16.0.0/24    | `public network`                                    |
 +-------+------------------+-----------------------------------------------------+
-| eth2  | 0.0.0.0          | slave network of the br100 bridge                   |
+| eth2  | 0.0.0.0          | slave interface of br100 (integration bridge)       |
 +-------+------------------+-----------------------------------------------------+
-| br100 | 10.99.0.0/22     | bridge connected to the internal network of the VMs |
+| br100 | 10.99.0.0/22     | `integration network`, internal network of the VMs  |
 +-------+------------------+-----------------------------------------------------+
 
 The last interface (eth2) is managed by **nova-network** itself, so we
-only have to create a bridge and attach eth3 to it. This is done on
+only have to create a bridge and attach eth2 to it. This is done on
 ubuntu by editing the ``/etc/network/interface`` file and ensuring
 that it contains::
 

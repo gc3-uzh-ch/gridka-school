@@ -51,5 +51,5 @@ Table of contents
 * [Nova API](tutorial/nova_api.rst) (Compute service)
 * [nova-network](tutorial/nova_network.rst) (Network service - *easy* version)
 * [Nova compute](tutorial/nova_compute.rst) - life of a VM (Compute service)
-* [Troubleshooting challenge session](tutorial/troubleshooting1.rst)
+* [Troubleshooting](tutorial/troubleshooting1.rst)
 * [Neutron](tutorial/neutron.rst) (Network service - *hard* version)
