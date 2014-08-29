@@ -1,0 +1,209 @@
+# Copied .ssh/authorized_keys from gks-116 to the others.
+
+# Following nodes are not reachable:
+# * gks-029
+# * gks-030
+# * gks-035
+# * gks-038
+# * gks-039
+# * gks-090
+# * gks-094
+
+# Some nodes have /var full, because it's the 18G partition:
+# 
+# gks-[040,042,044,086,088,092,096]    /dev/sda3        18G   17G  322M  99% /var
+# gks-[041,043,045,085,087,089,091,093,095]    /dev/sda3        18G   18G     0 100% /var
+# gks-046    /dev/sda3        18G   17G  320M  99% /var
+# 
+
+# Set environment variables for client::
+export OS_USERNAME=admin
+export OS_PASSWORD=gridka
+export OS_TENANT_NAME=admin
+export OS_AUTH_URL=http://172.16.0.4:5000/v2.0
+
+# Test fatti con gks-061 e gks-62
+
+# Add a /etc/hosts::
+
+cat >> /etc/hosts <<EOF
+# Hostnames of the VMs
+10.0.0.3    db-node
+10.0.0.4    auth-node
+10.0.0.5    image-node
+10.0.0.6    api-node
+10.0.0.7    network-node
+10.0.0.8    volume-node
+10.0.0.9    neutron-node
+10.0.0.20   compute-1
+10.0.0.21   compute-2
+
+172.16.0.3      db-node.example.org
+172.16.0.4      auth-node.example.org
+172.16.0.5      image-node.example.org
+172.16.0.6      api-node.example.org
+172.16.0.7      network-node.example.org
+172.16.0.8      volume-node.example.org
+172.16.0.9      neutron-node.example.org
+EOF
+
+
+# Ensure .ssh/config contains:
+#   Port 22
+
+egrep -q  '^Port\s+22' /root/.ssh/config || echo 'Port 22' >> /root/.ssh/config
+
+# Remember to enable the masquerading:
+
+iptables -A POSTROUTING -t nat -s 10.0.0.0/24 -j MASQUERADE
+
+# Creazione delle vm:
+# 
+# per fare il dump::
+
+# On gks-116:
+for node in {api,db,auth,network,volume,image}-node
+do
+    virsh dumlxml $node > $node.xml 
+done
+
+# verifica che tutte le interfacce di rete siano virtio
+#
+
+#copia della golden image sui nodi (in alcuni casi la directory /var/lib/libvirt/images non era presente, e' stata create)
+
+mkdir /var/lib/libvirt/images
+
+# from gks-116
+scp /var/lib/libvirt/images/golden.qcow2 gks-061:/var/lib/libvirt/images/
+# copia degli xml
+# per ogni file xml, crea una immagine e una istanza::
+scp /root/*xml gks-061:/root/
+
+
+# define all the instances::
+
+# To setup the nodes, we need epel::
+
+yum install epel-release
+yum install ansible
+
+
+# The golden image has tyanko and antonio's ssh keys.
+
+# golden.qcow2 is the image to be used for starting.
+
+# Further customization of nodes:
+
+# For cinder, we need to create a volume:
+for i in {api,auth,db,image,network,volume}-node
+do 
+virsh define /root/$i.xml; 
+done
+
+qemu-img create -f qcow2 /var/lib/libvirt/images/volume-node-1.img 10G
+
+for node in {db,auth,image,api,network,volume}-node;
+do
+    echo "Node $node";
+    virsh destroy $node 2> /dev/null
+    qemu-img create  -b /var/lib/libvirt/images/golden.qcow2 -f qcow2 /var/lib/libvirt/images/$node.img 10G
+    virsh start $node;
+    ip=$(getent hosts $node | cut -d ' ' -f1);
+    echo -n "Waiting until it's up"
+    while ! ping -W 1 -c 1 10.0.0.10 >& /dev/null
+    do       
+        echo -n '.'
+        sleep 1
+    done
+    echo
+    echo -n "Waiting sshd it's up"
+    while ! nc -w 1 10.0.0.10 22 >& /dev/null
+    do       
+        echo -n '.'
+        sleep 1
+    done
+    echo
+    echo "Connecting"
+    echo "Setting private IP address"
+    ssh root@10.0.0.10 -p 22 "echo $node > /etc/hostname; hostname $node; sed -i s/10.0.0.10/$ip/g /etc/network/interfaces;"
+    case $node in
+        auth-node|api-node|image-node|volume-node)
+            publicip=$(getent hosts $node.example.org | cut -d ' ' -f1)
+            ssh root@10.0.0.10 -p 22 "echo -e 'auto eth1\niface eth1 inet static\n  address $publicip\n  netmask 255.255.0.0\n  broadcast 172.16.255.255\n' >> /etc/network/interfaces"
+            ;;
+        network-node)
+            publicip=$(getent hosts $node.example.org | cut -d ' ' -f1)
+            ssh root@10.0.0.10 -p 22 "echo -e 'auto eth1\niface eth1 inet static\n  address $publicip\n netmask 255.255.0.0\n broadcast 172.16.255.255\n' >> /etc/network/interfaces"
+            ;;
+    esac
+    ssh root@10.0.0.10 -p 22 "poweroff";
+    if [ $? -ne 0 ]; then
+        echo "Error connecting to host $node. Destroying."
+        virsh destroy $node
+    else
+        echo -n "Shutting down"
+        while `virsh dominfo $node | grep ^State | grep -q \ running$`
+        do
+            echo -n '.'
+            sleep 1
+        done
+        echo
+        virsh start $node
+    fi
+done
+
+for i in compute-1 compute-2 neutron-node
+do 
+virsh define /root/$i.xml; 
+done
+
+### The same, but on the secondary node
+for node in compute-1 compute-2 neutron-node;
+do
+    echo "Node $node";
+    virsh destroy $node 2> /dev/null
+    qemu-img create  -b /var/lib/libvirt/images/golden.qcow2 -f qcow2 /var/lib/libvirt/images/$node.img 10G
+    virsh start $node;
+    ip=$(getent hosts $node | cut -d ' ' -f1);
+    echo -n "Waiting until it's up"
+    while ! ping -W 1 -c 1 10.0.0.10 >& /dev/null
+    do       
+        echo -n '.'
+        sleep 1
+    done
+    echo
+    echo -n "Waiting sshd it's up"
+    while ! nc -w 1 10.0.0.10 22 >& /dev/null
+    do       
+        echo -n '.'
+        sleep 1
+    done
+    echo
+    echo "Connecting"
+    echo "Setting private IP address"
+    ssh root@10.0.0.10 -p 22 "echo $node > /etc/hostname; hostname $node; sed -i s/10.0.0.10/$ip/g /etc/network/interfaces;"
+    if [ $node == neutron-node ]
+    then
+        publicip=$(getent hosts $node.example.org | cut -d ' ' -f1)
+        ssh root@10.0.0.10 -p 22 "echo -e 'auto eth1\niface eth1 inet static\n  address $publicip\n  netmask 255.255.0.0\n  broadcast 172.16.255.255\n' >> /etc/network/interfaces"
+    fi
+    ssh root@10.0.0.10 -p 22 "poweroff";
+    if [ $? -ne 0 ]; then
+        echo "Error connecting to host $node. Destroying."
+        virsh destroy $node
+    else
+        echo -n "Shutting down"
+        while `virsh dominfo $node | grep ^State | grep -q \ running$`
+        do
+            echo -n '.'
+            sleep 1
+        done
+        echo
+        virsh start $node
+    fi
+done
+
+
+# Now the basic image should be done.
+
