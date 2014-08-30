@@ -1,4 +1,16 @@
 ---
+# Only needed for first installation
+# - hosts: servers:computes
+#   sudo: yes
+#   user: ostack
+#   tasks:
+#     - authorized_key: user=root key="{{ item }}"
+#       with_file:
+#         - antonio.pub
+#         - tyanko.pub
+#         - tyanko.1.pub
+#       tags: sshkeys
+        
 - hosts: servers:computes
   vars:
     nodes:
@@ -12,6 +24,8 @@
         host: api-node.example.org
       - ip: 172.16.0.7
         host: network-node.example.org
+      - ip: 172.16.0.9
+        host: neutron-node.example.org
       - ip: 172.16.0.8
         host: volume-node.example.org
 
@@ -27,13 +41,15 @@
         host: network-node
       - ip: 10.0.0.8
         host: volume-node
+      - ip: 10.0.0.9
+        host: neutron-node
       - ip: 10.0.0.20
         host: compute-1
       - ip: 10.0.0.21
         host: compute-2
 
   tasks:
-    - action: yum name=$item state=present
+    - action: yum name={{ item }} state=present
       with_items:
         - kvm
         - virt-manager
@@ -51,7 +67,7 @@
 
     - action: sysctl name=net.ipv4.ip_forward value=1 state=present reload=yes
 
-    - action: lineinfile dest=/etc/hosts regexp="${item.ip} ${item.host}" line="${item.ip} ${item.host}"
+    - action: lineinfile dest=/etc/hosts regexp="{{ item.ip }} {{item.host}}" line="{{item.ip}} {{item.host}}"
       with_items: nodes
 
     - action: shell brctl show br1 | grep eth1
@@ -63,30 +79,47 @@
       action: shell brctl addif br1 eth1
       when: eth1_in_br1|failed
       tags: bridge
-          
+
+    - name: Copy xml files to remote hosts
+      copy: src=../setup-2014/{{ item }}.xml dest=/root/
+      with_items:
+        - volume-node
+        - api-node
+        - db-node
+        - auth-node
+        - image-node
+        - network-node
+        - neutron-node
+        - compute-1
+        - compute-2
+      tags: virt
+
+    - name: copy regenerate_vms.sh script
+      copy: src=regenerate_vms.sh dest=/root/ owner=root mode=700
+      tags: virt
 
 - hosts: servers
   tasks:
     - name: ensure the ip address is correct
       action: shell ifconfig br1 | grep 10.0.0.1
 
-    - name: check virtual machine files
-      action: file path=/var/lib/libvirt/images/${item}.img state=file
-      with_items:
-        - api-node
-        - auth-node
-        - db-node
-        - image-node
-        - network-node
-        - volume-node
+    # - name: check virtual machine files
+    #   action: file path=/var/lib/libvirt/images/${item}.img state=file
+    #   with_items:
+    #     - api-node
+    #     - auth-node
+    #     - db-node
+    #     - image-node
+    #     - network-node
+    #     - volume-node
 
 - hosts: computes
   tasks:
     - name: ensure the ip address is correct
       action: shell ifconfig br1 | grep 10.0.0.2
 
-    - name: check virtual machine files
-      action: file path=/var/lib/libvirt/images/${item}.img state=file
-      with_items:
-        - compute-1
-        - compute-2
+    # - name: check virtual machine files
+    #   action: file path=/var/lib/libvirt/images/${item}.img state=file
+    #   with_items:
+    #     - compute-1
+    #     - compute-2
