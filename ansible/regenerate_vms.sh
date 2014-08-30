@@ -59,14 +59,16 @@ EOF
 MASTER_NODES="api-node db-node auth-node network-node volume-node image-node"
 SECONDARY_NODES="compute-1 compute-2 neutron-node"
 
-WHOAMI=$1
-
-case $WHOAMI in
+case "$1" in
     master)
         NODES=${MASTER_NODES}
         ;;
     secondary)
         NODES=${SECONDARY_NODES}
+        ;;
+    api-node|db-node|auth-node|network-node|volume-node|image-node|compute-1|compute-2|neutron-node)
+        echo "Forcing setting up of node $1, regardless which machine this is"
+        NODES=$1
         ;;
     *)
         echo 1>&2 "Missing or wrong argument. Must be either 'master' or 'secondary'" 
@@ -84,10 +86,15 @@ then
 fi
 
 
+echo "First of all, destroy all the instances!"
+for node in $NODES
+do
+    virsh destroy $node 2> /dev/null
+done
+
 for node in $NODES
 do
     echo "Creating Disk for node $node";
-    virsh destroy $node 2> /dev/null
     virsh define /root/$node.xml
     qemu-img create  -b /var/lib/libvirt/images/golden.qcow2 -f qcow2 /var/lib/libvirt/images/$node.img 10G
 
@@ -128,10 +135,10 @@ do
         virsh destroy $node
     else
         echo -n "Shutting down"
-        while `virsh dominfo $node | grep ^State | grep -q \ running$`
+        while virsh dominfo $node | egrep ^State | egrep -q ' running$'
         do
             echo -n '.'
-            sleep 1
+            sleep 2
         done
         echo
         virsh start $node

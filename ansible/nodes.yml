@@ -95,7 +95,7 @@
       tags: virt
 
     - name: copy regenerate_vms.sh script
-      copy: src=regenerate_vms.sh dest=/root/ owner=root mode=700
+      copy: src=regenerate_vms.sh dest=/root/regenerate_vms.sh owner=root mode=700
       tags: virt
 
 - hosts: servers
