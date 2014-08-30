@@ -20,11 +20,9 @@
 
 \begin{frame}{Glance's role inside Openstack}
 
-The OpenStack Glance service offers a REST API catalog
-which enables end users to:
+The OpenStack Glance service offers a REST API catalog enabling end users to:
 \begin{itemize}
 \item query,
-\item discover,
 \item register,
 \item retrieve 
 \end{itemize}
@@ -34,46 +32,49 @@ virtual machine images and their metadata.
 
 \begin{frame}{Glance components: \textbf{glance-api}}
 
-\textbf{glance-api} is the main Glance service which accepts API calls for image:
+\textit{glance-api} is the main Glance service that exposes and makes available both:
  
 \begin{itemize}
-\item discovery,
-\item retrieval,
-\item storage.
+\item the metadata about registered images,
+\item the image data itself. 
 \end{itemize} 
 
 \end{frame}
 
 \begin{frame}{Glance components: \textbf{glance-registry}}
 
-\textbf{glance-registry} service is internal and is used by v1.0 of
-glance-api for: 
+\textit{glance-registry} is an internal glance service. It is used 
+by glance-api (v1.0) for image metadata:
+ 
 \begin{itemize}
 \item storing,
 \item processing,
-\item retrieval
+\item retrieval.
 \end{itemize}
-of images' metadata (eg. size or type). Note that v2.0 of glance-api
-operates idependatly from glance-registry.
+
+v2.0 of glance-api operates idependatly from glance-registry.
+
 \end{frame}
 
 \begin{frame}{Glance components: \textbf{Database}}
 
-\textbf{Database} is used for storing image metadata and is typically based on MySQL.
+\textit{Database} is used for storing image metadata and is typically based on MySQL.
 
 \end{frame}
 
 \begin{frame}{Glance components: \textbf{Storage}}
 
-\textbf{Storage} is the repository for the image files. Different types of 
-repositories are supported:
+\textit{Storage} is the repository for the real image files. 
+Different storage types are supported:
 
 \begin{itemize}
-\item Normal File System (which is the one used in this tutorial),
-\item Object Storage,
-\item RADOS block storage,
+\item Local File System (which is the one used in this tutorial),
+\item Ceph,
+\item Swift,
+\item Cinder,
 \item HTTP,
-\item Amazon S3.
+\item Amazon S3,
+\item others...
 \end{itemize} 
 
 \end{frame}
@@ -101,8 +102,8 @@ repositories are supported:
 \begin{frame}{Useful Links}
 
 \begin{itemize}
-\item \href{http://docs.openstack.org/trunk/config-reference/content/ch\_configuring-openstack-image-service.html}{Configure Glance}
-\item \href{http://docs.openstack.org/developer/glance/}{Glance Project Documentation}
+\item {\color{blue}\href{http://docs.openstack.org/trunk/config-reference/content/ch\_configuring-openstack-image-service.html}{Configure Glance}}
+\item {\color{blue}\href{http://docs.openstack.org/developer/glance/}{Glance Project Documentation}}
 \end{itemize}
 
 \end{frame}
