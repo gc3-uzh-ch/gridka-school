@@ -22,12 +22,12 @@
 % chapter division
 \begin{frame}{MySQL's role inside OpenStack}
 
-\textit{MySQL} database assumes a core role in the set of 
-support softwares inside OpenStack and is mainly used:
+\textit{MySQL} database assumes a core role in the set of support softwares
+inside OpenStack and is mainly used:
 
 \begin{itemize}
 \item for storing the state of the OpenStack cluster (VMs, users, volumes, tokens, etc), 
-\item in the workflow of handling new requests (starting a new instance, creating a volume, etc).
+\item in the workflow of handling the various service requests (e.g. starting a new instance, creating a volume).
 \end{itemize}
 
 Alternative of MySQL inside OpenStack is MariaDB.
@@ -36,12 +36,12 @@ Alternative of MySQL inside OpenStack is MariaDB.
 
 \begin{frame}{RabbitMQ's role inside OpenStack}
 
-The \textit{RabbitMQ} messaging system is the second core
-support software inside OpenStack and is mainly used:
+The \textit{RabbitMQ} messaging system is the second core support software 
+inside OpenStack and is mainly used:
 
 \begin{itemize}
-\item in the process of communication between the different stack components, 
-\item in tight collaboration with MySQL in the workflow of handling new requests.
+\item to provide a communication layer between the different stack components, 
+\item as a consequence to enable the collaboration between the components.
 \end{itemize} 
 
 Alternatives of RabbitMQ inside OpenStack are Qpid and ZeroMQ.
@@ -58,17 +58,15 @@ Example: provisioning of a new instance
 
 \begin{itemize}
 \item a client sends a POST request to nova-api for a VM provisioning,
-\item nova-api writes an entry in the DB,
+\item nova-api writes an entry in the database,
 \item nova-api posts then a JSON message in RabbitMQ queue (the message is for nova-scheduler),
-\item nova-scheduler reads the JSON message from RabbitMQ queue,
-\item nova-scheduler then examines the overall cluster situation from the DB,
-\item nova-scheduler posts a JSON message in RabbitMQ saying which compute host should start the VM,
-\item nova-compute gathers then the info from the RabbitMQ and from the DB and proceeds with the VM provisioning.
+\item nova-scheduler reads the JSON message from the queue,
+\item it examines the overall cluster situation,
+\item nova-scheduler then decides which compute should start the VM and posts JSON message in its RabbitMQ queue,
+\item nova-compute gathers then the request information (from the RabbitMQ and DB) and proceeds with the VM provisioning.
 \end{itemize}
 
 \end{frame}
-
-
 
 \begin{frame}{MySQL High Availabiltiy}
 
@@ -77,13 +75,14 @@ it contains the state of the whole Stack.
 
 \vspace{5 mm}
 
-Thus, the HA of MySQL becomes critical. The recommended way to do that is by using DRBD and Pacemaker 
-even if the alternative method, by using MySQL and Galera, should take over in the near future.
+Having MySQL in HA becomes almost a requirement. OpenStack's recommended way to 
+do it is by using DRBD and Pacemaker. An alternative is using a Galera cluster 
+which should become the state-of-the-art in the near future. 
 
 \vspace{5 mm}
 
-Refer to {\color{blue}\href{http://docs.openstack.org/high-availability-guide/content/s-mysql.html}{this}} 
-link for more details and info on DRBD and Pacemaker configuration.
+{\color{blue}\href{http://docs.openstack.org/high-availability-guide/content/s-mysql.html}{This}} 
+link provides more information.
 
 \end{frame}
 
@@ -93,13 +92,13 @@ RabbitMQ can be configured in HA to prevent communication failure between the Op
 
 \vspace{5 mm}
 
-This can be achieved again, like with MySQL, by using DRBD and Pacemaker even if the alternative
-method, by using two active-active mirrored servers is also becoming important. 
+This can be achieved again, like in the case with MySQL, by using DRBD and Pacemaker. 
+An alternative method, by using two active-active mirrored servers is also becoming important. 
 
 \vspace{5 mm}
 
-Refer to {\color{blue}\href{http://docs.openstack.org/high-availability-guide/content/s-rabbitmq.html}{this}} 
-link for more details and info on DRBD and Pacemaker configuration.
+{\color{blue}\href{http://docs.openstack.org/high-availability-guide/content/s-rabbitmq.html}{This}} 
+link provides detailed information. 
 
 \end{frame}
 
@@ -108,7 +107,7 @@ link for more details and info on DRBD and Pacemaker configuration.
 \begin{itemize}
 \item Installation of MySQL and RabbitMQ is really straight forward
 and requires limited intervention. 
-\item Configuration of RabbitMQ is limited to changing the default password.
+\item Configuration of RabbitMQ is limited to changing the default passwd and the bind address.
       \begin{itemize}
           \item Conf. file is \texttt{/etc/rabbitmq/rabbitmq-env.conf}
           \item Logs directory is: \texttt{/var/log/rabbitmq} 
