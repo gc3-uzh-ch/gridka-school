@@ -195,9 +195,9 @@ Now we are ready to restart the glance services::
 As we did for keystone, we can set environment variables in order to
 access glance::
 
-    root@image-node:~# export OS_USERNAME=admin
+    root@image-node:~# export OS_USERNAME=glance
     root@image-node:~# export OS_PASSWORD=gridka
-    root@image-node:~# export OS_TENANT_NAME=admin
+    root@image-node:~# export OS_TENANT_NAME=service
     root@image-node:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
 
 Testing glance
@@ -282,9 +282,9 @@ using glance as we did before.
 
 If you want to get further information about `qcow2` images, you will
 need to install `qemu-utils` package and run `qemu-img info <image
-name`.
+name`:: 
 
-::
+
     root@image-node:~# apt-get install -y qemu-utils
     [...]
     root@image-node:~# qemu-img info /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4
