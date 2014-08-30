@@ -1,9 +1,13 @@
+Glance - Image Service
+======================
+
 ``image-node``
 --------------
 
-As we did for the auth node before staring it is good to quickly check if the
-remote ssh execution of the commands done in the `all nodes installation`_ section 
-worked without problems. You can again verify it by checking the ntp installation.
+As we did for the auth node before staring it is good to quickly check
+if the remote ssh execution of the commands done in the `all nodes
+installation <basic_services.rst#all-nodes-installation>`_ section worked without problems. You can again verify
+it by checking the ntp installation.
 
 Glance
 ++++++
@@ -40,6 +44,7 @@ On the **db-node** create the database and the MySQL user::
     mysql> CREATE DATABASE glance;
     mysql> GRANT ALL ON glance.* TO 'glance'@'%' IDENTIFIED BY 'gridka';
     mysql> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost' IDENTIFIED BY 'gridka';
+    mysql> FLUSH PRIVILEGES;
     mysql> exit;
 
 On the **auth-node** instead we need to create an **image** service
@@ -89,7 +94,7 @@ and the related endpoint::
         --publicurl 'http://image-node.example.org:9292/v2' \
         --adminurl 'http://image-node.example.org:9292/v2' \
         --internalurl 'http://10.0.0.5:9292/v2' \
-        --service-id 6cb0cf7a81bc4489a344858398d40222
+        --region RegionOne --service glance
     +-------------+---------------------------------------+
     |   Property  |                 Value                 |
     +-------------+---------------------------------------+
@@ -106,17 +111,20 @@ glance installation and configuration
 
 On the **image-node** install the **glance** package::
 
-    root@image-node:~# apt-get install glance python-mysqldb 
+    root@image-node:~# aptitude install glance python-mysqldb
 
 To configure the glance service we need to edit a few files in ``/etc/glance``:
 
 Information on how to connect to the MySQL database is stored in the
-``/etc/glance/glance-api.conf`` and ``/etc/glance-registry.conf`` files. 
-The syntax is similar to the one used in the ``/etc/keystone/keystone.conf``
-file, the name of the option is ``connection`` again. Please edit both files
-and it change to::
+``/etc/glance/glance-api.conf`` and ``/etc/glance-registry.conf``
+files.  The syntax is similar to the one used in the
+``/etc/keystone/keystone.conf`` file, the name of the option is
+``connection`` again, in ``[database]`` section. Please edit both
+files and change it to (if it's not there, add it to the section)::
 
-    connection = mysql://glance:gridka@10.0.0.4/glance
+    [database]
+    ...
+    connection = mysql://glance:gridka@10.0.0.3/glance
 
 The Image Service has to be configured to use the message broker. Configuration
 information is stored in ``/etc/glance/glance-api.conf``. Please open the file 
@@ -126,10 +134,23 @@ and change as follows in the ``[DEFAULT] section``::
      ...
      rpc_backend = rabbit
      rabbit_host = 10.0.0.3
-     rabbit_password = user@gridka
+     rabbit_password = gridka
 
-Also, we need to adjustthe **keystone_authtoken** section so that it matches the values we used
-when we created the keystone **glance** user in both in ``glance-api.conf`` and ``glance-registry.conf``::
+.. NOTE: I don't think glance is sending notifications at all, as they
+   are not needed very often. I think it's used only when you want to
+   be notified when an image have been updated.
+
+   Also check `notification_driver` option
+
+Note that by default RabbitMQ is not used by glance, because there
+isn't much communication between glance and other services that cannot
+pass through the public API. However, if you define this and set the
+``notification_driver`` option to ``rabbit``, you can receive
+notifications for image creation/deletion.
+
+Also, we need to adjust the ``[keystone_authtoken]`` section so that
+it matches the values we used when we created the keystone **glance**
+user in both in ``glance-api.conf`` and ``glance-registry.conf``::
 
     [keystone_authtoken]
     auth_host = 10.0.0.4
@@ -146,7 +167,8 @@ in both ``glance-api.conf`` and ``glance-registry.conf``::
     [paste_deploy]
     flavor = keystone
 
-.. Very interesting: we misspelled the password here, but we only get
+.. Grizzly note:
+   Very interesting: we misspelled the password here, but we only get
    errors when getting the list of VM from horizon. Booting VM from
    nova actually worked!!! 
    
@@ -163,7 +185,7 @@ in both ``glance-api.conf`` and ``glance-registry.conf``::
 
 Like we did with keystone, we need to populate the glance database::
 
-    root@image-node:~# /bin/sh -c "glance-manage db_sync" glance 
+    root@image-node:~# glance-manage db_sync
 
 Now we are ready to restart the glance services::
 
@@ -188,6 +210,9 @@ First of all, let's download a very small test image::
 .. Note that if the --os-endpoint-type is not specified glance will try to use 
    publicurl and if the image-node.example.org is not in /etc/hosts an error 
    will be issued.  
+
+(You can also download an Ubuntu distribution from the official
+`Ubuntu Cloud Images <https://cloud-images.ubuntu.com/>`_ website)
 
 The command line tool to manage images is ``glance``. Uploading an image is easy::
 
@@ -245,7 +270,7 @@ uploaded on the image store::
 The cirros image we uploaded before, having an image id of
 ``79af6953-6bde-463d-8c02-f10aca227ef4``, will be found in::
 
-    root@image-node:~# ls -l /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4 
+    root@image-node:~# ls -l /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4
     -rw-r----- 1 glance glance 9761280 Apr 24 16:38 /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4
 
 You can easily find ready-to-use images on the web. An image for the
@@ -255,25 +280,50 @@ can be found at the `Ubuntu Cloud Images archive
 <http://cloud-images.ubuntu.com/>`_, you can download it and upload
 using glance as we did before.
 
+If you want to get further information about `qcow2` images, you will
+need to install `qemu-utils` package and run `qemu-img info <image
+name`.
+
+::
+    root@image-node:~# apt-get install -y qemu-utils
+    [...]
+    root@image-node:~# qemu-img info /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4
+    image: /var/lib/glance/images/79af6953-6bde-463d-8c02-f10aca227ef4 
+    file format: qcow2
+    virtual size: 39M (41126400 bytes)
+    disk size: 9.3M
+    cluster_size: 65536
+    Format specific information:
+    compat: 0.10
+
+
 Further improvements
 ~~~~~~~~~~~~~~~~~~~~
 
 By default glance will store all the images as files in
-``/var/lib/glance/images``, but other options are available. You can
-store the images on a s3 or swift object storage, for instance, or on
-a RDB (gluster) storage. This is changed by the option
-``default_store`` in the ``/etc/glance/glance-api.conf`` configuration
-file, and depending on the type of store you will have various other
-options, like the path for the *filesystem* store, or the access and
-secret keys for the s3 store, or rdb configuration options.
+``/var/lib/glance/images``, but other options are available,
+including:
+
+* S3 (Amazon object storage service)
+* Swift (OpenStack object storage service)
+* RBD (Ceph's remote block device)
+* Cinder (Yes, your images can be volumes on cinder!)
+* etc...
+  
+This is changed by the option ``default_store`` in the
+``/etc/glance/glance-api.conf`` configuration file, and depending on
+the type of store you use, more options are availble to configure it,
+like the path for the *filesystem* store, or the access and secret
+keys for the s3 store, or rdb configuration options.
 
 Please refer to the official documentation to change these values.
 
 Another improvement you may want to consider in a production environment
-is the Glance Image Cache which enables the Glance server with an 
-optional local image cache. Using this option multiple endpoints can
-serve the same image file resulting in high availabilty. This way you 
-installation can also scale and serve a higher numer of requests. 
+is the Glance Image Cache. This option will create a local cache in
+the glance server, in order to improve the download speed for most
+used images, and reduce the load on the storage backend, possibly
+putting multiple glance servers behind a load-balancer like haproxy.
 
 More detailed information can be found `here <http://docs.openstack.org/developer/glance/cache.html>`_  
 
+`[Next: Cinder - Block storage service] <cinder.rst>`_

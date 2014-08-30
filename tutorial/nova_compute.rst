@@ -1,9 +1,11 @@
-``compute-1`` and ``compute-2``
--------------------------------
+`[Next: life of a VM (Compute service) - nova-compute] <nova_compute.rst>`_
+---------------------------------------------------------------------------
 
-As we did for the network node before staring it is good to quickly check if the
-remote ssh execution of the commands done in the `all nodes installation`_ section 
-worked without problems. You can again verify it by checking the ntp installation.
+As we did for the network node before staring it is good to quickly
+check if the remote ssh execution of the commands done in the `all
+nodes installation <basic_services.rst#all-nodes-installation>`_
+section worked without problems. You can again verify it by checking
+the ntp installation.
 
 Nova-compute
 ++++++++++++
@@ -70,10 +72,13 @@ the host node does not support *nested virtualization*, we install
 This will also install the **nova-compute** package and all its
 dependencies.
 
-In order to allow the compute nodes to access the MySQL server you must 
-install the **MySQL python library**:: 
+.. FIXME: let's see if with icehouse nova-compute is using
+   nova-conductor by default and nothing else.
 
-    root@compute-1 # apt-get install -y python-mysqldb
+   In order to allow the compute nodes to access the MySQL server you must 
+   install the **MySQL python library**:: 
+
+       root@compute-1 # apt-get install -y python-mysqldb
 
 
 Network configuration
@@ -98,8 +103,8 @@ bridge, called **br100** attached to the network interface ``eth2``::
     auto br100
     iface br100 inet static
         address      0.0.0.0
-        pre-up ifconfig eth2 0.0.0.0 
-        bridge-ports eth2
+        pre-up ifconfig eth1 0.0.0.0 
+        bridge-ports eth1
         bridge_stp   off
         bridge_fd    0
 
@@ -123,7 +128,7 @@ to the **br100** bridge::
 
     root@compute-1 # brctl show
     bridge name bridge id       STP enabled interfaces
-    br100       8000.525400c71a7b   no      eth2
+    br100       8000.525400c71a7b   no      eth1
 
 
 nova configuration
@@ -141,17 +146,16 @@ and MySQL servers. The minimum information you have to provide in the
     # api_paste_config=/etc/nova/api-paste.ini
     # compute_scheduler_driver=nova.scheduler.simple.SimpleScheduler
     rabbit_host=10.0.0.3
+    rabbit_password = gridka
     # nova_url=http://10.0.0.6:8774/v1.1/
-    sql_connection=mysql://novaUser:novaPass@10.0.0.3/nova
-    root_helper=sudo nova-rootwrap /etc/nova/rootwrap.conf
-
-    # Auth
-    use_deprecated_auth=false
-    auth_strategy=keystone
+    #sql_connection=mysql://novaUser:novaPass@10.0.0.3/nova
 
     # Imaging service
     glance_api_servers=10.0.0.5:9292
     image_service=nova.image.glance.GlanceImageService
+
+    # Cinder: use internal URl instead of public one.
+    cinder_catalog_info = volume:cinder:internalURL
 
     # Vnc configuration
     novnc_enabled=true
@@ -162,6 +166,29 @@ and MySQL servers. The minimum information you have to provide in the
 
     # Compute #
     compute_driver=libvirt.LibvirtDriver
+
+    # Auth
+    use_deprecated_auth=false
+    auth_strategy=keystone
+    
+    [keystone_authtoken]
+    auth_uri = http://10.0.0.4:5000
+    auth_host = 10.0.0.4
+    auth_port = 35357
+    auth_protocol = http
+    admin_tenant_name = service
+    admin_user = nova
+    admin_password = gridka
+    
+
+..
+    # Cinder
+    cinder_catalog_info = volume:cinder:internalURL
+    # This option has to be set, otherwise cinder
+    # will try to use the publicURL (by default) which will
+    # generate a "ConnectionError" message because
+    # compute hosts have no public interface. 
+    # Lets leave this as an exercise for the students.   
 
 You can just replace the ``/etc/nova/nova.conf`` file with the content
 displayed above.
@@ -189,16 +216,23 @@ Ensure that the the ``/etc/nova/nova-compute.conf`` has the correct
 libvirt type. For our setup this file should only contain::
 
     [DEFAULT]
-    libvirt_type=qemu
-    libvirt_cpu_mode=none
+    compute_driver=libvirt.LibvirtDriver
+    [libvirt]
+    virt_type=qemu
+
+..
+   Was:
+       [DEFAULT]
+       libvirt_type=qemu
+       libvirt_cpu_mode=none
 
 Please note that these are the lines needed on *our* setup because we
 have virtualized compute nodes without support for nested
 virtualization. On a production environment, using physical machines
 with full support for virtualization you would probably need to set::
 
-    [DEFAULT]
-    libvirt_type=kvm
+    [libvirt]
+    virt_type=kvm
 
 ..
   Not needed:
@@ -287,15 +321,16 @@ groups::
     +--------------------------------------+--------------+--------+--------+
 
     root@api-node:~# nova flavor-list
-    +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
-    | ID | Name      | Memory_MB | Disk | Ephemeral | Swap | VCPUs | RXTX_Factor | Is_Public | extra_specs |
-    +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
-    | 1  | m1.tiny   | 512       | 0    | 0         |      | 1     | 1.0         | True      | {}          |
-    | 2  | m1.small  | 2048      | 20   | 0         |      | 1     | 1.0         | True      | {}          |
-    | 3  | m1.medium | 4096      | 40   | 0         |      | 2     | 1.0         | True      | {}          |
-    | 4  | m1.large  | 8192      | 80   | 0         |      | 4     | 1.0         | True      | {}          |
-    | 5  | m1.xlarge | 16384     | 160  | 0         |      | 8     | 1.0         | True      | {}          |
-    +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+-------------+
+    +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+
+    | ID | Name      | Memory_MB | Disk | Ephemeral | Swap | VCPUs | RXTX_Factor | Is_Public |
+    +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+
+    | 1  | m1.tiny   | 512       | 1    | 0         |      | 1     | 1.0         | True      |
+    | 2  | m1.small  | 2048      | 20   | 0         |      | 1     | 1.0         | True      |
+    | 3  | m1.medium | 4096      | 40   | 0         |      | 2     | 1.0         | True      |
+    | 4  | m1.large  | 8192      | 80   | 0         |      | 4     | 1.0         | True      |
+    | 5  | m1.xlarge | 16384     | 160  | 0         |      | 8     | 1.0         | True      |
+    +----+-----------+-----------+------+-----------+------+-------+-------------+-----------+
+
 
     root@api-node:~# nova secgroup-list
     +---------+-------------+
@@ -403,117 +438,6 @@ disk is *persistent*, which means that if you terminate the instance
 and then you attach the disk to a new instance, the content of the
 volume is persisted.
 
-
-Horizon
--------
-
-On the **api-node**::
-
-    root@api-node:# apt-get install openstack-dashboard
-
-Edit the file ``/etc/openstack-dashboard/local_settings.py`` and
-update the ``OPENSTACK_HOST`` variable::
-
-    OPENSTACK_HOST = "auth-node.example.org"
-
-From the **physical node** you can connect to the api-node node by
-opening the URL ``http://172.16.0.6/horizon`` on your web browser
-
-
-..
-   Keystone is then checking on what the users/tenants are "supposed" to
-   see (in terms of images, quotes, etc). Working nodes are periodically
-   writing their status in the nova-database. When a new request arrives
-   it is processed by the nova-scheduler which writes in the
-   nova-database when a matchmaking with a free resource has been
-   accomplished. On the next poll when the resource reads the
-   nova-database it "realizes" that it is supposed to start a
-   new VM. nova-compute writes then the status inside the nova database.
-
-   Different scheduling policy and options can be set in the nova's configuration file.
-
-
-Notes on EC2 compatible interface
----------------------------------
-
-The EC2 compatibility layer in nova is provided by the **nova-api**
-service together with the native interface. There also is a
-**nova-api-ec2** service which is used *as a replacement* of
-**nova-api** if you only need the EC2 API and you don't want the
-native apis, although in our case we need both.
-
-The EC2 compatibility layer, however, need one more configuration
-option we didn't define. 
-
-Edit ``/etc/nova/nova.conf`` on the **api-node** and add the following
-option::
-
-    keystone_ec2_url=http://auth-node.example.org:5000/v2.0/ec2tokens
-
-Please note that this is an url pointing to the keystone service, but
-with an additional ``ec2tokens``. This is used by the **nova-api**
-service to validate ec2-style tokens, and by default points to
-localhost.
-
-working with the EC2 interface
-++++++++++++++++++++++++++++++
-
-To access an EC2 endpoint you need to get an **access key** and a
-**secret key**. These are temporary tokens you can create and delete,
-so that you don't have to use your login and password all the time,
-and you can actually *lend* them to other people to allow them to run
-virtual machines on your behalf without having to give them your login
-and password. You can delete them whenever you want.
-
-To create a new pair of ec2 credentials you can run::
-
-    root@api-node:~# keystone ec2-credentials-create
-    +-----------+----------------------------------+
-    |  Property |              Value               |
-    +-----------+----------------------------------+
-    |   access  | c22f5770ee924f25b4c7b091f521b15f |
-    |   secret  | 78b92ddde8134b46a05dbd91023e27db |
-    | tenant_id | acdbdb11d3334ed987869316d0039856 |
-    |  user_id  | 13ff2976843649669c4911ec156eaa3f |
-    +-----------+----------------------------------+
-
-You can later on delete a pair of ec2 credentials with ``keystone
-ec2-credentials-delete --access <access_key>``
-
-If you want to test the EC2 interface the easiest way is to install
-the **euca2ools** tool::
-
-    root@api-node:~# apt-get install euca2ools
-
-and then run, for instance, the command::
-
-    root@api-node:~# euca-describe-images \
-      --access-key c22f5770ee924f25b4c7b091f521b15f \
-      --secret-key 78b92ddde8134b46a05dbd91023e27db \
-      -U http://api-node.example.org:8773/services/Cloud
-    IMAGE	ami-00000001	None (Cirros-0.3.0-x86_64)	0aacc603e6dd425caa51db0d07957412	available	private			machine				instance-store
-
-There are two things to note about this command:
-
-* the URL we are using this time is *not* the keystone url. This
-  because the service providing the EC2 compatibility layer is
-  **nova-api** instead, so we have to use the URL we used as endpoint
-  for the **ec2** service
-
-* the image id returned by the previous command is *not* directly
-  related to the image id used in glance. Instead, it is an ``ami-*``
-  id (similar to the IDs used by amazon images). Actually, there is no
-  easy way to get the ami id knowing the glance id, so you have to
-  use the image name whenever it is possible to identify the right
-  image.
-
-Also for the euca2ools and for most of the EC2 libraries, setting the
-following environment variables allows you to avoid explicitly specify
-access/secret keys and endpoint url::
-
-    root@api-node:~# export EC2_ACCESS_KEY=445f486efe1a4eeea2c924d0252ff269
-    root@api-node:~# export EC2_SECRET_KEY=ff98e8529e2543aebf6f001c74d65b17
-    root@api-node:~# export EC2_URL=http://api-node.example.org:8773/services/Cloud
 
 Start a virtual machine using euca2ools
 +++++++++++++++++++++++++++++++++++++++

@@ -1,54 +1,74 @@
-``network-node``
-----------------
+Network service - *easy* version - nova-network
+-----------------------------------------------
 
-As we did for the api node before staring it is good to quickly check if the
-remote ssh execution of the commands done in the `all nodes installation`_ section 
-worked without problems. You can again verify it by checking the ntp installation.
-
-nova-network
-++++++++++++
+nova-network vs. neutron
+++++++++++++++++++++++++
 
 Networking in OpenStack is quite complex, you have multiple options
-and you currently have two different, incompatible implementations.
+and you currently have two different, incompatible implementations:
 
-The newer, feature rich but still unstable is called **Neutron**
-(previously known as **Quantum**, they renamed it because of Trademark
-issues). We are not going to implement this solution because it is:
+* `nova-network`
+* `neutron` (formerly known as `quantum`)
 
-1) very complex
-2) quite unstable
-3) not actually needed for a basic setup
+`nova-network` is the *legacy* network service for OpenStack, and has
+proven to be reliable and scalable enough.
 
-The old, stable, very well working solution is **nova-network**, which
-is the solution we are going to implement.
+However, because of the architecture of the `nova-network` service, a
+new project has started in the last 2 years, called
+`Neutron <https://wiki.openstack.org/wiki/Neutron>`_. The main
+difference between `nova-network` and `neutron` is that the former
+gives a very basic service that can only be managed and configured by
+the cloud administrator, while the latter provides a network API (like
+any other OpenStack service) that allows the user to create
+and manage multi-tier networks, routers, and network services like
+firewall, dns, load balancers.
 
-Let's just recap how the networking works in OpenStack
+However, at the time of writing, Neutron **does not have** all the
+features `nova-network` has (for one: there is no HA for the routers),
+and configuration and troubleshooting is much much more complicated
+than with nova-network.
 
-OpenStack networking
-~~~~~~~~~~~~~~~~~~~~
+Considering that most deployments does not need all the features that
+Neutron has, we decided to deploy our cloud using `nova-network`
+first, and dedicate the last day to play with neutron.
 
-The nova-network is providing the networkig service in OpenStack and enables
-the communication between the instances and:
+OpenStack networking - nova-network
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* the rest of the stack services 
-* the outside world. 
+The main goal of nova-network is to provide network access to the
+OpenStack instances, specifically:
+
+* between two VMs in the cloud and
+* to the outside world. 
 
 There are currently three kind of networks implemented by three "Network Manager" types:
 
-* Flat DHCP Network Manager: the implementation we are going to use in the tutorial. 
-  OpenStack starts a DHCP server (dnsmasq) to pass out IP addresses to VM instances
-  from the specified subnet in addition to manually configuring the networking bridge. 
-  IP addresses for VM instances are grabbed from a subnet specified by the network administrator.
+1) Flat DHCP Network Manager: the implementation we are going to use
+   in the tutorial.  OpenStack starts a DHCP server (dnsmasq) to pass
+   out IP addresses to VM instances from the specified subnet in
+   addition to manually configuring the networking bridge.  IP
+   addresses for VM instances are grabbed from a subnet specified by
+   the network administrator.
   
-* Flat Network Manager: a network administrator specifies a subnet where 
-  IP addresses for VM instances are grabbed from the subnet, and then injected into
-  the image on launch. This means the system adminstrator has to implement a method 
-  for the IP assigment: external DHCP or other means.
+2) Flat Network Manager: a network administrator specifies a subnet
+   where IP addresses for VM instances are grabbed from the subnet,
+   and then injected into the image on launch. This means the system
+   adminstrator has to implement a method for the IP assigment:
+   external DHCP or other means.
   
-* VLAN Network Manager: In this mode, Compute creates a VLAN and bridge for each project.
-  For multiple machine installation, the VLAN Network Mode requires a switch that supports VLAN 
-  tagging (IEEE 802.1Q)
+3) VLAN Network Manager: In this mode, Compute creates a VLAN and
+   bridge for each project.  For multiple machine installation, the
+   VLAN Network Mode requires a switch that supports VLAN tagging
+   (IEEE 802.1Q)
 
+The network manager we are going to deploy during this tutorial is
+`Flat DHCP Network`, mainly because `VLAN Network` requires a
+vlan-capable switch that we don't have (nor we would have time to
+explain how to configure it, or are willing to :))
+
+If you plan to setup a cloud and you have a strong security
+requirement to separate the network of your tenants, you'd probably
+want to deploy `VLAN Network` instead.
 
 ..
    FIXME: during the tutorial, it's probably better to install the
@@ -57,6 +77,13 @@ There are currently three kind of networks implemented by three "Network Manager
 
 ``nova-network`` configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As we did for the api node before staring it is good to quickly check
+if the remote ssh execution of the commands done in the `all nodes
+installation <basic_services.rst#all-nodes-installation>`_ section
+worked without problems. You can again verify it by checking the ntp
+installation.
+
 
 Please note that nova-network service will use the same user and MySQL
 database we used for the ``api-node`` node, and since the old
@@ -82,27 +109,26 @@ Network configuration on the **network-node** will look like:
 +-------+------------------+-----------------------------------------------------+
 | iface | network          | usage                                               |
 +=======+==================+=====================================================+
-| eth0  | 192.168.122.0/24 | ip assigned by kvm, to access the internet          |
+| eth0  | 10.0.0.0/24      | `management network`                                |
+|       |                  |(internal network of the OS services)                |
 +-------+------------------+-----------------------------------------------------+
-| eth1  | 10.0.0.0/24      | internal network                                    |
+| eth1  | 172.16.0.0/24    | `public network`                                    |
 +-------+------------------+-----------------------------------------------------+
-| eth2  | 172.16.0.0/24    | public network                                      |
+| eth2  | 0.0.0.0          | slave interface of br100 (integration bridge)       |
 +-------+------------------+-----------------------------------------------------+
-| eth3  | 0.0.0.0          | slave network of the br100 bridge                   |
-+-------+------------------+-----------------------------------------------------+
-| br100 | 10.99.0.0/22     | bridge connected to the internal network of the VMs |
+| br100 | 10.99.0.0/22     | `integration network`, internal network of the VMs  |
 +-------+------------------+-----------------------------------------------------+
 
-The last interface (eth3) is managed by **nova-network** itself, so we
-only have to create a bridge and attach eth3 to it. This is done on
+The last interface (eth2) is managed by **nova-network** itself, so we
+only have to create a bridge and attach eth2 to it. This is done on
 ubuntu by editing the ``/etc/network/interface`` file and ensuring
 that it contains::
 
     auto br100
     iface br100 inet static
         address      0.0.0.0
-        pre-up ifconfig eth3 0.0.0.0 
-        bridge-ports eth3
+        pre-up ifconfig eth2 0.0.0.0 
+        bridge-ports eth2
         bridge_stp   off
         bridge_fd    0
 
@@ -138,26 +164,39 @@ afterwards. To force Linux to re-read the file you can run::
 Update the configuration file ``/etc/nova/nova.conf`` and ensure the
 following options are defined::
 
+
+    network_api_class = nova.network.api.API
+    security_group_api = nova
+
     network_manager=nova.network.manager.FlatDHCPManager
     force_dhcp_release=True
     firewall_driver=nova.virt.libvirt.firewall.IptablesFirewallDriver
 
     rabbit_host=10.0.0.3
-    sql_connection=mysql://novaUser:novaPass@10.0.0.3/nova
+    rabbit_password = gridka
 
     flat_network_bridge=br100
     fixed_range=10.99.0.0/22    
     flat_network_dhcp_start=10.99.0.10
     network_size=1022
     
+
+We will also add some options to automatically assign a public IP to
+the virtual machine::
+
     # Floating IPs
     auto_assign_floating_ip=true
     default_floating_pool=public
-    public_interface=eth2
+    public_interface=eth1
 
 ..
    FIXME: ``auto_assign_floating_ip`` will only work if floating IPs are
    configured and there are floating IPs free!
+
+.. FIXME: Removed configuration for MySQL as now nova-netowrk is using
+   nova-conductor
+
+       sql_connection=mysql://nova:gridka@10.0.0.3/nova
 
 ..
        # Not sure it's needed
@@ -254,4 +293,12 @@ connections::
     | tcp         | 22        | 22      | 0.0.0.0/0 |              |
     +-------------+-----------+---------+-----------+--------------+
 
+    root@network-node:~# nova secgroup-list-rules default
+    +-------------+-----------+---------+-----------+--------------+
+    | IP Protocol | From Port | To Port | IP Range  | Source Group |
+    +-------------+-----------+---------+-----------+--------------+
+    | icmp        | -1        | -1      | 0.0.0.0/0 |              |
+    | tcp         | 22        | 22      | 0.0.0.0/0 |              |
+    +-------------+-----------+---------+-----------+--------------+
 
+`[Next: life of a VM (Compute service) - nova-compute] <nova_compute.rst>`_

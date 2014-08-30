@@ -6,6 +6,14 @@ GridKa School 2014 - Training Session on OpenStack
    [Creative Commons Attribution/Share-Alike (BY-SA) license](http://creativecommons.org/licenses/by-sa/3.0/).
 </sub>
 
+**WARNING WARNING WARNING***
+This guide is currently *broken*, and it doesn't work out of the
+box. This is **intentional**: studens are requested to find the
+bugs!!!
+
+A new, corrected version will be released after the GridKa school is terminated.
+**WARNING WARNING WARNING***
+
 Teachers:
 
 * [Antonio Messina](mailto:antonio.s.messina@gmail.com)
@@ -37,11 +45,11 @@ Table of contents
 * [Tutorial overview](tutorial/overview.rst)
 * [OpenStack overview](tutorial/openstack_overview.rst)
 * [Installation of basic services](tutorial/basic_services.rst) (MySQL and RabbitMQ)
-* [Keystone](tutorial/keystone.rst) (Authentication)
+* [Keystone](tutorial/keystone.rst) (Identity service)
 * [Glance](tutorial/glance.rst) (Image service)
 * [Cinder](tutorial/cinder.rst) (Block storage service)
 * [Nova API](tutorial/nova_api.rst) (Compute service)
 * [nova-network](tutorial/nova_network.rst) (Network service - *easy* version)
 * [Nova compute](tutorial/nova_compute.rst) - life of a VM (Compute service)
-* [Troubleshooting challenge session](tutorial/troubleshooting1.rst)
+* [Troubleshooting](tutorial/troubleshooting1.rst)
 * [Neutron](tutorial/neutron.rst) (Network service - *hard* version)

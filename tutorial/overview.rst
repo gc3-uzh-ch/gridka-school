@@ -1,5 +1,5 @@
 Tutorial overview
------------------
+=================
 
 During this tutorial, each one of you will have access to two physical
 nodes.
@@ -169,28 +169,20 @@ configured, so that you can already connect to them using either the
 These are the networks we are going to use:
 
 +------+-----------------------+------------------+
-| eth0 | internal KVM network  | 192.168.122.0/24 |
+| eth0 | internal network      | 10.0.0.0/24      |
 +------+-----------------------+------------------+
-| eth1 | internal network      | 10.0.0.0/24      |
+| eth1 | public network        | 172.16.0.0/16    |
 +------+-----------------------+------------------+
-| eth2 | public network        | 172.16.0.0/16    |
-+------+-----------------------+------------------+
-| eth3 | Openstack private     |                  |
+| eth2 | Openstack private     |                  |
 |      | network (present only |                  |
 |      | on the network-node)  |                  |
 +------+-----------------------+------------------+
 
-The *internal KVM network* is a network needed because our virtual
-machines does not have real public IP addresses, therefore we need to
-allow them to communicate through the physical node. The libvirt
-daemon will automatically assign an IP address to this interface and
-set the needed iptables rules in order to configure the NAT and allow
-the machine to connect to the internet. On a production environment,
-you will not have this interface.
-
 The *internal network* is a trusted network used by all the OpenStack
 services to communicate to each other. Usually, you wouldn't setup a
-strict firewall on this ip address.
+strict firewall on this ip address. In our case, the physical machine
+hosting the virtual machines also have an IP in this network, in order
+to be able to connect to the VMs from the physical node.
 
 The *public network* is the network exposed to the Internet. In our
 case we are using a non-routable IP range because of the constraints
@@ -206,7 +198,10 @@ them, therefore this network is configured only on the network node
 which only need to have an interface on this network attached to a
 bridge the virtual machines will be attached to. On a production
 environment you would probably use a separated L2 network for this,
-either by using VLANs or using a second physical interface.
+either by using VLANs or using a second physical interface. This is
+why in this tutorial we have added a second interface to the compute
+nodes, that will be used for VM-VM communication and to communicate
+with the network node.
 
 The following diagram shows both the network layout of the physical
 machines and of the virtual machines running in it:
@@ -231,6 +226,8 @@ The IP addresses of these machines are:
 +--------------+--------------+-----------+--------------------------+------------+
 | volume node  | volume-node  | 10.0.0.8  | volume-node.example.org  | 172.16.0.8 |
 +--------------+--------------+-----------+--------------------------+------------+
+| neutron node | neutron-node | 10.0.0.9  | neutron-node.example.org | 172.16.0.9 |
++--------------+--------------+-----------+--------------------------+------------+
 | compute-1    | compute-1    | 10.0.0.20 |                          |            |
 +--------------+--------------+-----------+--------------------------+------------+
 | compute-2    | compute-2    | 10.0.0.21 |                          |            |
@@ -248,10 +245,7 @@ On the compute node, moreover, we will need to manually create a
 *bridge* which will allow the OpenStack virtual machines to access the
 network which connects the two physical nodes.
 
-The *internal KVM network* is only needed because we are using virtual
-machines, but on a production environment you are likely to have only
-2 network cards for each of the nodes, and 3 on the network node.
-
+`Next: Installation of basic services <basic_services.rst>`_
 
 ..
    Installation:
