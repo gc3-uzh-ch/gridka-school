@@ -100,9 +100,12 @@ accessible from the all the OpenStack services. Edit the
     bind-address            = 10.0.0.3
 
 This will make the MySQL daemon listen only on the *private*
-interface. Please note that in this way you will not be able to
-contact it using the *public* interface (172.16.0.3), but this is
-usually what you want in a production environment.
+interface. 
+
+..   Not needed as we removed the public address.
+     Please note that in this way you will not be able to
+     contact it using the *public* interface (172.16.0.3), but this is
+     usually what you want in a production environment.
 
 The OpenStack official guide states that some of the options of InnoDB
 storage engine must be set in the configuration file. In order to do
@@ -121,7 +124,7 @@ After changing this line you have to restart the MySQL server::
 
     root@db-node # service mysql restart
 
-By default Ubuntu 14.04 allows access also from the network. This is a
+By default MySQL allows access also from the network. This is a
 security risk, so you may want to disable it.
 
 There is a script called ``mysql_secure_installation`` that helps you
