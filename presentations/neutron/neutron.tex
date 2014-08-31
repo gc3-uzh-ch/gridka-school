@@ -18,7 +18,7 @@
   University of Zurich
 }
 
-\title[Neutron]{OpenStack networking - Neutron}
+\title[Neutron]{OpenStack networking\\Neutron}
 \date{4~September~2014}
 
 \setbeamertemplate{itemize
@@ -45,6 +45,10 @@
     \item firewall
     \end{itemize}
   \end{itemize}
+
+  \+
+  {\footnotesize\url{https://wiki.openstack.org/wiki/Neutron}}
+
 \end{frame}
 
 
@@ -71,7 +75,7 @@
     switches and ports
   \item[DHCP agent] provides DHCP services to tenant networks
   \item[L3 agent] provides routing and NAT capabilities
-  \item[SDN server/services] additional network services
+  \item[SDN services] additional network services
   \end{description}
 \end{frame}
 
@@ -175,7 +179,7 @@
 % \end{frame}
 
 \begin{frame}
-  {ML2 plugin}
+  {ML2 plugin (since Havana/Icehouse)}
   \begin{itemize}
   \item Only one plugin is active in neutron at a time.
   \item ML2 plugin allow to use multiple L2 networking technologies at the
@@ -185,11 +189,13 @@
 
   \item Decouple the \textit{type} of network and its \textit{implementation}:
     \begin{description}
-    \item[type driver] (GRE, vlan, vxlan, flat)
+    \item[type driver] (GRE, VLAN, VXLAN, Flat)
     \item[mechanism driver] specific implementation for a specific
       network technology (OpenVSwitch, cisco, brocade \ldots)
     \end{description}
   \end{itemize}
+\+
+{\footnotesize\url{https://wiki.openstack.org/wiki/Neutron/ML2}}
 \end{frame}
 
 \begin{frame}
@@ -205,8 +211,11 @@
     \end{itemize}
   \end{itemize}
 
-  \vspace{1em}
+  \+
   We will deploy \texttt{neutron-openvswitch-agent}
+
+  \+
+  {\footnotesize\url{http://openvswitch.org/}}
 \end{frame}
 
 % \begin{frame}
@@ -236,14 +245,25 @@ A namespace is an \textit{isolated copy} of the network stack
 \begin{verbatim}
 ip netns help
 Usage: ip netns list
-       ip netns add NAME
-       ip netns delete NAME
-       ip netns identify PID
-       ip netns pids NAME
-       ip netns exec NAME cmd ...
+[...]
 \end{verbatim}
+{\footnotesize\href{http://lwn.net/Articles/531114/}{LWN.net: Namespaces
+    in operation}}
 \end{frame}
 
+
+\begin{frame}
+  {DHCP configuration agent}
+  \begin{itemize}
+  \item RPC based notifications
+  \item uses \texttt{dnsmasq} (one per network)
+  \item uses namespaces
+  \item typically runs on the network node
+  \item you can have multiple copies to achieve HA (part of DHCP:
+    multiple servers cun run on the same network segment, the client
+    gets the first response)\footnote{as long as the conf is the same}
+  \end{itemize}
+\end{frame}
 
 \begin{frame}
   {L3 agent}
@@ -278,51 +298,55 @@ Usage: ip netns list
   \end{itemize}
 \end{frame}
 
+\begin{frame}{Under the hood - network node}
+  \includegraphics[width=\linewidth]{under-the-hood-neutron-server}
+\end{frame}
+
 \begin{frame}
-  {DHCP configuration agent}
-  \begin{itemize}
-  \item RPC based notifications
-  \item uses \texttt{dnsmasq} (one per network)
-  \item uses namespaces
-  \item typically runs on the network node
-  \item you can have multiple copies to achieve HA (part of DHCP:
-    multiple servers cun run on the same network segment, the client
-    gets the first response)\footnote{as long as the conf is the same}
-  \end{itemize}
+  {Under the hood - compute node}
+  \includegraphics[width=\linewidth]{under-the-hood-compute}
 \end{frame}
 
 
 \begin{frame}
   {Metadata proxy}
 
-  usually embededd in the L3 agent
-
-  gets the request from the client, and redirect to the api node
-
-\end{frame}
-
-\begin{frame}
-  {Booting a VM}
-
   \begin{itemize}
-  \item instance is created but put in pause
-  \item port is created
-    \begin{itemize}
-    \item dhcp agent is notified
-    \end{itemize}
-  \item network device is created by libvirt
-    \begin{itemize}
-    \item nova waits until the device is wired to the port
-    \end{itemize}
-  \item port is wired
-  \item boot 
+  \item usually embededd in the L3 agent
+
+  \item gets the request from the client, and redirect to the api node
   \end{itemize}
 \end{frame}
 
+\begin{frame}
+  {References}
+  \begin{itemize}
+  \item \href{http://docs.openstack.org/admin-guide-cloud/content/ch_networking.html}{Cloud
+      Administrator Guide - Chapter 7 - Networking}
+  \item \url{https://wiki.openstack.org/wiki/Neutron}
+  \item \href{http://www.confreaks.com/videos/3533-openstacksummitatl2014-inside-the-architecture-of-neutron}{OpenStack
+      Summit Atlanta 2014 - Inside the Architecture of Neutron}
+
+  \end{itemize}
+\end{frame}
+
+% \begin{frame}
+%   {Booting a VM}
+
+%   \begin{itemize}
+%   \item instance is created but put in pause
+%   \item port is created
+%     \begin{itemize}
+%     \item dhcp agent is notified
+%     \end{itemize}
+%   \item network device is created by libvirt
+%     \begin{itemize}
+%     \item nova waits until the device is wired to the port
+%     \end{itemize}
+%   \item port is wired
+%   \item boot 
+%   \end{itemize}
+% \end{frame}
+
 \end{document}
 
-\href{http://www.confreaks.com/videos/3533-openstacksummitatl2014-inside-the-architecture-of-neutron}{OpenStack
-  Summit Atlanta 2014 - Inside the Architecture of Neutron}
-
-\href{http://docs.openstack.org/admin-guide-cloud/content/ch_networking.html}{Cloud
-  Administrator Guide - Chapter 7 - Networking}
