@@ -41,7 +41,7 @@ service considered in this tutorial in its relative section.
 Table of contents
 -----------------
 
-* [Introduction to OpenStack](presentations/overview/openstack.pdf?raw=true) (pdf slides)
+* Introduction to OpenStack ([pdf slides](presentations/overview/openstack.pdf?raw=true))
 * [Tutorial overview](tutorial/overview.rst)
 * [OpenStack overview](tutorial/openstack_overview.rst)
 * [Installation of basic services](tutorial/basic_services.rst) (MySQL
