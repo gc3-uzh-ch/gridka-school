@@ -21,70 +21,110 @@
 
 Cinder is a service used to provide Virtualized Block Storage Devices to the 
 end users of OpenStack without requiring them to have any knowledge of where 
-that storage is actually deployed or on what type of device. 
+that storage is actually deployed or on what type of device.
+
+\vspace{5mm}
+
+The hypervisor simply provides a standard SCSI volume to the VM, very likely
+when a user plug-in a USB stick in his laptop.
 
 \end{frame}
 
-\begin{frame}{Cinder's components: \textbf{cinder-api}}
+\begin{frame}{Cinder components: \textbf{cinder-api}}
 
-The role of cinder-api is to accept and manage API calls to:
+The role of \textit{cinder-api} is to accept and manage API calls to:
 
 \begin{itemize}
-\item create, delete, list and show volumes,
-\item create, delete, list and show snapshots,
+\item create, delete and list volumes and snapshots,
 \item attach and detach volumes (called by nova).
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}{Cinder's components \textbf{cinder-volume}}
 
-cinder-volume is:
+\begin{frame}{Cinder components: \textbf{cinder-scheduler}}
+
+The role of \textit{cinder-scheduler} is to:
 \begin{itemize}
-\item handling all the requests coming from cinder-api, 
-\item is keeping the Block Storage Database up to date,
-\item is interacting with other processes (like cinder-scheduler) through the message queue,
-\item is interacting directly with variuos types of storage back-ends.
+\item manage the cooperation between cinder-api and cinder-volume through the message queue and the DB,
+\item examine and choose the back-end which is going to provide the storage capacity requested by the user.
+\end{itemize}
+Different filters are available as plug-ins.
+
+\end{frame}
+
+\begin{frame}{Cinder components: \textbf{cinder-volume}}
+
+The role of \textit{cinder-volume} is to:
+\begin{itemize}
+\item handle and execute the requests coming from cinder-scheduler,
+\item interact directly with variuos types of storage back-ends.
 \end{itemize}
 
-Multiple cinder-volumes instances can be run using different configuration files and
-back-ends to allow scalabilty but also one cinder-volume can be manage multiple back-ends.
+Multiple cinder-volumes instances can be run either on the same node 
+providing access to different type of storage back-ends or on multiple 
+nodes to increase scalability.
 
 \end{frame}
 
-\begin{frame}{Cinder's components \textbf{cinder-scheduler}}
+\begin{frame}{Cinder components: \textbf{Message queues}}
 
-cinder-scheduler's main role is choosint the best back-end to use for placing the new volume. 
-It interacts with cinder-volume through the message queue and the Block Storage Database 
-and can be decoupled from the host running cinder-{api,volume}. Different filters are available 
-as plug-ins.
+\textit{Messaging queues} are used for communication between the services.
+RabbitMQ is a common implementation choice inside OpenStack.  
 
 \end{frame}
 
-\begin{frame}{Cinder's components: \textbf{message queue}}
+\begin{frame}{Cinder components: \textbf{Database}}
 
-The message queue is used for communication between the Cinder's components.  
+A \textit{Database} is used for storing volume metadata. 
+A common implementation choice here is MySQL. 
 
 \end{frame}
 
-\begin{frame}{Cinder: components interaction 1/2}
+\begin{frame}{Cinder components: \textbf{Storage}}
+
+\textit{Storage} is the back-end from where the volumes are actually served. 
+Different back-end types are supported:
+
+\begin{itemize}
+\item LVM 
+\item Ceph,
+\item Gluster,
+\item NFS,
+\item ZFS,
+\item Sheepdog,
+\item Some commercial (IBM, NetApp...)
+\end{itemize} 
+
+\end{frame}
+
+\begin{frame}{Cinder: components interaction 1/3}
 
 \centerline{\includegraphics[scale=0.30]{cinder.eps}}
 
 \end{frame}
 
-\begin{frame}{Cinder: components interaction 2/2}
+\begin{frame}{Cinder: components interaction 2/3}
 
 Interaction example:
 
 \begin{itemize}
-\item nova calls cinder-api via API providing connection information (hostname, iSCSI initiator name, etc),
-\item cinder-api passes the message to cinder-volume,
-\item cinder-volumes calles the storage volume driver or uses the queue to ask cinder-scheduler for a good candidate,
-\item the storage volume driver does everything to allow the connection (eg. give access),
-\item the storage volume driver returns connection information to nova,
-\item nova creates then the connections using the given parameteres,
-\item nova passes the volume device/file to the hypervisor.  
+\item nova calles cinder-api with connection information (hostname, iSCSI initiator name, etc),
+\item cinder-api writes the information in the DB and passes the message to cinder-scheduler,
+\item cinder-scheduler chooses the back-end to be used for the volume provisioning and calles cinder-volume,
+\item cinder-volumes provides the parameters to the storage back-end driver,
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Cinder: components interaction 3/3}
+
+Interaction example:
+
+\begin{itemize}
+\item the storage back-end allows the connection and allocates the storage space,
+\item cinder-volume returns then the connection information to nova,
+\item nova creates the connections using the given parameteres and passes the volume device/file to the hypervisor.
 \end{itemize}
 
 \end{frame}
@@ -106,8 +146,8 @@ Interaction example:
 \begin{frame}{Useful Links}
 
 \begin{itemize}
-\item \href{http://docs.openstack.org/icehouse/install-guide/install/apt/content/ch\_cinder.html}{Configure Cinder}
-\item \href{https://wiki.openstack.org/wiki/Cinder}{Cinder Project Documentation}
+\item {\color{blue}\href{http://docs.openstack.org/icehouse/install-guide/install/apt/content/ch\_cinder.html}{Configure Cinder}}
+\item {\color{blue}\href{https://wiki.openstack.org/wiki/Cinder}{Cinder Project Documentation}}
 \end{itemize}
 
 \end{frame}
