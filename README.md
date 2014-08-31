@@ -45,10 +45,10 @@ Table of contents
 * [Tutorial overview](tutorial/overview.rst)
 * [OpenStack overview](tutorial/openstack_overview.rst)
 * [Installation of basic services](tutorial/basic_services.rst) (MySQL
-  and RabbitMQ) ([pdf slides](presentations/db-rabbit/db-rabbit.pdf))
+  and RabbitMQ) ([pdf slides](presentations/db-rabbit/db-rabbit.pdf?raw=true))
 * [Keystone](tutorial/keystone.rst) (Identity service)
-* [Glance](tutorial/glance.rst) (Image service) ([pdf slides](presentations/glance/glance.pdf))
-* [Cinder](tutorial/cinder.rst) (Block storage service) ([pdf slides](presentations/cinder/cinder.pdf))
+* [Glance](tutorial/glance.rst) (Image service) ([pdf slides](presentations/glance/glance.pdf?raw=true))
+* [Cinder](tutorial/cinder.rst) (Block storage service) ([pdf slides](presentations/cinder/cinder.pdf?raw=true))
 * [Nova API](tutorial/nova_api.rst) (Compute service)
 * [nova-network](tutorial/nova_network.rst) (Network service - *easy* version)
 * [Nova compute](tutorial/nova_compute.rst) - life of a VM (Compute service)
