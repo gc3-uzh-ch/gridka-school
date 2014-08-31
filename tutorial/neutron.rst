@@ -320,7 +320,8 @@ and in promisc mode::
 
     root@neutron-node:~# ifconfig eth2 up promisc
 
-This can be done automatically at boot by editing ``/etc/network/interfaces`::
+This can be done automatically at boot by editing
+``/etc/network/interfaces``::
 
     auto eth2
     iface eth2 inet static
@@ -438,7 +439,7 @@ Ensure the `br-int` bridge has been created by the installer::
         ovs_version: "2.0.1"
 
 Ensure `rp_filter` is disabled. As we did before, you need to ensure
-the following lines are present in ``/etc/sysctl.conf`` file::
+the following lines are present in ``/etc/sysctl.conf`` file.
 
 This file is read during the startup, but it is not read
 afterwards. To force Linux to re-read the file you can run::

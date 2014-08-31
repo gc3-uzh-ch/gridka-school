@@ -35,6 +35,9 @@ first, and dedicate the last day to play with neutron.
 OpenStack networking - nova-network
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. figure:: ../images/network-logical.png
+   :alt: Network logical layout of the OpenStack testbed  
+
 The main goal of nova-network is to provide network access to the
 OpenStack instances, specifically:
 
@@ -110,7 +113,7 @@ Network configuration on the **network-node** will look like:
 | iface | network          | usage                                               |
 +=======+==================+=====================================================+
 | eth0  | 10.0.0.0/24      | `management network`                                |
-|       |                  |(internal network of the OS services)                |
+|       |                  | (internal network of the OS services)               |
 +-------+------------------+-----------------------------------------------------+
 | eth1  | 172.16.0.0/24    | `public network`                                    |
 +-------+------------------+-----------------------------------------------------+
