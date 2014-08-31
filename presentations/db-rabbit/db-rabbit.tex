@@ -30,54 +30,60 @@ inside OpenStack and is mainly used:
 \item in the workflow of handling the various service requests (e.g. starting a new instance, creating a volume).
 \end{itemize}
 
-Alternative of MySQL inside OpenStack is MariaDB.
+An alternative of MySQL in OpenStack could be any database supported by sqlalchemy.
 
 \end{frame}
 
 \begin{frame}{RabbitMQ's role inside OpenStack}
 
-The \textit{RabbitMQ} messaging system is the second core support software 
-inside OpenStack and is mainly used:
+The \textit{RabbitMQ} messaging system, used like Remote Procedure Call (RPC),
+is the second core support software and is mainly used:
 
 \begin{itemize}
 \item to provide a communication layer between the different stack components, 
 \item as a consequence to enable the collaboration between the components.
 \end{itemize} 
 
+The usage of RabbitMQ prevents the processes from polling the DB at every interaction. 
+
+\vspace{5mm}
+
 Alternatives of RabbitMQ inside OpenStack are Qpid and ZeroMQ.
 
 \end{frame}
-\begin{frame}{MySQL \& RabbitMQ interaction 1/2}
+\begin{frame}{Example of RabbitMQ and MySQL usage during instance creation}
 
 \includegraphics[scale=0.37]{db-rabbitmq.eps}
 
 \end{frame}
-\begin{frame}{MySQL \& RabbitMQ interaction 2/2}
-
-Example: provisioning of a new instance
+\begin{frame}{Example of RabbitMQ and MySQL usage during instance creation}
 
 \begin{itemize}
 \item a client sends a POST request to nova-api for a VM provisioning,
-\item nova-api writes an entry in the database,
-\item nova-api posts then a JSON message in RabbitMQ queue (the message is for nova-scheduler),
-\item nova-scheduler reads the JSON message from the queue,
-\item it examines the overall cluster situation,
-\item nova-scheduler then decides which compute should start the VM and posts JSON message in its RabbitMQ queue,
-\item nova-compute gathers then the request information (from the RabbitMQ and DB) and proceeds with the VM provisioning.
+\item nova-api writes an entry in the \textbf{DB},
+\item nova-api posts then a JSON message in \textbf{RabbitMQ} queue (the message is for nova-scheduler),
+\item nova-scheduler reads the JSON message from \textbf{RabbitMQ},
+\item it examines the overall cluster situation from the \textbf{DB},
+\item nova-scheduler then decides which compute should start the VM and posts JSON message in its \textbf{RabbitMQ} queue,
+\item nova-compute gathers then the request information (from the \textbf{RabbitMQ} and \textbf{DB}) and proceeds with the VM provisioning.
 \end{itemize}
 
 \end{frame}
 
 \begin{frame}{MySQL High Availabiltiy}
 
-MySQL is one of the most critical components in the OpenStack installation because 
-it contains the state of the whole Stack.
+MySQL is one of the most critical components because it contains
+the state of the whole Stack.
 
 \vspace{5 mm}
 
 Having MySQL in HA becomes almost a requirement. OpenStack's recommended way to 
-do it is by using DRBD and Pacemaker. An alternative is using a Galera cluster 
-which should become the state-of-the-art in the near future. 
+do it is by using the master - slave replication implementing DRBD and Pacemaker.
+
+\vspace{5mm}
+
+An active - active (N+1) alternative is using a Galera cluster which should become the 
+state-of-the-art in the near future. 
 
 \vspace{5 mm}
 
@@ -93,7 +99,11 @@ RabbitMQ can be configured in HA to prevent communication failure between the Op
 \vspace{5 mm}
 
 This can be achieved again, like in the case with MySQL, by using DRBD and Pacemaker. 
-An alternative method, by using two active-active mirrored servers is also becoming important. 
+
+\vspace{5mm}
+
+An alternative method, by using again active - active 
+(even if implementation is actually active - salve) mirrored servers. 
 
 \vspace{5 mm}
 
