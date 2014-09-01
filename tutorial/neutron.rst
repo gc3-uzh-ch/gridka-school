@@ -607,6 +607,7 @@ visible and usable by the tenant, and they can have the same IP
 addressing of other networks created by different tenants.
 
 ::
+    
     root@neutron-node:~# neutron net-create demo-net
     Created a new network:
     +---------------------------+--------------------------------------+
@@ -1024,42 +1025,7 @@ inside the correct namespace::
     neutron-l3-agent-snat  all  --  anywhere             anywhere            
 
 
-Now we should be able to connect to the VM from the physical node::
+Now we should be able to connect to the VM from the physical node.
 
 
-
-
-
-.. UP TO HERE
-
-..
-   Old stuff
-        root@neutron-node:~# neutron net-list
-        +--------------------------------------+---------+-----------------------------------------------------+
-        | id                                   | name    | subnets                                             |
-        +--------------------------------------+---------+-----------------------------------------------------+
-        | c434bd85-91dd-4f98-8f72-fddb73d3347d | ext-net | f8e1da44-a64f-4197-b6f9-f4ec88b711c0 130.60.24.0/24 |
-        +--------------------------------------+---------+-----------------------------------------------------+
-        root@neutron-node:~# neutron router-gateway-set \
-        6ef98eb2-0611-4f9e-b14c-d9f26bae0983 \
-        c434bd85-91dd-4f98-8f72-fddb73d3347d
-
-.. Not needed anymore?
-
-   After you create all the networks, tell the L3 agent what the external
-   network ID is, as well as the ID of the router associated with this
-   machine (because you are not using namespaces, there can be only one
-   router for each machine). To do this, edit the
-   ``/etc/neutron/l3_agent.ini`` file::
-
-
-       gateway_external_network_id = c434bd85-91dd-4f98-8f72-fddb73d3347d
-       router_id = 6ef98eb2-0611-4f9e-b14c-d9f26bae0983
-
-   **QUESTION:** Check if router_id is always needed. I think it's only
-   needed if you use the same router for all the tenants.
-
-   Then, restart the L3 agent::
-
-       root@neutron-node:~# service neutron-l3-agent restart
 
