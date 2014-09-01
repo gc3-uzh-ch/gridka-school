@@ -33,10 +33,10 @@
   \frametitle{Why neutron?}
   \begin{itemize}
   \item Allow tenants to define the network topology
+  \item Support very rich network topologies.
     \begin{itemize}
     \item including existing topologies
     \end{itemize}
-  \item Support very rich network topologies.
   \item Allow easy integration with network infrastructure.
   \item Allow creation of advanced network services, like:
     \begin{itemize}
@@ -244,8 +244,6 @@ A namespace is an \textit{isolated copy} of the network stack
 \footnotesize
 \begin{verbatim}
 ip netns help
-Usage: ip netns list
-[...]
 \end{verbatim}
 {\footnotesize\href{http://lwn.net/Articles/531114/}{LWN.net: Namespaces
     in operation}}
@@ -257,8 +255,10 @@ Usage: ip netns list
   \begin{itemize}
   \item RPC based notifications
   \item uses \texttt{dnsmasq} (one per network)
-  \item uses namespaces
+  \item uses namespaces (\texttt{qdhcp-<uuid-of-neutron-subnet>})
   \item typically runs on the network node
+  \item tap interface \texttt{tap-XXX} with \textit{private IP}, wired
+    to \texttt{br-int}
   \item you can have multiple copies to achieve HA (part of DHCP:
     multiple servers cun run on the same network segment, the client
     gets the first response)\footnote{as long as the conf is the same}
@@ -281,7 +281,7 @@ Usage: ip netns list
     \begin{itemize}\scriptsize
     \item[$\Rightarrow$] linux forwarding must be enabled
     \end{itemize}
-  \item tap interface \texttt{qg-X} with \textit{public} ip, wired to
+  \item tap interface \texttt{qg-X} with \textit{public} IP, wired to
     \texttt{br-ex} external bridge
 
   \item tap interface \texttt{qr-X} with \textit{private} IP, wired to
