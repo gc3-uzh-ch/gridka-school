@@ -43,9 +43,10 @@ In order to access the different virtual machines and start working on
 the configuration of OpenStack services listed above you will have to
 first login on one of the nodes assigned to your group by doing::
 
-        ssh root@gks-NNN.scc.kit.edu -p 24 -X
+        ssh ostack@gks-NNN.scc.kit.edu -p 24 -X
 
-where NNN is one of the numbers assigned to you.
+where NNN is one of the numbers assigned to you. As user `ostack`, you
+can run `sudo` and become root.
 
 Physical machines are assigned as follow:
 
