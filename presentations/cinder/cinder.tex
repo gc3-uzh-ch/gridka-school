@@ -63,7 +63,7 @@ The role of \textit{cinder-volume} is to:
 
 Multiple cinder-volumes instances can be run either on the same node 
 providing access to different type of storage back-ends or on multiple 
-nodes to increase scalability.
+nodes to increase scalability. 
 
 \end{frame}
 
@@ -93,7 +93,7 @@ Different back-end types are supported:
 \item NFS,
 \item ZFS,
 \item Sheepdog,
-\item Some commercial (IBM, NetApp...)
+\item SAN from different vendors (IBM, NetApp...)
 \end{itemize} 
 
 \end{frame}
@@ -112,7 +112,7 @@ Interaction example:
 \item nova calles cinder-api with connection information (hostname, iSCSI initiator name, etc),
 \item cinder-api writes the information in the DB and passes the message to cinder-scheduler,
 \item cinder-scheduler chooses the back-end to be used for the volume provisioning and calles cinder-volume,
-\item cinder-volumes provides the parameters to the storage back-end driver,
+\item cinder-volume accesses the storage back-end using its driver passing the conf. parameters,
 \end{itemize}
 
 \end{frame}
@@ -125,6 +125,7 @@ Interaction example:
 \item the storage back-end allows the connection and allocates the storage space,
 \item cinder-volume returns then the connection information to nova,
 \item nova creates the connections using the given parameteres and passes the volume device/file to the hypervisor.
+\itme the hypervisor attaches the volume to the VM.
 \end{itemize}
 
 \end{frame}
