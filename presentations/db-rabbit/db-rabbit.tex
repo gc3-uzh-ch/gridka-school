@@ -73,19 +73,13 @@ Alternatives of RabbitMQ inside OpenStack are Qpid and ZeroMQ.
 \begin{frame}{MySQL High Availabiltiy}
 
 MySQL is one of the most critical components because it contains
-the state of the whole Stack.
+the state of the whole Stack. Solutions could be:
 
-\vspace{5 mm}
-
-Having MySQL in HA becomes almost a requirement. OpenStack's recommended way to 
-do it is by using the master - slave replication implementing DRBD and Pacemaker.
-
-\vspace{5mm}
-
-An active - active (N+1) alternative is using a Galera cluster which should become the 
-state-of-the-art in the near future. 
-
-\vspace{5 mm}
+\begin{itemize}
+\item OpenStack recommended: DRBD + Pacemaker. Master-slave implementation.
+\item Galera. Active-active (N+1) implementation.
+\item MySQL native replication mechanisms. Master-slave implementation. 
+\end{itemize}
 
 {\color{blue}\href{http://docs.openstack.org/high-availability-guide/content/s-mysql.html}{This}} 
 link provides more information.
@@ -94,18 +88,14 @@ link provides more information.
 
 \begin{frame}{RabbitMQ High Availabiltiy}
 
-RabbitMQ can be configured in HA to prevent communication failure between the OpenStack components.
+RabbitMQ can be configured in HA to prevent communication failure
+between the OpenStack components. Solutions could be:
 
-\vspace{5 mm}
-
-This can be achieved again, like in the case with MySQL, by using DRBD and Pacemaker. 
-
-\vspace{5mm}
-
-An alternative method, by using again active - active 
-(even if implementation is actually active - salve) mirrored servers. 
-
-\vspace{5 mm}
+\begin{itemize}
+\item OpenStack recommended: DRBD + Pacemaker.
+\item RabbitMQ native replication mechanisms. 
+Active-active (even if implementation is actually an active-slave).
+\end{itemize}
 
 {\color{blue}\href{http://docs.openstack.org/high-availability-guide/content/s-rabbitmq.html}{This}} 
 link provides detailed information. 
