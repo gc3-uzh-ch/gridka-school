@@ -160,10 +160,10 @@ All the Virtual Machines have the same password: **user@gridka**
 Network Setup
 +++++++++++++
 
-Each virtual machine has 3 network interfaces, with the exception of the
-**network-node** that have 4. Some of these interfaces have been already
-configured, so that you can already connect to them using either the
-"*public*" or the private ip address.
+Each virtual machine has 2 network interfaces, with the exception of
+the **network-node** and **neutron-node** that have 3. Some of these
+interfaces have been already configured, so that you can already
+connect to them using either the "*public*" or the private ip address.
 
 These are the networks we are going to use:
 
