@@ -367,7 +367,7 @@ You can easily check that a new LVM volume has been created::
       - currently set to     256
       Block device           252:0
 
-**tgtadm DOES NOT SHOW ANY OUTPUT WHEN THE VOLUME IS NOT ATTACHED, MOVE TO THE TESTING SECTION** 
+.. **tgtadm DOES NOT SHOW ANY OUTPUT WHEN THE VOLUME IS NOT ATTACHED, MOVE TO THE TESTING SECTION** 
 
 ..
    To show if the volume is actually served via iscsi you can run::
