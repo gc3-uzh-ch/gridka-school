@@ -1,5 +1,5 @@
 Next: life of a VM (Compute service) - nova-compute
-===================================================
+---------------------------------------------------
 
 As we did for the network node before staring it is good to quickly
 check if the remote ssh execution of the commands done in the `all
