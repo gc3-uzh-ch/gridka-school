@@ -584,12 +584,14 @@ or, if things went wrong, revert the resize::
 
 The status of the server will now be back to ACTIVE.
 
+`Next: Troubleshooting <troubleshooting1.rst>`_
 
 References
 ----------
+..
 
-We adapted the tutorial above with what we considered necessary for
-our purposes and for installing OpenStack on 6 hosts.
+   We adapted the tutorial above with what we considered necessary for
+   our purposes and for installing OpenStack on 6 hosts.
 
 .. _`Openstack Compute Administration Guide`: http://docs.openstack.org/trunk/openstack-compute/admin/content/index.html
 

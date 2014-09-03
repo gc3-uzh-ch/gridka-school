@@ -304,4 +304,4 @@ connections::
     | tcp         | 22        | 22      | 0.0.0.0/0 |              |
     +-------------+-----------+---------+-----------+--------------+
 
-`[Next: life of a VM (Compute service) - nova-compute] <nova_compute.rst>`_
+`Next: life of a VM (Compute service) - nova-compute <nova_compute.rst>`_

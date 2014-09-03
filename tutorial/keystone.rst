@@ -128,6 +128,24 @@ Keystone by default listens to two different ports::
     [...]
 
 
+**NOTE:** At the time of writing (01-08-2014), in Ubuntu 14.40
+keystone does not write to the log file in
+``/var/log/keystone/keystone.log``. In order to enable logging, ensure
+the following configuration option is defined in
+``/etc/keystone/keystone.conf``::
+
+    log_file = /var/log/keystone/keystone.log
+
+By default, only CRITICAL, ERROR and WARNING messages are logged. To
+also log INFO messages, add option::
+
+    verbose = True
+
+while to enable also DEBUG messages, add::
+
+    debug = True
+
+
 The chicken and egg problem
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -363,5 +381,3 @@ Further information about the keystone service can be found at in the
    ~~~~~~~~~~~~~~~~~~~~~
    **TO-DO** Shell we say something about OpenStack clients too?
    Ref `here: <http://docs.openstack.org/icehouse/install-guide/install/apt/content/ch_clients.html>`_.
-
-

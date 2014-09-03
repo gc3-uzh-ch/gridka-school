@@ -434,7 +434,7 @@ After a while, the volume is deleted, and LV is deleted::
       root   golden-vg -wi-ao--- 7.76g                                           
       swap_1 golden-vg -wi-ao--- 2.00g 
 
-`[Next: Nova API - Compute service] <nova_api.rst>`_
+`Next: nova-api - Compute service <nova_api.rst>`_
 
 ..
    **AGAIN MOVE TO THE TESTING SECTION, AS HERE IS NOT RELEVANT**::

@@ -414,4 +414,4 @@ access/secret keys and endpoint url::
     root@api-node:~# export EC2_URL=http://api-node.example.org:8773/services/Cloud
 
 
-`[Next: nova-network - Network service - *easy* version] <nova_network.rst>`_
+`Next: nova-network - Network service - *easy* version <nova_network.rst>`_

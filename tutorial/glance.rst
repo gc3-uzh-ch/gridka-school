@@ -326,4 +326,4 @@ putting multiple glance servers behind a load-balancer like haproxy.
 
 More detailed information can be found `here <http://docs.openstack.org/developer/glance/cache.html>`_  
 
-`[Next: Cinder - Block storage service] <cinder.rst>`_
+`Next: Cinder - Block storage service <cinder.rst>`_
