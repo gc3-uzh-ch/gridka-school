@@ -245,7 +245,7 @@ set the environment variables to use the ``nova`` command line
 without having to specify the credentials via command line options::
 
     root@api-node:~# export OS_USERNAME=admin
-    root@api-node:~# export OS_PASSWORD=keystoneAdmin
+    root@api-node:~# export OS_PASSWORD=gridka
     root@api-node:~# export OS_TENANT_NAME=admin
     root@api-node:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
 
