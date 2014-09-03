@@ -320,6 +320,69 @@ resolve its hostname?
    there is no need to set any NAT rule since the IP are public and
    routing happens on some network device already set up.
 
+
+cinder <-> glance - Creating volume from image and boot from volume
+-------------------------------------------------------------------
+
+Problem
+~~~~~~~
+
+On OpenStack, you can create a volume from a Glance image, and then
+boot from the volume. You can also decide if the volume shall be
+deleted after instance termination or if it has to be a permanent
+volume.
+
+However, the current configuration will not work.
+
+You can test the issue booting an instance from the web interface and
+choose `boot from image (creates a new volume)`, or from the command
+line running the following command::
+
+   root@api-node:~# nova boot \
+     --block-device \
+     id=7b05a000-dd1b-409a-ba51-a567a9ebec13,source=image,dest=volume,size=1,shutdown=remove,bootindex=0 \
+     --key-name gridka-auth-node --flavor m1.tiny test-from-volume
+
+The machine will go in ERROR state, and on the **volume-node**, in
+``/var/log/cinder/cinder-api.log`` you will find::
+
+    2014-08-28 16:22:33.743 3966 AUDIT cinder.api.v1.volumes [req-e19de3f2-c09b-46f4-97ac-ca9b21776916 df77e2b579b04b8a81ba0e993a318b19 cacb2edc36a343c4b4747b8a8349371a - - -] Create volume of 1 GB
+    2014-08-28 16:22:33.781 3966 ERROR cinder.image.glance [req-e19de3f2-c09b-46f4-97ac-ca9b21776916 df77e2b579b04b8a81ba0e993a318b19 cacb2edc36a343c4b4747b8a8349371a - - -] Error contacting glance server '10.0.0.8:9292' for 'get', done trying.
+    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance Traceback (most recent call last):
+    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance   File "/usr/lib/python2.7/dist-packages/cinder/image/glance.py", line 158, in call
+    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance     return getattr(client.images, method)(*args, **kwargs)
+    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance   File "/usr/lib/python2.7/dist-packages/glanceclient/v1/images.py", line 114, in get
+    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance     % urllib.quote(str(image_id)))
+    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance   File "/usr/lib/python2.7/dist-packages/glanceclient/common/http.py", line 289, in raw_request
+    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance     return self._http_request(url, method, **kwargs)
+    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance   File "/usr/lib/python2.7/dist-packages/glanceclient/common/http.py", line 235, in _http_request
+    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance     raise exc.CommunicationError(message=message)
+    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance CommunicationError: Error communicating with http://10.0.0.8:9292 [Errno 111] ECONNREFUSED
+    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance 
+    2014-08-28 16:22:33.787 3966 ERROR cinder.api.middleware.fault [req-e19de3f2-c09b-46f4-97ac-ca9b21776916 df77e2b579b04b8a81ba0e993a318b19 cacb2edc36a343c4b4747b8a8349371a - - -] Caught error: Connection to glance failed: Error communicating with http://10.0.0.8:9292 [Errno 111] ECONNREFUSED
+
+
+..
+   Solution
+   ~~~~~~~~
+
+   The problem is that cinder is *assuming* that the glance server is on
+   localhost (in this case, 10.0.0.8 is the `volume-node`).
+
+   In order to fix this, you need to add to ``/etc/cinder/cinder.conf``::
+
+       glance_api_servers=10.0.0.5:9292
+
+   A second issue you may find, if you are using qcow2 images, is that
+   `qemu-img` is not installed on the volume node::
+
+       2014-08-28 16:34:52.760 5192 ERROR oslo.messaging.rpc.dispatcher [req-aac299e3-833c-4b8c-b2ae-09bdbbd615b4 df77e2b579b04b8a81ba0e993a318b19 cacb2edc36a343c4b4747b8a8349371a - - -] Exception during message handling: Image 7b05a000-dd1b-409a-ba51-a567a9ebec13 is unacceptable: qemu-img is not installed and image is of type qcow2.  Only RAW images can be used if qemu-img is not installed.
+
+   In this case, just install ``qemu-utils`` package and retry.
+
+
+
+
 Troubleshooting challenge session
 ---------------------------------
 
@@ -396,48 +459,6 @@ proposed sabotages (but you can be creative!)
 * delete all floating IPs and re-create them adding option
   ``--interface eth0``. Then, start a VM and see what happens to the
   interfaces of the network-node
-
-cinder <-> glance
-~~~~~~~~~~~~~~~~~
-
-In the default configuration, if you try to `boot from image (creates
-a new volume)` it will fail.
-
-On the volume-node, ``/var/log/cinder/cinder-api.log`` you will find::
-
-    2014-08-28 16:22:33.743 3966 AUDIT cinder.api.v1.volumes [req-e19de3f2-c09b-46f4-97ac-ca9b21776916 df77e2b579b04b8a81ba0e993a318b19 cacb2edc36a343c4b4747b8a8349371a - - -] Create volume of 1 GB
-    2014-08-28 16:22:33.781 3966 ERROR cinder.image.glance [req-e19de3f2-c09b-46f4-97ac-ca9b21776916 df77e2b579b04b8a81ba0e993a318b19 cacb2edc36a343c4b4747b8a8349371a - - -] Error contacting glance server '10.0.0.8:9292' for 'get', done trying.
-    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance Traceback (most recent call last):
-    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance   File "/usr/lib/python2.7/dist-packages/cinder/image/glance.py", line 158, in call
-    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance     return getattr(client.images, method)(*args, **kwargs)
-    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance   File "/usr/lib/python2.7/dist-packages/glanceclient/v1/images.py", line 114, in get
-    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance     % urllib.quote(str(image_id)))
-    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance   File "/usr/lib/python2.7/dist-packages/glanceclient/common/http.py", line 289, in raw_request
-    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance     return self._http_request(url, method, **kwargs)
-    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance   File "/usr/lib/python2.7/dist-packages/glanceclient/common/http.py", line 235, in _http_request
-    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance     raise exc.CommunicationError(message=message)
-    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance CommunicationError: Error communicating with http://10.0.0.8:9292 [Errno 111] ECONNREFUSED
-    2014-08-28 16:22:33.781 3966 TRACE cinder.image.glance 
-    2014-08-28 16:22:33.787 3966 ERROR cinder.api.middleware.fault [req-e19de3f2-c09b-46f4-97ac-ca9b21776916 df77e2b579b04b8a81ba0e993a318b19 cacb2edc36a343c4b4747b8a8349371a - - -] Caught error: Connection to glance failed: Error communicating with http://10.0.0.8:9292 [Errno 111] ECONNREFUSED
-
-The problem is that cinder is *assuming* that the glance server is on
-localhost (in this case, 10.0.0.8 is the `volume-node`).
-
-In order to fix this, you need to add to ``/etc/cinder/cinder.conf``::
-
-    glance_api_servers=10.0.0.5:9292
-
-A second issue you may find, if you are using qcow2 images, is that
-`qemu-img` is not installed on the volume node::
-
-    2014-08-28 16:34:52.760 5192 ERROR oslo.messaging.rpc.dispatcher [req-aac299e3-833c-4b8c-b2ae-09bdbbd615b4 df77e2b579b04b8a81ba0e993a318b19 cacb2edc36a343c4b4747b8a8349371a - - -] Exception during message handling: Image 7b05a000-dd1b-409a-ba51-a567a9ebec13 is unacceptable: qemu-img is not installed and image is of type qcow2.  Only RAW images can be used if qemu-img is not installed.
-
-In this case, just install ``qemu-utils`` package and retry.
-
-test with::
-
-    root@api-node:~# nova boot --block-device id=7b05a000-dd1b-409a-ba51-a567a9ebec13,source=image,dest=volume,size=1,shutdown=remove,bootindex=0 --key-name gridka-auth-node --flavor m1.tiny test-from-volume
-
 
 
 
