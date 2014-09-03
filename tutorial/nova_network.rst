@@ -100,9 +100,12 @@ On a multi host network, therefore, the connections to and from the
 VMs will not pass through the **network-node**, which is not anymore a
 
 * Singole point of failure
+
   - if a compute node dies, only VMs running on that compute node are
     affected.
+
 * bottleneck
+
   - network traffic flows directly from the compute node to the main
     router of your network, not passing through the **network-node**
     anymore.
