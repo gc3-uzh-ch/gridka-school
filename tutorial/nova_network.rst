@@ -161,7 +161,7 @@ Network configuration on the **network-node** will look like:
 
 The last interface (eth2) is managed by **nova-network** itself, so we
 only have to create a bridge and attach eth2 to it. This is done on
-ubuntu by editing the ``/etc/network/interface`` file and ensuring
+ubuntu by editing the ``/etc/network/interfaces`` file and ensuring
 that it contains::
 
     auto br100
