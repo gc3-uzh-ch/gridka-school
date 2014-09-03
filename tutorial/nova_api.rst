@@ -171,9 +171,9 @@ Finally, a few options related to vnc display need to be changed in
 
    [DEFAULT]
    ...
-   my_ip = 10.0.0.11
-   vncserver_listen = 10.0.0.11
-   vncserver_proxyclient_address = 10.0.0.11
+   my_ip = 10.0.0.6
+   vncserver_listen = 10.0.0.6
+   vncserver_proxyclient_address = 10.0.0.6
 
 Also, since we want to contact the glance server using the management
 network, we will also update option ``glance_api_servers``::
