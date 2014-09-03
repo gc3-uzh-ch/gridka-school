@@ -219,7 +219,9 @@ following options are defined::
     fixed_range=10.99.0.0/22    
     flat_network_dhcp_start=10.99.0.10
     network_size=1022
-    
+
+    [database]
+    connection = mysql://nova:gridka@10.0.0.3/nova    
 
 We will also add some options to automatically assign a public IP to
 the virtual machine::
