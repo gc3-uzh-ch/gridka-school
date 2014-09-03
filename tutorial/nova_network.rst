@@ -73,6 +73,40 @@ If you plan to setup a cloud and you have a strong security
 requirement to separate the network of your tenants, you'd probably
 want to deploy `VLAN Network` instead.
 
+On a `Flat DHCP Network`, we have to create a bridge interface on all
+the compute nodes and on the network node, that will be used for VM-VM
+communication, like in the following figure:
+
+.. figure:: ../images/nova-network-br100.png
+   :alt: Setup of nova-network on compute nodes and network node using
+         br100 interface
+
+The setup we are going to test will use the network
+node as gateway and dhcp server for all the VMs, but OpenStack allows
+you to enable `multi-host networks
+<http://docs.openstack.org/havana/install-guide/install/apt/content/nova-network.html>`_. On
+a multi-host network, the role of the network-node is spread over all
+the compute nodes, which means that:
+
+* Each compute node will run an instance of `dnsmasq` for all the
+  instances hosted on that compute node
+* Each compute node acts as a gateway for the VMs, and is thus responsible
+  to giving connectivity to the outside world.
+* If you enable Floating IPs, each compute node needs to have one
+  network interface on the public network, since public IPs will be
+  assigned to the network interface of the compute node.
+
+On a multi host network, therefore, the connections to and from the
+VMs will not pass through the **network-node**, which is not anymore a
+
+* Singole point of failure
+  - if a compute node dies, only VMs running on that compute node are
+    affected.
+* bottleneck
+  - network traffic flows directly from the compute node to the main
+    router of your network, not passing through the **network-node**
+    anymore.
+
 ..
    FIXME: during the tutorial, it's probably better to install the
    package first, and then, during the installation, explain how
@@ -305,3 +339,8 @@ connections::
     +-------------+-----------+---------+-----------+--------------+
 
 `Next: life of a VM (Compute service) - nova-compute <nova_compute.rst>`_
+
+References
+----------
+
+For a very good explanation about the FlatDHCP netowrk configuration, also cfr. http://www.mirantis.com/blog/openstack-networking-flatmanager-and-flatdhcpmanager/
