@@ -86,7 +86,7 @@ Network configuration
 
 We need to configure an internal bridge. The bridge will be used by
 libvirt daemon to connect the network interface of a virtual machine
-to a physical network, in our case, **eth2** on the compute node.
+to a physical network, in our case, **eth1** on the compute node.
 
 In our setup, this is the same layer-2 network as the **eth1** network
 used for the internal network of OpenStack services; however, in
@@ -95,10 +95,10 @@ by using physically separated networks or by use of VLANs.
 
 Please note that (using the naming convention of our setup) the
 **eth3** interface on the **network-node** must be in the same L2 network as
-**eth2** in the **compute-node**
+**eth1** in the **compute-node**
 
 Update the ``/etc/network/interfaces`` file and configure a new
-bridge, called **br100** attached to the network interface ``eth2``::
+bridge, called **br100** attached to the network interface ``eth1``::
 
     auto br100
     iface br100 inet static
