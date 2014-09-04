@@ -60,7 +60,7 @@ the rest of the VMs will have all those steps already done by the time we are
 going to work on them. The following command has to run on the **physical machine**::
 
     root@gks-NNN:[~] $ for host in auth-node image-node api-node \
-        network-node volume-node compute-1 compute-2
+        network-node volume-node compute-1 compute-2 neutron-node
     do
     ssh -n root@$host "(apt-get update -y; apt-get upgrade -y; aptitude install -y ntp) >& /dev/null &"
     done
