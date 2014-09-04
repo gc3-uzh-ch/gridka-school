@@ -27,7 +27,7 @@ First move to the **db-node** and create the database::
 
 Create Neutron user, service and endpoint::
 
-    root@db-node:~# keystone user-create --name=neutron --pass=gridka
+    root@auth-node:~# keystone user-create --name=neutron --pass=gridka
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
@@ -36,12 +36,12 @@ Create Neutron user, service and endpoint::
     |    id    | 5b92212d919d4db7ae3ef60e33682ad2 |
     |   name   |             neutron              |
     +----------+----------------------------------+
-    root@db-node:~# keystone user-role-add --user=neutron --tenant=service --role=admin
+    root@auth-node:~# keystone user-role-add --user=neutron --tenant=service --role=admin
 
-    root@db-node:~# keystone service-create --name=neutron --type=network \
+    root@auth-node:~# keystone service-create --name=neutron --type=network \
          --description="OpenStack Networking Service"
 
-    root@db-node:~# keystone endpoint-create \
+    root@auth-node:~# keystone endpoint-create \
          --region RegionOne \
          --service neutron \
          --publicurl http://neutron-node.example.org:9696 \
