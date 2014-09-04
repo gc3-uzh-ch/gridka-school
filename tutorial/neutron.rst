@@ -9,7 +9,7 @@ installation.
 
 To avoid problems, please shut down the network node before proceedings.
 
-db and keysotne configuration
+db and keystone configuration
 -----------------------------
 
 neutron is more similar to cinder than to nova-network, so we will
