@@ -175,7 +175,7 @@ the default gateway or the 169.254.169.254 ip address) and asks for
 information about the running instance, including keypairs, root
 password, and/or extra data and programs to run (called `userdata`).
 
-Metadata agent reads ``/etc/neutron/metadata_agent.init``
+Metadata agent reads ``/etc/neutron/metadata_agent.ini``
 configuration file. Ensure the keystone information are correct, and
 create a shared secret that will be shared between the `nova-api`
 service and the `metadata-agent`::
@@ -265,7 +265,7 @@ Then, we need a bridge for external traffic::
     root@neutron-node:~# ovs-vsctl add-br br-ex
 
 The `br-ex` needs to be connected to the  `public network`, in our
-case interface `eth2`, therefore you need to run the following command::
+case interface `eth1`, therefore you need to run the following command::
 
     root@neutron-node:~# ovs-vsctl add-port br-ex eth2
 
