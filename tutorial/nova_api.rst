@@ -26,7 +26,7 @@ First move to the **db-node** and create the database::
     root@db-node:~# mysql -u root -p
     
     mysql> CREATE DATABASE nova;
-    mysql> GRANT ALL ON nova.* TO 'nova'@'%' IDENTIFIED BY 'gridka';
+    mysql> GRANT ALL ON nova.* TO 'nova'@'%' IDENTIFIED BY 'mhpc';
     mysql> FLUSH PRIVILEGES;
     mysql> exit
 
@@ -47,7 +47,7 @@ First of all we need to create a keystone user for the nova service,
 associated with the **service** tenant::
 
     root@auth-node:~# keystone user-create \
-        --name=nova --pass=gridka --tenant service
+        --name=nova --pass=mhpc --tenant service
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
@@ -78,17 +78,17 @@ We need to create first the **compute** service::
 and its endpoint::
 
     root@auth-node:~# keystone endpoint-create --region RegionOne \
-      --publicurl 'http://api-node.example.org:8774/v2/$(tenant_id)s' \
-      --adminurl 'http://api-node.example.org:8774/v2/$(tenant_id)s' \
+      --publicurl 'http://api-node.ostklab:8774/v2/$(tenant_id)s' \
+      --adminurl 'http://api-node.ostklab:8774/v2/$(tenant_id)s' \
       --internalurl 'http://10.0.0.6:8774/v2/$(tenant_id)s' \
       --service nova
     +-------------+---------------------------------------------------+
     |   Property  |                       Value                       |
     +-------------+---------------------------------------------------+
-    |   adminurl  | http://api-node.example.org:8774/v2/$(tenant_id)s |
+    |   adminurl  | http://api-node.ostklab:8774/v2/$(tenant_id)s     |
     |      id     |          50f0260b221a4ea889aa03dc0532d55f         |
     | internalurl |       http://10.0.0.6:8774/v2/$(tenant_id)s       |
-    |  publicurl  | http://api-node.example.org:8774/v2/$(tenant_id)s |
+    |  publicurl  | http://api-node.ostklab:8774/v2/$(tenant_id)s     |
     |    region   |                     RegionOne                     |
     |  service_id |          338d7b7ec7f14622a1fc1a99bd9004bf         |
     +-------------+---------------------------------------------------+
@@ -109,17 +109,17 @@ then the **ec2** service::
 and its endpoint::
 
     root@auth-node:~# keystone endpoint-create --region RegionOne \
-      --publicurl 'http://api-node.example.org:8773/services/Cloud' \
-      --adminurl 'http://api-node.example.org:8773/services/Admin' \
+      --publicurl 'http://api-node.ostklab:8773/services/Cloud' \
+      --adminurl 'http://api-node.ostklab:8773/services/Admin' \
       --internalurl 'http://10.0.0.6:8773/services/Cloud' \
       --service ec2
     +-------------+-------------------------------------------------+
     |   Property  |                      Value                      |
     +-------------+-------------------------------------------------+
-    |   adminurl  | http://api-node.example.org:8773/services/Admin |
+    |   adminurl  | http://api-node.ostklab:8773/services/Admin     |
     |      id     |         c3194c76b046426eaa2eef73b537298e        |
     | internalurl |       http://10.0.0.6:8773/services/Cloud       |
-    |  publicurl  | http://api-node.example.org:8773/services/Cloud |
+    |  publicurl  | http://api-node.ostklab:8773/services/Cloud     |
     |    region   |                    RegionOne                    |
     |  service_id |         a17a1f1d605a4ad58993c6d9a803b2af        |
     +-------------+-------------------------------------------------+
@@ -140,7 +140,7 @@ MySQL, RabbitMQ nad Keystone options.
 In ``/etc/nova/nova.conf`` add a ``[database]`` section::
 
     [database]
-    connection = mysql://nova:gridka@10.0.0.3/nova
+    connection = mysql://nova:mhpc@10.0.0.3/nova
 
 In ``[DEFAULT]`` section, update RabbitMQ configuration options::
 
@@ -148,7 +148,7 @@ In ``[DEFAULT]`` section, update RabbitMQ configuration options::
     ...
     rpc_backend = rabbit
     rabbit_host = 10.0.0.3
-    rabbit_password = gridka
+    rabbit_password = mhpc
 
 For keystone integration, ensure ``auth_strategy`` option is set in
 ``[DEFAULT]`` section, and add a ``[keystone_authtoken]`` section::
@@ -164,7 +164,7 @@ For keystone integration, ensure ``auth_strategy`` option is set in
     auth_protocol = http
     admin_tenant_name = service
     admin_user = nova
-    admin_password = gridka
+    admin_password = mhpc
 
 Finally, a few options related to vnc display need to be changed in
 ``[DEFAULT]`` section::
@@ -245,9 +245,9 @@ set the environment variables to use the ``nova`` command line
 without having to specify the credentials via command line options::
 
     root@api-node:~# export OS_USERNAME=admin
-    root@api-node:~# export OS_PASSWORD=gridka
+    root@api-node:~# export OS_PASSWORD=mhpc
     root@api-node:~# export OS_TENANT_NAME=admin
-    root@api-node:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
+    root@api-node:~# export OS_AUTH_URL=http://auth-node.ostklab:5000/v2.0
 
 you can check the status of the nova service::
 
@@ -312,10 +312,10 @@ On the **api-node**::
 Edit the file ``/etc/openstack-dashboard/local_settings.py`` and
 update the ``OPENSTACK_HOST`` variable::
 
-    OPENSTACK_HOST = "auth-node.example.org"
+    OPENSTACK_HOST = "auth-node.ostklab"
 
 From the **physical node** you can connect to the api-node node by
-opening the URL ``http://172.16.0.6/horizon`` on your web browser
+opening the URL ``http://172.17.0.6/horizon`` on your web browser
 
 
 ..
@@ -346,7 +346,9 @@ option we didn't define.
 Edit ``/etc/nova/nova.conf`` on the **api-node** and add the following
 option::
 
-    keystone_ec2_url=http://auth-node.example.org:5000/v2.0/ec2tokens
+    [DEFAULT]
+    ...
+    keystone_ec2_url=http://auth-node.ostklab:5000/v2.0/ec2tokens
 
 Please note that this is an url pointing to the keystone service, but
 with an additional ``ec2tokens``. This is used by the **nova-api**
@@ -388,7 +390,7 @@ and then run, for instance, the command::
     root@api-node:~# euca-describe-images \
       --access-key c22f5770ee924f25b4c7b091f521b15f \
       --secret-key 78b92ddde8134b46a05dbd91023e27db \
-      -U http://api-node.example.org:8773/services/Cloud
+      -U http://api-node.ostklab:8773/services/Cloud
     IMAGE	ami-00000001	None (Cirros-0.3.0-x86_64)	0aacc603e6dd425caa51db0d07957412	available	private			machine				instance-store
 
 There are two things to note about this command:
@@ -411,7 +413,7 @@ access/secret keys and endpoint url::
 
     root@api-node:~# export EC2_ACCESS_KEY=445f486efe1a4eeea2c924d0252ff269
     root@api-node:~# export EC2_SECRET_KEY=ff98e8529e2543aebf6f001c74d65b17
-    root@api-node:~# export EC2_URL=http://api-node.example.org:8773/services/Cloud
+    root@api-node:~# export EC2_URL=http://api-node.ostklab:8773/services/Cloud
 
 
 `Next: nova-network - Network service - *easy* version <nova_network.rst>`_
