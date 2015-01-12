@@ -46,6 +46,12 @@ without problems::
 
 which confirmed ntp is installed as required.
 
+Also remember that since we are installing OpenStack Juno you have to
+add the repository with::
+
+    root@auth-node:~# add-apt-repository cloud-archive:juno
+
+
 Keystone
 ++++++++
 
@@ -69,8 +75,8 @@ and password for the keystone service::
 
     root@db-node:~# mysql -u root -p
     mysql> CREATE DATABASE keystone;
-    mysql> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY 'gridka';
-    mysql> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY 'gridka';
+    mysql> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY 'mhpc';
+    mysql> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY 'mhpc';
     mysql> FLUSH PRIVILEGES;
     mysql> exit
 
@@ -107,7 +113,7 @@ is::
 
 So in our case you need to replace the default option with::
 
-    connection = mysql://keystone:gridka@10.0.0.3/keystone
+    connection = mysql://keystone:mhpc@10.0.0.3/keystone
 
 Now you are ready to bootstrap the keystone database using the
 following command::
@@ -128,13 +134,14 @@ Keystone by default listens to two different ports::
     [...]
 
 
-**NOTE:** At the time of writing (01-08-2014), in Ubuntu 14.40
-keystone does not write to the log file in
-``/var/log/keystone/keystone.log``. In order to enable logging, ensure
-the following configuration option is defined in
+**NOTE:** In Icehouse on Ubuntu 14.04, keystone does not write to the
+log file in ``/var/log/keystone/keystone.log``. In order to enable
+logging, ensure the following configuration option is defined in
 ``/etc/keystone/keystone.conf``::
 
     log_file = /var/log/keystone/keystone.log
+
+In Juno, instead, logs are automatically written on ``/var/log/keystone/``
 
 By default, only CRITICAL, ERROR and WARNING messages are logged. To
 also log INFO messages, add option::
@@ -174,7 +181,7 @@ In our case, since we don't have an admin user yet and we need to use
 the admin token, we will set the following environment variables::
 
     root@auth-node:~# export OS_SERVICE_TOKEN=ADMIN
-    root@auth-node:~# export OS_SERVICE_ENDPOINT=http://auth-node.example.org:35357/v2.0
+    root@auth-node:~# export OS_SERVICE_ENDPOINT=http://auth-node.ostklab:35357/v2.0
 
 
 Creation of the admin user
@@ -216,7 +223,7 @@ correct environment variables::
 
 Create the **admin** user::
 
-    root@auth-node:~# keystone user-create --name=admin --pass=gridka --tenant=admin
+    root@auth-node:~# keystone user-create --name=admin --pass=mhpc --tenant=admin
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
@@ -278,7 +285,7 @@ The "**identity**" service is created with the following command::
      +-------------+----------------------------------+
      | description |    Keystone Identity Service     |
      |   enabled   |               True               |
-     |      id     | 55d743c4f2a646a1905f30b92276da5a |
+     |      id     | 272a82b9227640de8c12c20e54fc5062 |
      |     name    |             keystone             |
      |     type    |             identity             |
      +-------------+----------------------------------+
@@ -288,20 +295,20 @@ The following command will create an endpoint associated to this
 service::
 
       root@auth-node:~# keystone endpoint-create \
-      --publicurl http://auth-node.example.org:5000/v2.0 \
-      --adminurl http://auth-node.example.org:35357/v2.0 \
+      --publicurl http://auth-node.ostklab:5000/v2.0 \
+      --adminurl http://auth-node.ostklab:35357/v2.0 \
       --internalurl http://10.0.0.4:5000/v2.0 \
       --region RegionOne --service keystone
-      +-------------+----------------------------------------+
-      |   Property  |                 Value                  |
-      +-------------+----------------------------------------+
-      |   adminurl  |       http://10.0.0.4:35357/v2.0       |
-      |      id     |    09a7ee7514554e80a6eebb61267a92cb    |
-      | internalurl |       http://10.0.0.4:5000/v2.0        |
-      |  publicurl  | http://auth-node.example.org:5000/v2.0 |
-      |    region   |               RegionOne                |
-      |  service_id |    55d743c4f2a646a1905f30b92276da5a    |
-      +-------------+----------------------------------------+ 
+    +-------------+-------------------------------------+
+    |   Property  |                Value                |
+    +-------------+-------------------------------------+
+    |   adminurl  | http://auth-node.ostklab:35357/v2.0 |
+    |      id     |   26c923f9fd1449878acc7c76fa4173d4  |
+    | internalurl |      http://10.0.0.4:5000/v2.0      |
+    |  publicurl  |  http://auth-node.ostklab:5000/v2.0 |
+    |    region   |              RegionOne              |
+    |  service_id |   272a82b9227640de8c12c20e54fc5062  |
+    +-------------+-------------------------------------+
 
 The argument of the ``--region`` option is the region name. For
 simplicity we will always use the name ``RegionOne`` since we only
@@ -313,17 +320,17 @@ To get a listing of the available services the command is::
     +----------------------------------+----------+----------+---------------------------+
     |                id                |   name   |   type   |        description        |
     +----------------------------------+----------+----------+---------------------------+
-    | 55d743c4f2a646a1905f30b92276da5a | keystone | identity | Keystone Identity Service |
+    | 272a82b9227640de8c12c20e54fc5062 | keystone | identity | Keystone Identity Service |
     +----------------------------------+----------+----------+---------------------------+
 
 while a list of endpoints is shown by the command::
 
     root@auth-node:~# keystone endpoint-list
-    +----------------------------------+-----------+----------------------------------------+---------------------------+----------------------------+----------------------------------+
-    |                id                |   region  |               publicurl                |        internalurl        |          adminurl          |            service_id            |
-    +----------------------------------+-----------+----------------------------------------+---------------------------+----------------------------+----------------------------------+
-    | 09a7ee7514554e80a6eebb61267a92cb | regionOne | http://auth-node.example.org:5000/v2.0 | http://10.0.0.4:5000/v2.0 | http://10.0.0.4:35357/v2.0 | 55d743c4f2a646a1905f30b92276da5a |
-    +----------------------------------+-----------+----------------------------------------+---------------------------+----------------------------+----------------------------------+
+    +----------------------------------+-----------+------------------------------------+---------------------------+-------------------------------------+----------------------------------+
+    |                id                |   region  |             publicurl              |        internalurl        |               adminurl              |            service_id            |
+    +----------------------------------+-----------+------------------------------------+---------------------------+-------------------------------------+----------------------------------+
+    | 26c923f9fd1449878acc7c76fa4173d4 | RegionOne | http://auth-node.ostklab:5000/v2.0 | http://10.0.0.4:5000/v2.0 | http://auth-node.ostklab:35357/v2.0 | 272a82b9227640de8c12c20e54fc5062 |
+    +----------------------------------+-----------+------------------------------------+---------------------------+-------------------------------------+----------------------------------+
 
 Some notes on the type of URLs: 
 
@@ -345,16 +352,16 @@ From now on, you can access keystone using the admin user either by
 using the following command line options::
 
     root@any-host:~# keystone --os-username admin --os-tenant-name admin \
-        --os-password gridka --os-auth-url http://auth-node.example.org:5000/v2.0
+        --os-password mhpc --os-auth-url http://auth-node.ostklab:5000/v2.0
                     <subcommand>
 
 or by setting the following environment variables and run keystone
 without the previous options::
 
     root@any-host:~# export OS_USERNAME=admin
-    root@any-host:~# export OS_PASSWORD=gridka
+    root@any-host:~# export OS_PASSWORD=mhpc
     root@any-host:~# export OS_TENANT_NAME=admin
-    root@any-host:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
+    root@any-host:~# export OS_AUTH_URL=http://auth-node.ostklab:5000/v2.0
 
 If you are going to use the last option it is usually a good practice
 to insert those environment variables in the root's ``.bashrc`` file,
