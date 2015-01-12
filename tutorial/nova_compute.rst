@@ -162,6 +162,7 @@ and MySQL servers. The minimum information you have to provide in the
     novncproxy_base_url=http://172.17.0.6:6080/vnc_auto.html
     novncproxy_port=6080
     vncserver_proxyclient_address=10.0.0.20
+    # 0.0.0.0 is necessary if you want to use live migration
     vncserver_listen=0.0.0.0
 
     # Compute #
