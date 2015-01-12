@@ -109,7 +109,7 @@ interface.
 
 ..   Not needed as we removed the public address.
      Please note that in this way you will not be able to
-     contact it using the *public* interface (172.16.0.3), but this is
+     contact it using the *public* interface (172.17.0.3), but this is
      usually what you want in a production environment.
 
 The OpenStack official guide states that some of the options of InnoDB

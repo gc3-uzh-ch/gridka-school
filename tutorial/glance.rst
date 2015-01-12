@@ -42,10 +42,12 @@ On the **db-node** create the database and the MySQL user::
 
     root@db-node:~# mysql -u root -p
     mysql> CREATE DATABASE glance;
-    mysql> GRANT ALL ON glance.* TO 'glance'@'%' IDENTIFIED BY 'mhpc';
-    mysql> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost' IDENTIFIED BY 'mhpc';
+    mysql> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'%' IDENTIFIED BY 'mhpc';
     mysql> FLUSH PRIVILEGES;
     mysql> exit;
+
+    .. was in the guide but probably not needed
+       mysql> GRANT ALL ON glance.* TO 'glance'@'%' IDENTIFIED BY 'mhpc';
 
 On the **auth-node** instead we need to create an **image** service
 and an endpoint associated with it. The following commands assume you

@@ -75,10 +75,11 @@ On the **db-node** create the database and the MySQL user::
 
     root@db-node:~# mysql -u root -p
     mysql> CREATE DATABASE cinder;
-    mysql> GRANT ALL ON cinder.* TO 'cinder'@'%' IDENTIFIED BY 'mhpc';
     mysql> GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'%' IDENTIFIED BY 'mhpc';
     mysql> FLUSH PRIVILEGES;
     mysql> exit
+    .. was in the guide but probably not needed
+       mysql> GRANT ALL ON cinder.* TO 'cinder'@'%' IDENTIFIED BY 'mhpc';
 
 On the **auth-node** create a keystone user, a "volume" service and
 its endpoint, like we did for the *glance* service. The following
