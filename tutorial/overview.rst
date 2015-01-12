@@ -41,26 +41,41 @@ How to access the physical nodes
 
 In order to access the different virtual machines and start working on
 the configuration of OpenStack services listed above you will have to
-first login on one of the nodes assigned to your group by doing::
+first login on one of the nodes assigned to your group. Please be sure
+you have the SISSA VPN enabled, and then run::
 
-        ssh ostack@gks-NNN.scc.kit.edu -p 24 -X
+        ssh root@marvin.elab.sissa.it -p NN -X
 
-where NNN is one of the numbers assigned to you. As user `ostack`, you
-can run `sudo` and become root.
+where NN is the port number corresponding to the group machines that
+are assigned to you (password is written on the blackboard).
 
 Physical machines are assigned as follow:
 
-+-----------------+------------------+---------------+
-| student         | central services | compute nodes |
-+=================+==================+===============+
-|                 |  ostk01          |  ostk02       |
-+-----------------+------------------+---------------+
-|                 |  ostk03          |  ostk04       |
-+-----------------+------------------+---------------+
-|                 |  ostk05          |  ostk06       |
-+-----------------+------------------+---------------+
-|                 |  ostk07          |  ostk08       |
-+-----------------+------------------+---------------+
++-----------------+------------------+------------------+--------------+---------------+
+| student         | port number      | central services | port number  | compute nodes |
+|                 | central services |                  | compute node |               |
++=================+==================+==================+==============+===============+
+| Stefano P.      | 22102            |  ostk01          |  22103       |  ostk02       |
+| Mauro B.        |                  |                  |              |               |
++-----------------+------------------+------------------+--------------+---------------+
+| Marco B.        | 22104            |  ostk03          |  22105       |  ostk04       |
+| Marco R.        |                  |                  |              |               |
++-----------------+------------------+------------------+--------------+---------------+
+| Nicola          | 22106            |  ostk05          |  22107       |  ostk06       |
+| Marco T.        |                  |                  |              |               |
++-----------------+------------------+------------------+--------------+---------------+
+| Eric            | 22108            |  ostk07          |  22109       |  ostk08       |
+| Fernando        |                  |                  |              |               |
++-----------------+------------------+------------------+--------------+---------------+
+| Jimmy           | 221XX            |  ostk09          |  221XX       |  ostk10       |
+| Giuseppe        |                  |                  |              |               |
++-----------------+------------------+------------------+--------------+---------------+
+| Moreno          | 221XX            |  ostk11          |  221XX       |  ostk12       |
+| Leonardo        |                  |                  |              |               |
+| Hemen           |                  |                  |              |               |
++-----------------+------------------+------------------+--------------+---------------+
+| Antonio         | 22099            |  ostk00          | 22099        | ostk00        |
++-----------------+------------------+------------------+--------------+---------------+
 
 
 Virtual Machines
@@ -82,11 +97,7 @@ of the physical nodes and run::
 
     virt-manager
 
-Please note that each VM has its golden clone, called  **hostname-golden**. 
-They can be used to easily recreate a particular service or compute VM
-from scratch. Please **keep them OFF** and start the rest of the VMs. 
-
-However, if you prefer to use the ``virsh`` command line interface,
+If you prefer to use the ``virsh`` command line interface,
 run on one of the physical nodes the following commands::
 
     root@gks-001:[~] $ virsh start db-node
@@ -102,11 +113,18 @@ and on the *other* physical node::
     root@gks-002:[~] $ virsh start compute-2
     root@gks-002:[~] $ virsh start neutron-node
 
+In the home directory of the physical node ostkNN you will find a
+golden image and a script to re-create all the VMs, so that you can
+start over from scratch in case if you need. The script is 
+``/root/gridka-school/ansible/regenerate_vms.sh``, look at it to know
+how to use it :)
+
+
 Access the Virtual Machines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can connect to them from each one of the physical machines (the
-**gks-NNN** ones) using **ssh** or by starting the ``virt-manager``
+**ostkNN** ones) using **ssh** or by starting the ``virt-manager``
 program on the physical node hosting the virtual machine and then
 connecting to the console.
 
@@ -119,7 +137,7 @@ where **hostname** is one of those listed above. We recommed to use the
 with the VM and provide more suitable interface in case you want to
 copy/paste some of the commands in the tutorial. 
 
-All the Virtual Machines have the same password: **user@gridka**
+All the Virtual Machines have the same password: **ubuntu**
 
 Network Setup
 +++++++++++++
@@ -131,15 +149,17 @@ connect to them using either the "*public*" or the private ip address.
 
 These are the networks we are going to use:
 
-+------+-----------------------+------------------+
-| eth0 | internal network      | 10.0.0.0/24      |
-+------+-----------------------+------------------+
-| eth1 | public network        | 172.16.0.0/16    |
-+------+-----------------------+------------------+
-| eth2 | Openstack private     |                  |
-|      | network (present only |                  |
-|      | on the network-node)  |                  |
-+------+-----------------------+------------------+
++------+-----------------------+------------------+-------------+
+|iface | function              | IP range         | DNS domain  |
++======+=======================+==================+=============+
+| eth0 | internal network      | 10.0.0.0/8       | openstack   |
++------+-----------------------+------------------+-------------+
+| eth1 | public network        | 172.17.0.0/16    | ostklab     |
++------+-----------------------+------------------+-------------+
+| eth2 | Openstack private     |                  |             |
+|      | network (present only |                  |             |
+|      | on the network-node)  |                  |             |
++------+-----------------------+------------------+-------------+
 
 The *internal network* is a trusted network used by all the OpenStack
 services to communicate to each other. Usually, you wouldn't setup a
@@ -177,32 +197,32 @@ The IP addresses of these machines are:
 | host         | private      | private   | public hostname          | public     |
 |              | hostname     | IP        |                          | IP         |
 +==============+==============+===========+==========================+============+
-| db node      | db-node      | 10.0.0.3  | db-node.example.org      | 172.16.0.3 |
+| db node      | db-node      | 10.0.0.3  | db-node.ostklab          | 172.17.0.3 |
 +--------------+--------------+-----------+--------------------------+------------+
-| auth node    | auth-node    | 10.0.0.4  | auth-node.example.org    | 172.16.0.4 |
+| auth node    | auth-node    | 10.0.0.4  | auth-node.ostklab        | 172.17.0.4 |
 +--------------+--------------+-----------+--------------------------+------------+
-| image node   | image-node   | 10.0.0.5  | image-node.example.org   | 172.16.0.5 |
+| image node   | image-node   | 10.0.0.5  | image-node.ostklab       | 172.17.0.5 |
 +--------------+--------------+-----------+--------------------------+------------+
-| api node     | api-node     | 10.0.0.6  | api-node.example.org     | 172.16.0.6 |
+| api node     | api-node     | 10.0.0.6  | api-node.ostklab         | 172.17.0.6 |
 +--------------+--------------+-----------+--------------------------+------------+
-| network node | network-node | 10.0.0.7  | network-node.example.org | 172.16.0.7 |
+| network node | network-node | 10.0.0.7  | network-node.ostklab     | 172.17.0.7 |
 +--------------+--------------+-----------+--------------------------+------------+
-| volume node  | volume-node  | 10.0.0.8  | volume-node.example.org  | 172.16.0.8 |
+| volume node  | volume-node  | 10.0.0.8  | volume-node.ostklab      | 172.17.0.8 |
 +--------------+--------------+-----------+--------------------------+------------+
-| neutron node | neutron-node | 10.0.0.9  | neutron-node.example.org | 172.16.0.9 |
+| neutron node | neutron-node | 10.0.0.9  | neutron-node.ostklab     | 172.17.0.9 |
 +--------------+--------------+-----------+--------------------------+------------+
 | compute-1    | compute-1    | 10.0.0.20 |                          |            |
 +--------------+--------------+-----------+--------------------------+------------+
 | compute-2    | compute-2    | 10.0.0.21 |                          |            |
 +--------------+--------------+-----------+--------------------------+------------+
 
-Both private and public hostnames are present in the ``/etc/hosts`` of
-the physical machines, in order to allow you to connect to them using
-the hostname instead of the IP addresses.
+Both private and public hostnames are automatically resolved by the
+internal DNS, in order to allow you to connect to them using the
+hostname instead of the IP addresses.
 
 Please note that the network node needs one more network interface
-that will be completely managed by the **nova-network** service, and
-is thus left unconfigured at the beginning.
+that will be completely managed by the **nova-network** (or
+**neutron**) service, and is thus left unconfigured at the beginning.
 
 On the compute node, moreover, we will need to manually create a
 *bridge* which will allow the OpenStack virtual machines to access the
