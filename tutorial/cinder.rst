@@ -75,8 +75,8 @@ On the **db-node** create the database and the MySQL user::
 
     root@db-node:~# mysql -u root -p
     mysql> CREATE DATABASE cinder;
-    mysql> GRANT ALL ON cinder.* TO 'cinder'@'%' IDENTIFIED BY 'gridka';
-    mysql> GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'%' IDENTIFIED BY 'gridka';
+    mysql> GRANT ALL ON cinder.* TO 'cinder'@'%' IDENTIFIED BY 'mhpc';
+    mysql> GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'%' IDENTIFIED BY 'mhpc';
     mysql> FLUSH PRIVILEGES;
     mysql> exit
 
@@ -90,7 +90,7 @@ First of all we need to create a keystone user for the cinder service,
 associated with the **service** tenant::
 
     root@auth-node:~# keystone user-create --name=cinder \
-    --pass=gridka --tenant service
+    --pass=mhpc --tenant service
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
@@ -123,8 +123,8 @@ We need then to create the **volume** service::
 and the related endpoint, using the service id we just got::
         
     root@auth-node:~# keystone endpoint-create --region RegionOne \
-      --publicurl 'http://volume-node.example.org:8776/v1/$(tenant_id)s' \
-      --adminurl 'http://volume-node.example.org:8776/v1/$(tenant_id)s' \
+      --publicurl 'http://volume-node.ostklab:8776/v1/$(tenant_id)s' \
+      --adminurl 'http://volume-node.ostklab:8776/v1/$(tenant_id)s' \
       --internalurl 'http://10.0.0.8:8776/v1/$(tenant_id)s' \
       --region RegionOne --service cinder
 
@@ -134,7 +134,7 @@ and the related endpoint, using the service id we just got::
     |   adminurl  |        http://10.0.0.8:8776/v1/$(tenant_id)s         |
     |      id     |           b7216435f3864c70a66e5e3b54bb488e           |
     | internalurl |        http://10.0.0.8:8776/v1/$(tenant_id)s         |
-    |  publicurl  | http://volume-node.example.org:8776/v1/$(tenant_id)s |
+    |  publicurl  | http://volume-node.ostklab:8776/v1/$(tenant_id)s |
     |    region   |                      RegionOne                       |
     |  service_id |           9196c7e637f04e26b9246ee6116dd21c           |
     +-------------+------------------------------------------------------+
@@ -146,13 +146,13 @@ present in the url.
 We should now have three endpoints on keystone::
 
     root@auth-node:~# keystone endpoint-list
-    +----------------------------------+-----------+------------------------------------------------------+---------------------------------------+------------------------------------------------------+----------------------------------+
-    |                id                |   region  |                      publicurl                       |              internalurl              |                       adminurl                       |            service_id            |
-    +----------------------------------+-----------+------------------------------------------------------+---------------------------------------+------------------------------------------------------+----------------------------------+
-    | 3f77c8eca16e436c86bf1935e1e7d334 | RegionOne | http://volume-node.example.org:8776/v1/$(tenant_id)s | http://10.0.0.8:8776/v1/$(tenant_id)s | http://volume-node.example.org:8776/v1/$(tenant_id)s | 2561a51dd7494651862a44e34d637e1e |
-    | 945edccaa68747698f61bf123228e882 | RegionOne |        http://auth-node.example.org:5000/v2.0        |       http://10.0.0.4:5000/v2.0       |       http://auth-node.example.org:35357/v2.0        | 28b2812e31334d4494a8a434d3e6fc65 |
-    | e1080682380d4f90bfa7016916c40d91 | RegionOne |        http://image-node.example.org:9292/v2         |        http://10.0.0.5:9292/v2        |        http://image-node.example.org:9292/v2         | 6cb0cf7a81bc4489a344858398d40222 |
-    +----------------------------------+-----------+------------------------------------------------------+---------------------------------------+------------------------------------------------------+----------------------------------+
+    +----------------------------------+-----------+--------------------------------------------------+---------------------------------------+------------------------------------------------------+----------------------------------+
+    |                id                |   region  |                    publicurl                     |              internalurl              |                       adminurl                       |            service_id            |
+    +----------------------------------+-----------+--------------------------------------------------+---------------------------------------+------------------------------------------------------+----------------------------------+
+    | 3f77c8eca16e436c86bf1935e1e7d334 | RegionOne | http://volume-node.ostklab:8776/v1/$(tenant_id)s | http://10.0.0.8:8776/v1/$(tenant_id)s | http://volume-node.ostklab:8776/v1/$(tenant_id)s | 2561a51dd7494651862a44e34d637e1e |
+    | 945edccaa68747698f61bf123228e882 | RegionOne |        http://auth-node.ostklab:5000/v2.0        |       http://10.0.0.4:5000/v2.0       |       http://auth-node.ostklab:35357/v2.0        | 28b2812e31334d4494a8a434d3e6fc65 |
+    | e1080682380d4f90bfa7016916c40d91 | RegionOne |        http://image-node.ostklab:9292/v2         |        http://10.0.0.5:9292/v2        |        http://image-node.ostklab:9292/v2         | 6cb0cf7a81bc4489a344858398d40222 |
+    +----------------------------------+-----------+--------------------------------------------------+---------------------------------------+------------------------------------------------------+----------------------------------+
 
 
 basic configuration
@@ -164,12 +164,13 @@ packages::
     root@volume-node:~# apt-get install -y cinder-api cinder-scheduler cinder-volume \
       open-iscsi python-mysqldb  python-cinderclient
 
-Ensure that the iscsi services are running::
+..
+   Ensure that the iscsi services are running::
 
-    root@volume-node:~# service open-iscsi restart
+       root@volume-node:~# service open-iscsi restart
 
-We will configure cinder in order to create volumes using LVM, but in
-order to do that we have to provide a volume group called
+We will configure cinder using LVM as backend for the volume images,
+but in order to do that we have to provide a volume group called
 ``cinder-volume`` (you can use a different name, but you have to
 update the cinder configuration file).
 
@@ -245,9 +246,10 @@ and RabbitMQ, as usual. Update the section ``[DEFAULT]`` and add
     [DEFAULT]
     [...]
     sql_connection = mysql://cinder:gridka@10.0.0.3/cinder
-    rpc_backend = cinder.openstack.common.rpc.impl_kombu
     rabbit_host = 10.0.0.3
-    rabbit_password = gridka
+    rabbit_password = mhpc
+    ..
+       rpc_backend = cinder.openstack.common.rpc.impl_kombu
 
 Default values for all the other options should be fine. Please note
 that here you can change the name of the LVM volume group to use, and
@@ -277,11 +279,12 @@ Finally, let's add a section for `keystone` authentication::
     auth_protocol = http
     admin_tenant_name = service
     admin_user = cinder
-    admin_password = gridka
+    admin_password = mhpc
 
 .. is already set to tgtadm in Juno``iscsi_helper``.
 
-Populate the cinder database::
+Populate the cinder database (it's not a typo, for cinder it's ``db
+sync``, for glance and keystone it's ``db_sync``...)::
 
     root@volume-node:~# cinder-manage db sync
 
@@ -312,9 +315,9 @@ are going to set the environment variables and run cinder without
 options::
 
     root@volume-node:~# export OS_USERNAME=admin
-    root@volume-node:~# export OS_PASSWORD=gridka
+    root@volume-node:~# export OS_PASSWORD=mhpc
     root@volume-node:~# export OS_TENANT_NAME=admin
-    root@volume-node:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
+    root@volume-node:~# export OS_AUTH_URL=http://auth-node.ostklab:5000/v2.0
 
 Test cinder by creating a volume::
 
@@ -423,7 +426,6 @@ Deleting the volume can take some time::
 
 After a while, the volume is deleted, and LV is deleted::
 
-    root@volume-node:~# cinder list
     root@volume-node:~# cinder list
     +----+--------+--------------+------+-------------+----------+-------------+
     | ID | Status | Display Name | Size | Volume Type | Bootable | Attached to |
