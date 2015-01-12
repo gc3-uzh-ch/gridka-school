@@ -50,21 +50,6 @@ Install the NTP service::
 On a production environment, you may want to update ``/etc/ntp.conf``
 to point to a local server.
 
-
-all nodes installation
-~~~~~~~~~~~~~~~~~~~~~~
-
-Since those boring steps have to be completed on all the other nodes, we
-can run the following script in order to automate this process. This way
-the rest of the VMs will have all those steps already done by the time we are
-going to work on them. The following command has to run on the **physical machine**::
-
-    root@ostkNN:[~] $ for host in auth-node image-node api-node \
-        network-node volume-node compute-1 compute-2 neutron-node
-    do
-    ssh -n root@$host "(apt-get update -y; apt-get upgrade -y; aptitude install -y ntp) >& /dev/null &"
-    done
-
 apt repository
 ~~~~~~~~~~~~~~
 
@@ -78,6 +63,21 @@ These packages are maintained by the `ServerTeam` of Ubuntu, so are
 pretty safe to install. For info regarding OpenStack and Ubuntu
 Support Schedule go `here
 <https://wiki.ubuntu.com/ServerTeam/CloudArchive>`_.
+
+
+all nodes installation
+~~~~~~~~~~~~~~~~~~~~~~
+
+Since those boring steps have to be completed on all the other nodes, we
+can run the following script in order to automate this process. This way
+the rest of the VMs will have all those steps already done by the time we are
+going to work on them. The following command has to run on the **physical machine**::
+
+    root@ostkNN:[~] $ for host in auth-node image-node api-node \
+        network-node volume-node compute-1 compute-2 neutron-node
+    do
+    ssh -n root@$host "(add-apt-repository -y cloud-archive:juno; apt-get update -y; apt-get upgrade -y; aptitude install -y ntp) >& /dev/null &"
+    done
 
 
 MySQL installation
