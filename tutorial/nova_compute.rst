@@ -94,8 +94,8 @@ production, you will probably want to separate the two network, either
 by using physically separated networks or by use of VLANs.
 
 Please note that (using the naming convention of our setup) the
-**eth3** interface on the **network-node** must be in the same L2 network as
-**eth1** in the **compute-node**
+**eth2** interface on the **network-node** must be in the same L2 network as
+**eth1** in the **compute-[12]** nodes.
 
 Update the ``/etc/network/interfaces`` file and configure a new
 bridge, called **br100** attached to the network interface ``eth1``::
@@ -146,7 +146,7 @@ and MySQL servers. The minimum information you have to provide in the
     # api_paste_config=/etc/nova/api-paste.ini
     # compute_scheduler_driver=nova.scheduler.simple.SimpleScheduler
     rabbit_host=10.0.0.3
-    rabbit_password = gridka
+    rabbit_password = mhpc
     # nova_url=http://10.0.0.6:8774/v1.1/
     #sql_connection=mysql://novaUser:novaPass@10.0.0.3/nova
 
@@ -159,7 +159,7 @@ and MySQL servers. The minimum information you have to provide in the
 
     # Vnc configuration
     novnc_enabled=true
-    novncproxy_base_url=http://10.0.0.6:6080/vnc_auto.html
+    novncproxy_base_url=http://172.17.0.6:6080/vnc_auto.html
     novncproxy_port=6080
     vncserver_proxyclient_address=10.0.0.20
     vncserver_listen=0.0.0.0
@@ -178,7 +178,7 @@ and MySQL servers. The minimum information you have to provide in the
     auth_protocol = http
     admin_tenant_name = service
     admin_user = nova
-    admin_password = gridka
+    admin_password = mhpc
     
 
 ..
@@ -299,7 +299,7 @@ The command to create a ssh keypair is ``ssh-keygen``::
 Then we have to create an OpenStack keypair and upload our *public*
 key. This is done using ``nova keypair-add`` command::
 
-    root@api-node:~# nova keypair-add gridka-api-node --pub-key ~/.ssh/id_rsa.pub
+    root@api-node:~# nova keypair-add mhpc-api-node --pub-key ~/.ssh/id_rsa.pub
 
 you can check that the keypair has been created with::
 
@@ -307,7 +307,7 @@ you can check that the keypair has been created with::
     +-----------------+-------------------------------------------------+
     | Name            | Fingerprint                                     |
     +-----------------+-------------------------------------------------+
-    | gridka-api-node | fa:86:74:77:a2:55:29:d8:e7:06:4a:13:f7:ca:cb:12 |
+    | mhpc-api-node   | fa:86:74:77:a2:55:29:d8:e7:06:4a:13:f7:ca:cb:12 |
     +-----------------+-------------------------------------------------+
 
 Let's get the ID of the available images, flavors and security
@@ -342,7 +342,7 @@ groups::
 Now we are ready to start our first instance::
 
     root@api-node:~# nova boot --image 79af6953-6bde-463d-8c02-f10aca227ef4 \
-      --security-group default --flavor m1.tiny --key_name gridka-api-node server-1
+      --security-group default --flavor m1.tiny --key-name mhpc-api-node server-1
     +-------------------------------------+--------------------------------------+
     | Property                            | Value                                |
     +-------------------------------------+--------------------------------------+
@@ -365,7 +365,7 @@ Now we are ready to start our first instance::
     | updated                             | 2013-08-19T09:37:34Z                 |
     | hostId                              |                                      |
     | OS-EXT-SRV-ATTR:host                | None                                 |
-    | key_name                            | gridka-api-node                      |
+    | key_name                            | mhpc-api-node                        |
     | OS-EXT-SRV-ATTR:hypervisor_hostname | None                                 |
     | name                                | server-1                             |
     | adminPass                           | k7cT4nnC6sJU                         |
@@ -388,14 +388,14 @@ not yet started::
     +--------------------------------------+----------+--------+----------------------------+
     | ID                                   | Name     | Status | Networks                   |
     +--------------------------------------+----------+--------+----------------------------+
-    | d2ef7cbf-c506-4c67-a6b6-7bd9fecbe820 | server-1 | BUILD  | net1=10.99.0.2, 172.16.1.1 |
+    | d2ef7cbf-c506-4c67-a6b6-7bd9fecbe820 | server-1 | BUILD  | net1=10.99.0.2, 172.17.1.1 |
     +--------------------------------------+----------+--------+----------------------------+
 
     root@api-node:~# nova list
     +--------------------------------------+----------+--------+----------------------------+
     | ID                                   | Name     | Status | Networks                   |
     +--------------------------------------+----------+--------+----------------------------+
-    | d2ef7cbf-c506-4c67-a6b6-7bd9fecbe820 | server-1 | ACTIVE | net1=10.99.0.2, 172.16.1.1 |
+    | d2ef7cbf-c506-4c67-a6b6-7bd9fecbe820 | server-1 | ACTIVE | net1=10.99.0.2, 172.17.1.1 |
     +--------------------------------------+----------+--------+----------------------------+
 
 When the instance is in ``ACTIVE`` state it means that it is now
@@ -403,11 +403,11 @@ running on a compute node. However, the boot process
 can take some time, so don't worry if the following command will fail
 a few times before you can actually connect to the instance::
 
-    root@api-node:~# ssh 172.16.1.1
-    The authenticity of host '172.16.1.1 (172.16.1.1)' can't be established.
+    root@api-node:~# ssh 172.17.1.1
+    The authenticity of host '172.17.1.1 (172.17.1.1)' can't be established.
     RSA key fingerprint is 38:d2:4c:ee:31:11:c1:1a:0f:b6:3b:dc:f2:d2:46:8f.
     Are you sure you want to continue connecting (yes/no)? yes
-    Warning: Permanently added '172.16.1.1' (RSA) to the list of known hosts.
+    Warning: Permanently added '172.17.1.1' (RSA) to the list of known hosts.
     # uname -a
     Linux cirros 3.0.0-12-virtual #20-Ubuntu SMP Fri Oct 7 18:19:02 UTC 2011 x86_64 GNU/Linux
 
@@ -447,10 +447,10 @@ The command is similar to ``nova boot``::
     root@api-node:~# euca-run-instances \
       --access-key 445f486efe1a4eeea2c924d0252ff269 \
       --secret-key ff98e8529e2543aebf6f001c74d65b17 \
-      -U http://api-node.example.org:8773/services/Cloud \
-      ami-00000001 -k gridka-api-node
+      -U http://api-node.ostklab:8773/services/Cloud \
+      ami-00000001 -k mhpc-api-node
     RESERVATION	r-e9cq9p1o	acdbdb11d3334ed987869316d0039856	default
-    INSTANCE	i-00000007	ami-00000001			pending	gridka-api-node (acdbdb11d3334ed987869316d0039856, None)	0	m1.small	2013-08-29T07:55:15.000Z	nova				monitoring-disabled					instance-store	
+    INSTANCE	i-00000007	ami-00000001			pending	mhpc-api-node (acdbdb11d3334ed987869316d0039856, None)	0	m1.small	2013-08-29T07:55:15.000Z	nova				monitoring-disabled					instance-store	
 
 Instances created by euca2ools are, of course, visible with nova as
 well::
@@ -459,7 +459,7 @@ well::
     +--------------------------------------+---------------------------------------------+--------+----------------------------+
     | ID                                   | Name                                        | Status | Networks                   |
     +--------------------------------------+---------------------------------------------+--------+----------------------------+
-    | ec1e58e4-57f4-4429-8423-a44891a098e3 | Server ec1e58e4-57f4-4429-8423-a44891a098e3 | BUILD  | net1=10.99.0.3, 172.16.1.2 |
+    | ec1e58e4-57f4-4429-8423-a44891a098e3 | Server ec1e58e4-57f4-4429-8423-a44891a098e3 | BUILD  | net1=10.99.0.3, 172.17.1.2 |
     +--------------------------------------+---------------------------------------------+--------+----------------------------+
 
 Working with Flavors
@@ -528,7 +528,7 @@ First lets find a running instance::
     +--------------------------------------+---------+--------+----------------------------+
     | ID                                   | Name    | Status | Networks                   |
     +--------------------------------------+---------+--------+----------------------------+
-    | bf619ff4-303a-417c-9631-d7147dd50585 | server1 | ACTIVE | net1=10.99.0.2, 172.16.1.1 |
+    | bf619ff4-303a-417c-9631-d7147dd50585 | server1 | ACTIVE | net1=10.99.0.2, 172.17.1.1 |
     +--------------------------------------+---------+--------+----------------------------+
 
 and see what flavor it has::
@@ -558,7 +558,7 @@ and see what flavor it has::
     | metadata                            | {}                                                         |
     | accessIPv4                          |                                                            |
     | accessIPv6                          |                                                            |
-    | net1 network                        | 10.99.0.2, 172.16.1.1                                      |
+    | net1 network                        | 10.99.0.2, 172.17.1.1                                      |
     | progress                            | 0                                                          |
     | OS-EXT-STS:power_state              | 1                                                          |
     | OS-EXT-AZ:availability_zone         | nova                                                       |

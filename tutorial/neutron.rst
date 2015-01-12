@@ -21,13 +21,13 @@ First move to the **db-node** and create the database::
     root@db-node:~# mysql -u root -p
     
     mysql> CREATE DATABASE neutron;
-    mysql> GRANT ALL ON neutron.* TO 'neutron'@'%' IDENTIFIED BY 'gridka';
+    mysql> GRANT ALL ON neutron.* TO 'neutron'@'%' IDENTIFIED BY 'mhpc';
     mysql> FLUSH PRIVILEGES;
     mysql> exit
 
 Create Neutron user, service and endpoint::
 
-    root@auth-node:~# keystone user-create --name=neutron --pass=gridka
+    root@auth-node:~# keystone user-create --name=neutron --pass=mhpc
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
@@ -44,8 +44,8 @@ Create Neutron user, service and endpoint::
     root@auth-node:~# keystone endpoint-create \
          --region RegionOne \
          --service neutron \
-         --publicurl http://neutron-node.example.org:9696 \
-         --adminurl http://neutron-node.example.org:9696 \
+         --publicurl http://neutron-node.ostklab:9696 \
+         --adminurl http://neutron-node.ostklab:9696 \
          --internalurl http://10.0.0.9:9696
 
 
@@ -98,7 +98,7 @@ RabbitMQ, keystone and MySQL information::
     # RabbitMQ configuration
     rpc_backend = neutron.openstack.common.rpc.impl_kombu
     rabbit_host = 10.0.0.3
-    rabbit_password = gridka
+    rabbit_password = mhpc
     # ...
 
     # Keystone configuration
@@ -109,13 +109,13 @@ RabbitMQ, keystone and MySQL information::
     auth_protocol = http
     admin_tenant_name = service
     admin_user = neutron
-    admin_password = gridka
+    admin_password = mhpc
     # ...
 
     # ...
     # MySQL configuration
     [database]
-    connection = mysql://neutron:gridka@10.0.0.3/neutron
+    connection = mysql://neutron:mhpc@10.0.0.3/neutron
 
 Then, we need to also update the configuration related to ML2, the
 plugin we are going to use. Again in the
@@ -141,7 +141,7 @@ communicate any change in the network topology. Again in the
     nova_url = http://10.0.0.6:8774/v2
     nova_admin_username = nova
     nova_admin_tenant_id = 3dff3552489e458c85143a84759db398
-    nova_admin_password = gridka
+    nova_admin_password = mhpc
     nova_admin_auth_url = http://10.0.0.4:35357/v2.0
 
 
@@ -185,7 +185,7 @@ service and the `metadata-agent`::
     auth_region = RegionOne
     admin_tenant_name = service
     admin_user = neutron
-    admin_password = gridka
+    admin_password = mhpc
     # IP of the nova-api/nova-metadata-api service
     nova_metadata_ip = 10.0.0.6
     metadata_proxy_shared_secret = d1a6195d-5912-4ef9-b01f-426603d56bd2
@@ -312,7 +312,7 @@ look like (also refer `troubleshooting session <troubleshooting1.rst>`_)::
         broadcast 172.16.255.255
         gateway 172.16.0.1
         dns-nameservers 141.52.27.35
-        dns-search example.org
+        dns-search ostklab
 
 
 Also, the `eth2` interface, used by the `br-ext` bridge, must be UP
@@ -403,7 +403,7 @@ to the **api-node** and update  ``/etc/nova/nova.conf`` file::
     neutron_auth_strategy = keystone
     neutron_admin_tenant_name = service
     neutron_admin_username = neutron
-    neutron_admin_password = gridka
+    neutron_admin_password = mhpc
     neutron_admin_auth_url = http://10.0.0.4:35357/v2.0
     linuxnet_interface_driver = nova.network.linux_net.LinuxOVSInterfaceDriver
     firewall_driver = nova.virt.firewall.NoopFirewallDriver
@@ -452,7 +452,7 @@ Configure RabbitMQ and Keystone options for neutron, by editing
 
     rpc_backend = neutron.openstack.common.rpc.impl_kombu
     rabbit_host = 10.0.0.3
-    rabbit_password = gridka
+    rabbit_password = mhpc
 
     auth_strategy = keystone
     # ...
@@ -463,7 +463,7 @@ Configure RabbitMQ and Keystone options for neutron, by editing
     auth_protocol = http
     admin_tenant_name = service
     admin_user = neutron
-    admin_password = gridka
+    admin_password = mhpc
 
 Again on ``/etc/neutron/neutron.conf``, configure the neutron to use
 the ML2 plugin::
@@ -513,7 +513,7 @@ Configure `nova-compute` so that it knows about neutron. In file
     neutron_auth_strategy = keystone
     neutron_admin_tenant_name = service
     neutron_admin_username = neutron
-    neutron_admin_password = gridka
+    neutron_admin_password = mhpc
     neutron_admin_auth_url = http://10.0.0.4:35357/v2.0
     linuxnet_interface_driver = nova.network.linux_net.LinuxOVSInterfaceDriver
     firewall_driver = nova.virt.firewall.NoopFirewallDriver
@@ -781,7 +781,7 @@ Testing instance creation
 
 ::
 
-    root@auth-node:~# nova boot --flavor m1.tiny  --key-name gridka-auth-node \
+    root@auth-node:~# nova boot --flavor m1.tiny  --key-name mhpc-auth-node \
         --image cirros-0.3.0 \
         --nic net-id=29c861dd-9bf9-4a4e-a0b6-3de62fa33dd5 test-1
 

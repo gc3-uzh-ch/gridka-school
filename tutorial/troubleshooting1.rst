@@ -33,7 +33,7 @@ separately.
 1) First, ping from `www.google.com` from a virtual machine, and check
    what happens to packets coming out from the virtual machine.
 2) Then, try to understand what happen when you try to connect to a VM
-   (tcp port 22) from a physical machine (`gks-NNN`).
+   (tcp port 22) from a physical machine (`ostkNN`).
 
 Bonus question: since we are not able to ping google, how can we
 resolve its hostname?
@@ -88,7 +88,7 @@ see where the packets goes.
       default via 10.0.0.1 dev eth0 
       10.0.0.0/24 dev eth0  proto kernel  scope link  src 10.0.0.7 
       10.99.0.0/22 dev br100  proto kernel  scope link  src 10.99.0.1 
-      172.16.0.0/16 dev eth1  proto kernel  scope link  src 172.16.0.7 
+      172.17.0.0/16 dev eth1  proto kernel  scope link  src 172.17.0.7 
 
   Let's see what happen on the `eth0` interface::
 
@@ -137,23 +137,23 @@ see where the packets goes.
 
       Chain nova-network-OUTPUT (1 references)
        pkts bytes target     prot opt in     out     source               destination         
-          0     0 DNAT       all  --  any    any     anywhere             172.16.1.1           to:10.99.0.2
+          0     0 DNAT       all  --  any    any     anywhere             172.17.1.1           to:10.99.0.2
 
       Chain nova-network-POSTROUTING (1 references)
        pkts bytes target     prot opt in     out     source               destination         
           0     0 ACCEPT     all  --  any    any     10.99.0.0/22         network-node        
          11  3171 ACCEPT     all  --  any    any     10.99.0.0/22         10.99.0.0/22         ! ctstate DNAT
-          0     0 SNAT       all  --  any    any     10.99.0.2            anywhere             ctstate DNAT to:172.16.1.1
+          0     0 SNAT       all  --  any    any     10.99.0.2            anywhere             ctstate DNAT to:172.17.1.1
 
       Chain nova-network-PREROUTING (1 references)
        pkts bytes target     prot opt in     out     source               destination         
           8   480 DNAT       tcp  --  any    any     anywhere             169.254.169.254      tcp dpt:http to:10.0.0.7:8775
-          0     0 DNAT       all  --  any    any     anywhere             172.16.1.1           to:10.99.0.2
+          0     0 DNAT       all  --  any    any     anywhere             172.17.1.1           to:10.99.0.2
 
       Chain nova-network-float-snat (1 references)
        pkts bytes target     prot opt in     out     source               destination         
-          0     0 SNAT       all  --  any    any     10.99.0.2            10.99.0.2            to:172.16.1.1
-          0     0 SNAT       all  --  any    eth1    10.99.0.2            anywhere             to:172.16.1.1
+          0     0 SNAT       all  --  any    any     10.99.0.2            10.99.0.2            to:172.17.1.1
+          0     0 SNAT       all  --  any    eth1    10.99.0.2            anywhere             to:172.17.1.1
 
       Chain nova-network-snat (1 references)
        pkts bytes target     prot opt in     out     source               destination         
@@ -192,7 +192,7 @@ see where the packets goes.
           link/ether 52:54:00:61:8e:f1 brd ff:ff:ff:ff:ff:ff
           inet 10.0.0.7/24 brd 10.0.0.255 scope global eth0
              valid_lft forever preferred_lft forever
-          inet 172.16.1.1/32 scope global eth0
+          inet 172.17.1.1/32 scope global eth0
              valid_lft forever preferred_lft forever
 
   ping still doesn't work.
@@ -202,7 +202,7 @@ see where the packets goes.
       root@network-node:~# tcpdump -i eth0 -n icmp
       tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
       listening on eth0, link-type EN10MB (Ethernet), capture size 65535 bytes
-      10:25:17.823400 IP 172.16.1.1 > 173.194.113.148: ICMP echo request, id 52224, seq 14, length 64
+      10:25:17.823400 IP 172.17.1.1 > 173.194.113.148: ICMP echo request, id 52224, seq 14, length 64
 
   so, the IP is actually coming out from the network node, on the
   "right" interface, and with the *right* IP address. Why don't we see
@@ -210,11 +210,11 @@ see where the packets goes.
 
 * Let's now check on the physical node::
 
-      [root@gks-061 ~]# tcpdump -i br1 -n icmp
+      [root@ostk00 ~]# tcpdump -i br1 -n icmp
       tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
       listening on br1, link-type EN10MB (Ethernet), capture size 65535 bytes
       10:27:45.694425 IP 10.99.0.2 > 173.194.113.148: ICMP echo request, id 56320, seq 2, length 64
-      10:27:45.694504 IP 172.16.1.1 > 173.194.113.148: ICMP echo request, id 56320, seq 2, length 64
+      10:27:45.694504 IP 172.17.1.1 > 173.194.113.148: ICMP echo request, id 56320, seq 2, length 64
 
   No wonder here: the first packet, coming from 10.99.0.2 is the one
   flowing from the VM to the network node, that we are seeing because
@@ -222,12 +222,12 @@ see where the packets goes.
   the one translated by the network node, and directed to the
   "gateway". You can check this by also viewing the mac addresses::
 
-      [root@gks-061 ~]# tcpdump -i br1 -n icmp -e
+      [root@ostk00 ~]# tcpdump -i br1 -n icmp -e
       tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
       listening on br1, link-type EN10MB (Ethernet), capture size 65535 bytes
       10:29:25.523369 fa:16:3e:20:5f:65 > 52:54:00:25:67:05, ethertype IPv4 (0x0800), length 98: 10.99.0.2 > 173.194.113.144: ICMP echo request, id 59136, seq 0, length 64
-      10:29:25.523446 52:54:00:61:8e:f1 > 00:30:48:d4:5f:99, ethertype IPv4 (0x0800), length 98: 172.16.1.1 > 173.194.113.144: ICMP echo request, id 59136, seq 0, length 64
-      [root@gks-061 ~]# ip addr show br1
+      10:29:25.523446 52:54:00:61:8e:f1 > 00:30:48:d4:5f:99, ethertype IPv4 (0x0800), length 98: 172.17.1.1 > 173.194.113.144: ICMP echo request, id 59136, seq 0, length 64
+      [root@ostk00 ~]# ip addr show br1
       4: br1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN 
           link/ether 00:30:48:d4:5f:99 brd ff:ff:ff:ff:ff:ff
           inet 10.0.0.1/24 brd 10.0.0.255 scope global br1
@@ -248,7 +248,7 @@ see where the packets goes.
 
 * What happen on the routing from within the physical node?::
 
-      [root@gks-061 ~]# ip route 
+      [root@ostk00 ~]# ip route 
       10.0.0.0/24 dev br1  proto kernel  scope link  src 10.0.0.1 
       141.52.174.0/24 dev eth0  proto kernel  scope link  src 141.52.174.61 
       default via 141.52.174.1 dev eth0 
@@ -264,7 +264,7 @@ You should have realized by now that there are two problems at the
 same time:
 
 * routing: ICMP reply packets are not routed to the correct interface,
-  because the physical node do not know that 172.16.0.0/16 network is
+  because the physical node do not know that 172.17.0.0/16 network is
   behind the `br1` interface
 * firewall: the physical node do not allow forwarding of the packets
   (`iptables -L FORWARD`) nor is NAT-ting the packets in order to use
@@ -275,17 +275,17 @@ There are two way to solve this issue:
 1) add a "public" ip to the physical node, to be used as router for the
    openstack nodes (similar to having a *real* router on the public network)::
 
-       [root@gks-061 ~]# ifconfig br1:0 172.16.0.1/16
+       [root@ostk00 ~]# ifconfig br1:0 172.17.0.1/16
 
    enable NAT-ting for those IP addresses::
 
-       [root@gks-061 ~]# iptables -A POSTROUTING -t nat -o eth0 -s 172.16.0.0/16 -j MASQUERADE
+       [root@ostk00 ~]# iptables -A POSTROUTING -t nat -o eth0 -s 172.17.0.0/16 -j MASQUERADE
 
    finally, modify the routing on the **network-node**, so that
    packets are sent to the physical machine using the correct network::
 
        root@network-node:~# route del default gw 10.0.0.1
-       root@network-node:~# route add default gw 172.16.0.1 dev eth1
+       root@network-node:~# route add default gw 172.17.0.1 dev eth1
 
    In this case, the floating IPs are all added to interface `eth1` of
    the network-node, so you need to put `public_interface=eth1` in ``/etc/nova/nova.conf``
@@ -298,15 +298,15 @@ There are two way to solve this issue:
    machine on the interface `br1`.
 
    You also need to tell the physical machine *where* the
-   172.16.0.0/16 network lives, by modifying its routing table::
+   172.17.0.0/16 network lives, by modifying its routing table::
 
-       [root@gks-061 ~]# route add -net 172.16.0.0/16 dev br1
+       [root@ostk00 ~]# route add -net 172.17.0.0/16 dev br1
 
    and, like we did before, add a rule to the firewall to MASQUERADE
    the outgoing traffic, needed because we are using private IPs
    instead of public ones::
 
-       [root@gks-061 ~]# iptables -A POSTROUTING -t nat -o eth0 -s 172.16.0.0/16 -j MASQUERADE
+       [root@ostk00 ~]# iptables -A POSTROUTING -t nat -o eth0 -s 172.17.0.0/16 -j MASQUERADE
 
 
 Please note that those changes (especially those in the physical
@@ -340,7 +340,7 @@ line running the following command::
    root@api-node:~# nova boot \
      --block-device \
      id=7b05a000-dd1b-409a-ba51-a567a9ebec13,source=image,dest=volume,size=1,shutdown=remove,bootindex=0 \
-     --key-name gridka-auth-node --flavor m1.tiny test-from-volume
+     --key-name mhpc-api-node --flavor m1.tiny test-from-volume
 
 The machine will go in ERROR state, and on the **volume-node**, in
 ``/var/log/cinder/cinder-api.log`` you will find::
@@ -487,16 +487,16 @@ List of possible checks
 
 .. elasticluster:
    on the node
-   (elasticluster)root@gks-246:[~] $ lsb_release -a
+   (elasticluster)root@ostk246:[~] $ lsb_release -a
    LSB Version:	:base-4.0-amd64:base-4.0-noarch:core-4.0-amd64:core-4.0-noarch:graphics-4.0-amd64:graphics-4.0-noarch:printing-4.0-amd64:printing-4.0-noarch
    Distributor ID:	Scientific
    Description:	Scientific Linux release 6.4 (Carbon)
    Release:	6.4
    Codename:	Carbon
 
-   (elasticluster)root@gks-246:[~] $ pip install elasticluster
+   (elasticluster)root@ostk246:[~] $ pip install elasticluster
 
-   (elasticluster)root@gks-246:[~] $ elasticluster list-templates
+   (elasticluster)root@ostk246:[~] $ elasticluster list-templates
    Traceback (most recent call last):
      File "/root/elasticluster/bin/elasticluster", line 8, in <module>
        load_entry_point('elasticluster==1.0.2', 'console_scripts', 'elasticluster')()

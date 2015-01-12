@@ -147,7 +147,7 @@ the **network-node** and **neutron-node** that have 3. Some of these
 interfaces have been already configured, so that you can already
 connect to them using either the "*public*" or the private ip address.
 
-These are the networks we are going to use:
+These are the networks we are going to use for the *service* nodes:
 
 +------+-----------------------+------------------+-------------+
 |iface | function              | IP range         | DNS domain  |
@@ -159,6 +159,17 @@ These are the networks we are going to use:
 | eth2 | Openstack private     |                  |             |
 |      | network (present only |                  |             |
 |      | on the network-node)  |                  |             |
++------+-----------------------+------------------+-------------+
+
+and for the *compute* nodes:
+
++------+-----------------------+------------------+-------------+
+|iface | function              | IP range         | DNS domain  |
++======+=======================+==================+=============+
+| eth0 | internal network      | 10.0.0.0/8       | openstack   |
++------+-----------------------+------------------+-------------+
+| eth1 | Openstack private     |                  |             |
+|      | network               |                  |             |
 +------+-----------------------+------------------+-------------+
 
 The *internal network* is a trusted network used by all the OpenStack
