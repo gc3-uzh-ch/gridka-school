@@ -34,7 +34,7 @@ automate the process on the other nodes.
 
 Connect to the **db-node**::
 
-    root@gks-NNN:[~] $ ssh root@db-node
+    root@ostkNN:[~] $ ssh root@db-node
 
 .. Note: do we actually need to update?
 
@@ -59,15 +59,24 @@ can run the following script in order to automate this process. This way
 the rest of the VMs will have all those steps already done by the time we are
 going to work on them. The following command has to run on the **physical machine**::
 
-    root@gks-NNN:[~] $ for host in auth-node image-node api-node \
+    root@ostkNN:[~] $ for host in auth-node image-node api-node \
         network-node volume-node compute-1 compute-2 neutron-node
     do
     ssh -n root@$host "(apt-get update -y; apt-get upgrade -y; aptitude install -y ntp) >& /dev/null &"
     done
 
-**Note:** Icehouse is in the main repository for Ubuntu 14.04. This
-means we don't need to add any additional OpenStack repositories. For
-info regarding OpenStack and Ubuntu Support Schedule go `here
+apt repository
+~~~~~~~~~~~~~~
+
+Ubuntu 14.04 is shipped with the OpenStack packages for the Icehouse
+release, but the current release is Juno. To install the repository
+for the Juno release you just need to run::
+
+    root@db-node:~# add-apt-repository cloud-archive:juno
+
+These packages are maintained by the `ServerTeam` of Ubuntu, so are
+pretty safe to install. For info regarding OpenStack and Ubuntu
+Support Schedule go `here
 <https://wiki.ubuntu.com/ServerTeam/CloudArchive>`_.
 
 
@@ -76,11 +85,7 @@ MySQL installation
 
 We are going to install both MySQL and RabbitMQ on the same server,
 but on a production environment you may want to have them installed on
-different servers and/or in HA. The following instructions are
-intended to be used for both scenarios.
-
-.. QUESTION: What does it mean "the following instructions are
-   intended to be used on both scnearios"? Which schenarios exactly?
+different servers and/or in HA. 
 
 Now please move on the db-node where we have to install the MySQL server.
 In order to do that please execute::
@@ -166,11 +171,12 @@ brokers.
 Install RabbitMQ from the ubuntu repository::
 
     root@db-node:~# aptitude install -y rabbitmq-server
-        
+
 RabbitMQ does not need any specific configuration. On a production
-environment, however, you might need to create a specific user for
-OpenStack services. We are not covering in this tutorial, so please
-refer to the `official documentation <http://www.rabbitmq.com/documentation.html>`_.
+environment, however, you might need to create a specific user and/or
+virtual host for OpenStack services. We are not covering it in this
+tutorial, so please refer to the `official documentation
+<http://www.rabbitmq.com/documentation.html>`_.
 
 To check if the RabbitMQ server is running use the ``rabbitmqctl``
 command::
@@ -205,9 +211,9 @@ operate on it briefly.
 The message broker uses guest as default user name and password. You
 can change that password by simply doing::
  
-    root@db-node:~# rabbitmqctl change_password guest gridka
+    root@db-node:~# rabbitmqctl change_password guest mhpc
 
-This will change the default password to **gridka**. On a production
+This will change the default password to **mhpc**. On a production
 environment, **please**, choose a better password (again, you can use
 `pwgen` to generate one).
 
