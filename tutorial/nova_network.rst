@@ -149,10 +149,10 @@ Network configuration on the **network-node** will look like:
 +-------+------------------+-----------------------------------------------------+
 | iface | network          | usage                                               |
 +=======+==================+=====================================================+
-| eth0  | 10.0.0.0/24      | `management network`                                |
+| eth0  | 10.0.0.0/8       | `management network`                                |
 |       |                  | (internal network of the OS services)               |
 +-------+------------------+-----------------------------------------------------+
-| eth1  | 172.16.0.0/24    | `public network`                                    |
+| eth1  | 172.17.0.0/24    | `public network`                                    |
 +-------+------------------+-----------------------------------------------------+
 | eth2  | 0.0.0.0          | slave interface of br100 (integration bridge)       |
 +-------+------------------+-----------------------------------------------------+
@@ -205,6 +205,8 @@ Update the configuration file ``/etc/nova/nova.conf`` and ensure the
 following options are defined::
 
 
+    [DEFAULT]
+    ...
     network_api_class = nova.network.api.API
     security_group_api = nova
 
@@ -213,7 +215,7 @@ following options are defined::
     firewall_driver=nova.virt.libvirt.firewall.IptablesFirewallDriver
 
     rabbit_host=10.0.0.3
-    rabbit_password = gridka
+    rabbit_password = mhpc
 
     flat_network_bridge=br100
     fixed_range=10.99.0.0/22    
@@ -221,11 +223,13 @@ following options are defined::
     network_size=1022
 
     [database]
-    connection = mysql://nova:gridka@10.0.0.3/nova    
+    connection = mysql://nova:mhpc@10.0.0.3/nova    
 
 We will also add some options to automatically assign a public IP to
 the virtual machine::
 
+    [DEFAULT]
+    ...
     # Floating IPs
     auto_assign_floating_ip=true
     default_floating_pool=public
@@ -238,7 +242,7 @@ the virtual machine::
 .. FIXME: Removed configuration for MySQL as now nova-netowrk is using
    nova-conductor
 
-       sql_connection=mysql://nova:gridka@10.0.0.3/nova
+       sql_connection=mysql://nova:mhpc@10.0.0.3/nova
 
 ..
        # Not sure it's needed
@@ -285,12 +289,12 @@ an instance while it is up&running.
 
 Create a floating public network::
 
-    root@network-node:~# nova-manage floating create --ip_range 172.16.1.0/24 --pool=public
+    root@network-node:~# nova-manage floating create --ip_range 172.17.1.0/24 --pool=public
 
 ..
    FIXME: TOCHECK: ``eth2`` is the interface **ON THE COMPUTE NODE**.
 
-We are going to use all the IP address of type **172.16.1.x** for the
+We are going to use all the IP address of type **172.17.1.x** for the
 public IP of the VMs. Please note that this does not have to be a
 *real* network: the argument of the ``--ip_range`` option is used to
 allow passing multiple IP addresses at once, so that the previous
@@ -298,7 +302,7 @@ commands has exactly the same effect of running::
 
     root@network-node:~# for i in {1..254}
     do
-    nova-manage floating create --ip_range 172.16.1.$i --pool=public
+    nova-manage floating create --ip_range 172.17.1.$i --pool=public
     done
 
 (but the latter it's quite slower!)
@@ -307,18 +311,19 @@ A list of floating IPs defined in the network nova can be shown using
 ``nova-manage``::
 
     root@network-node:~# nova-manage floating list
-    None    172.16.1.1      None    public  eth2
-    None    172.16.1.2      None    public  eth2
+    None    172.17.1.1      None    public  eth2
+    None    172.17.1.2      None    public  eth2
     ...
-    None    172.16.1.254    None    public  eth2
+    None    172.17.1.254    None    public  eth2
 
 
 The default security group does not have any rule associated with it,
 so you may want to add default rules to at least allow ping and ssh
-connections::
+connections (you need to install the ``python-novaclient`` package using
+``apt-get``, or you just run the following commands from the **api-node**)::
 
-    root@network-node:~# nova --os-user admin --os-tenant-name admin \
-      --os-password keystoneAdmin --os-auth-url http://auth-node.example.org:5000/v2.0 \
+    root@network-node:~# nova --os-username admin --os-tenant-name admin \
+      --os-password mhpc --os-auth-url http://auth-node.ostklab:5000/v2.0 \
       secgroup-add-rule default icmp -1 -1 0.0.0.0/0
     +-------------+-----------+---------+-----------+--------------+
     | IP Protocol | From Port | To Port | IP Range  | Source Group |
@@ -326,8 +331,8 @@ connections::
     | icmp        | -1        | -1      | 0.0.0.0/0 |              |
     +-------------+-----------+---------+-----------+--------------+
 
-    root@network-node:~# nova --os-user admin --os-tenant-name admin \
-      --os-password keystoneAdmin  --os-auth-url http://auth-node.example.org:5000/v2.0 \
+    root@network-node:~# nova --os-username admin --os-tenant-name admin \
+      --os-password mhpc  --os-auth-url http://auth-node.ostklab:5000/v2.0 \
       secgroup-add-rule default tcp 22 22 0.0.0.0/0
     +-------------+-----------+---------+-----------+--------------+
     | IP Protocol | From Port | To Port | IP Range  | Source Group |
