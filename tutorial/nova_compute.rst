@@ -63,11 +63,15 @@ for starting an OpenStack instance is done. Note that this is very high level de
 Software installation
 ~~~~~~~~~~~~~~~~~~~~~
 
-Since we cannot use KVM because our compute nodes are virtualized and
-the host node does not support *nested virtualization*, we install
-**qemu** instead of **kvm**::
+..
+   Since we cannot use KVM because our compute nodes are virtualized and
+   the host node does not support *nested virtualization*, we install
+   **qemu** instead of **kvm**::
 
-    root@compute-1 # apt-get install -y nova-compute-qemu
+We are going to use **kvm** as virtualization system, so install the
+following package::
+
+    root@compute-1 # apt-get install -y nova-compute-kvm
 
 This will also install the **nova-compute** package and all its
 dependencies.
@@ -219,7 +223,7 @@ libvirt type. For our setup this file should only contain::
     [DEFAULT]
     compute_driver=libvirt.LibvirtDriver
     [libvirt]
-    virt_type=qemu
+    virt_type=kvm
 
 ..
    Was:
@@ -227,13 +231,14 @@ libvirt type. For our setup this file should only contain::
        libvirt_type=qemu
        libvirt_cpu_mode=none
 
-Please note that these are the lines needed on *our* setup because we
-have virtualized compute nodes without support for nested
-virtualization. On a production environment, using physical machines
-with full support for virtualization you would probably need to set::
+..
+   Please note that these are the lines needed on *our* setup because we
+   have virtualized compute nodes without support for nested
+   virtualization. On a production environment, using physical machines
+   with full support for virtualization you would probably need to set::
 
-    [libvirt]
-    virt_type=kvm
+       [libvirt]
+       virt_type=kvm
 
 ..
   Not needed:

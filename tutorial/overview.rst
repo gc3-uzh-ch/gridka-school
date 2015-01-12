@@ -152,7 +152,7 @@ These are the networks we are going to use for the *service* nodes:
 +------+-----------------------+------------------+-------------+
 |iface | function              | IP range         | DNS domain  |
 +======+=======================+==================+=============+
-| eth0 | internal network      | 10.0.0.0/8       | openstack   |
+| eth0 | internal network      | 10.0.0.0/24      | openstack   |
 +------+-----------------------+------------------+-------------+
 | eth1 | public network        | 172.17.0.0/16    | ostklab     |
 +------+-----------------------+------------------+-------------+
@@ -166,7 +166,7 @@ and for the *compute* nodes:
 +------+-----------------------+------------------+-------------+
 |iface | function              | IP range         | DNS domain  |
 +======+=======================+==================+=============+
-| eth0 | internal network      | 10.0.0.0/8       | openstack   |
+| eth0 | internal network      | 10.0.0.0/24      | openstack   |
 +------+-----------------------+------------------+-------------+
 | eth1 | Openstack private     |                  |             |
 |      | network               |                  |             |

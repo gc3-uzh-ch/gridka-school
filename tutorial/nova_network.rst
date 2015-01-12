@@ -149,7 +149,7 @@ Network configuration on the **network-node** will look like:
 +-------+------------------+-----------------------------------------------------+
 | iface | network          | usage                                               |
 +=======+==================+=====================================================+
-| eth0  | 10.0.0.0/8       | `management network`                                |
+| eth0  | 10.0.0.0/24      | `management network`                                |
 |       |                  | (internal network of the OS services)               |
 +-------+------------------+-----------------------------------------------------+
 | eth1  | 172.17.0.0/24    | `public network`                                    |
