@@ -134,7 +134,7 @@ and the related endpoint, using the service id we just got::
     |   adminurl  |        http://10.0.0.8:8776/v1/$(tenant_id)s         |
     |      id     |           b7216435f3864c70a66e5e3b54bb488e           |
     | internalurl |        http://10.0.0.8:8776/v1/$(tenant_id)s         |
-    |  publicurl  | http://volume-node.ostklab:8776/v1/$(tenant_id)s |
+    |  publicurl  | http://volume-node.ostklab:8776/v1/$(tenant_id)s     |
     |    region   |                      RegionOne                       |
     |  service_id |           9196c7e637f04e26b9246ee6116dd21c           |
     +-------------+------------------------------------------------------+
