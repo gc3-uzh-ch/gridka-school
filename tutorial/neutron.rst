@@ -364,10 +364,6 @@ neutron using virtual routers.
        [ovs]
        tenant_network_type = gre
        tunnel_id_ranges = 1:1000
-
-       # enable_tunnelling deprecated from Icehouse, please only use
-       # tunnel_type.
-       enable_tunneling = True
        tunnel_type = gre
 
        integration_bridge = br-int

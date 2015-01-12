@@ -28,10 +28,130 @@
   S$^3$IT - Services and Support for Science IT,
   University of Zurich
 }
-\date{2~September~2014}
+\date{13~January~2015}
 
 %% Makes the title slide
 \maketitle
+
+\begin{frame}
+  {A few words about me}
+  \scriptsize
+
+  \begin{columns}
+    \column{0.4\linewidth}
+    \includegraphics[width=\linewidth]{avatar.jpeg}
+    \column{0.6\linewidth}
+
+    Provide support to scientists or their computational needs
+    
+    \+
+    \pause
+    \begin{itemize}
+    \item deploy and operate the computational infrastructure(s)
+    \item create services on top of it
+    \item port applications
+    \item fix scientific code
+    \item consult scientists (possibly \textit{before} they write the
+      pipeline)
+    \end{itemize}
+
+    \pause
+    so I have to be a:
+    \begin{itemize}
+    \item System Administrator/Engineer/Whatever
+    \item Software Developer/Architect/foo\_bar()
+    \item PR Expert
+    \end{itemize}
+
+  \end{columns}
+\end{frame}
+
+\begin{frame}
+  {What is OpenStack?}
+  \begin{quote}
+    OpenStack is a 
+    \alt<2>\textbf{cloud operating system}{cloud operating system}
+    that controls 
+    \alt<3>\textbf{large pools of}{large pools of}
+    \alt<4>{\textbf{compute, storage, and networking resources}}
+    {compute, storage, and networking resources}
+    throughout a datacenter, all managed through a
+    \alt<5>{\textbf{dashboard}}{dashboard} that
+    gives administrators control while \alt<5>{\textbf{empowering
+        their users}}{empowering their users} to
+    provision resources through a web interface.
+  \end{quote}
+
+\only<2>{\textbf{It's a complex piece of software plus a buzzword}}
+\only<3>{\textbf{It is scalable (thousands of nodes)}}
+\only<4>{\textbf{It is not just about CPU}}
+\only<5>{\textbf{User-centric}}
+\end{frame}
+
+\begin{frame}
+  {Above all}
+
+  \begin{itemize}
+  \item   creation is done via Web GUI, CLI or \textbf{network APIs}
+
+    \begin{itemize}
+    \item[$\Rightarrow$] it can be \textit{scripted}
+    \end{itemize}
+
+  \item Actual provisioning of the VMs can be delegated \textbf{to the
+      user}.
+
+  \item No need to fill up a form or open an issue to create a VM.
+
+  \item Time to provision a VM can be very short (depending on the
+    type of setup!!)
+    \begin{itemize}
+    \item $\sim10$ seconds to create
+    \item $\sim20-50$ seconds to login (depending on the image)
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  {OpenStack vs. traditional HPC/HTC batch system}
+
+  \begin{itemize}
+  \item quota management vs. fairsharing
+  \item software installation (user vs. admin)
+  \item scalability vs. performance
+  \item shared vs. exclusive resource
+  \item continuous growth vs. fixed size
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  {OpenStack vs. rest of the world}
+  What's different from KVM/VMWare/Virtualbox?
+
+  \begin{itemize}
+  \item specs of the VMs are chosen form a list of predefined
+    \textbf{flavors} that define:
+    \begin{itemize}
+    \item Nr. of CPUs
+    \item amount of RAM
+    \item size disk
+    \end{itemize}
+
+  \item complex network setup are possible
+    \begin{itemize}
+    \item although not always needed
+    \end{itemize}
+
+  \item OS already installed (but adapted automatically to the current
+    instance)
+
+  \item multiple options for storage (volumes and object storage)
+
+  \item VMs are spawned on possibly thousands of nodes
+
+  \end{itemize}
+\end{frame}
+
 
 \begin{frame}[fragile]
   {Cattle vs. pets}
@@ -64,52 +184,6 @@
   % \includegraphics[width=\linewidth]{servers_pets_or_cattle.jpg}
 
   % \tiny Rif: \url{http://www.slideshare.net/gmccance/cern-data-centre-evolution}
-\end{frame}
-
-\begin{frame}
-  {Let's say I don't like cats}
-  What's different from KVM/VMWare/Virtualbox?
-
-  \begin{itemize}
-  \item specs of the VMs are choosen form a list of predefined
-    \textbf{flavors} that define:
-    \begin{itemize}
-    \item Nr. of CPUs
-    \item amount of RAM
-    \item size disk
-    \end{itemize}
-
-  \item complex network setup are possible
-    \begin{itemize}
-    \item but often not needed
-    \end{itemize}
-
-  \item OS already installed (but adapted automatically to the current
-    instance)
-
-  \item multiple options for storage (volumes and object storage)
-
-  \item VMs are spawned on possibly thousends of nodes
-
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  {Above all}
-
-  creation is done via Web GUI, CLI or \textbf{network APIs}
-
-  $\Rightarrow$ it can be \textit{scripted}
-
-  \+
-  \pause
-  You just have to setup the cloud.
-
-  \+
-  Actual provisioning of the VMs can be delegated \textbf{to
-    the user}
-
-
 \end{frame}
 
 \begin{frame}
@@ -200,7 +274,7 @@
     \column{2cm}
     \includegraphics[width=2cm]{glance-icon.png}
     \column{8cm}
-    Service responsible of storing image informations and, optionally,
+    Service responsible of storing image information and, optionally,
     image files.
   \end{columns}
 
@@ -429,7 +503,7 @@
 
 \begin{frame}
   {Other OpenStack services}
-  Projects \textbf{integrated} in Icehouse:
+  Projects \textbf{integrated} in Juno:
   \begin{itemize}
   \item \href{https://wiki.openstack.org/wiki/Ceilometer}{Ceilometer}
     (Metering)
@@ -454,6 +528,86 @@
   \item \href{https://wiki.openstack.org/wiki/TripleO}{TripleO} (OpenStack-on-OpenStack)
   \end{itemize}
 \end{frame}
+
+\begin{frame}
+  {Hands-on session!}
+
+  \large Let's have fun!
+\end{frame}
+
+\begin{frame}
+  {Storage solutions}
+
+  \begin{description}
+  \item[volume storage] Permanent or volatile storage, block level
+    access, exclusive, only accessible from OpenStack.
+  \item[object storage] RESTful web API, accessible from anywere,
+    permanent storage, supports complex authorization (including
+    anonymous access), usually supports geo-replication.
+  \item[filesystem storage] usually provided on top of OpenStack,
+    using VMs providing NFS, Lustre, GlusterFS or
+    CephFS. \href{https://wiki.openstack.org/wiki/Manila}{Manila} is
+    an OpenStack project to provide a filesystem-as-a-service.
+  \end{description}
+\end{frame}
+
+\begin{frame}
+  {Ceph overview}
+  \begin{itemize}
+  \item Distributed object, block and filesystem storage without SPoF
+  \item Highly reliable and highly scalable
+  \item RadosGW (object storage) supports geo-replication
+  \item Integrated with OpenStack (Glance, Cinder, Nova, Swift)
+  \item Data can be replicated or stored using an erasure code
+    (similar to RAID5/6)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  {Ceph Software Stack}
+  \begin{figure}[ht]
+    \centering
+    \includegraphics[width=\linewidth]{ceph-software-stack.png}
+  \end{figure}
+\end{frame}
+
+
+\begin{frame}
+  {Ceph Architecture}
+  \begin{figure}[ht]
+    \centering
+    \includegraphics[width=\linewidth]{ceph-arch.png}
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  {Ceph minimal glossary}
+
+  \begin{description}
+  \item[osd] nodes store \textit{objects} of fixed size. They
+    are responsible for replicating the data and rebalance the cluster
+    if needed.
+  \item[mon] nodes store information on the topology of the cluster
+    and the rules to store data.
+  \item[mds] node stores information about the metadata of a CephFS
+    filesystem.
+  \item[cluster map] is stored on the \textbf{mon} nodes, and it's
+    used by the clients to know on which OSDs the data should be
+    written (using the CRUSH algorithm).
+  \item[radosgw] a ceph client that provides S3/Swift APIs to ceph
+    objects.
+  \item[rbd] client library to provide block-level access to ceph objects.
+  \end{description}
+\end{frame}
+
+\begin{frame}
+  {Ceph for ephemeral and cinder}
+  \begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\linewidth]{ceph-openstack-vm.png}
+  \end{figure}
+\end{frame}
+
 \end{document}
 
 %%% Local Variables:

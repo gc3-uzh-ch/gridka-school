@@ -371,7 +371,7 @@ Please keep the connection to the `auth-node` open as we will need to
 operate on it briefly.
 
 Further information about the keystone service can be found at in the
-`official documentation <http://docs.openstack.org/icehouse/install-guide/install/apt/content/ch_keystone.html>`_
+`official documentation <http://docs.openstack.org/juno/install-guide/install/apt/content/ch_keystone.html>`_
 
 `Next: Glance - Image Service <glance.rst>`_
 
@@ -380,4 +380,4 @@ Further information about the keystone service can be found at in the
    OpenStack clients ???
    ~~~~~~~~~~~~~~~~~~~~~
    **TO-DO** Shell we say something about OpenStack clients too?
-   Ref `here: <http://docs.openstack.org/icehouse/install-guide/install/apt/content/ch_clients.html>`_.
+   Ref `here: <http://docs.openstack.org/juno/install-guide/install/apt/content/ch_clients.html>`_.

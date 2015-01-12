@@ -46,11 +46,11 @@ Cinder is actually composed of different services:
 **cinder-scheduler** 
 
     The cinder-scheduler is responsible for scheduling/routing
-    requests to the appropriate volume service. As of Icehouse;
+    requests to the appropriate volume service. As of Juno;
     depending upon your configuration this may be simple round-robin
     scheduling to the running volume services, or it can be more
     sophisticated through the use of the Filter Scheduler. The Filter
-    Scheduler is the default in Icehouse and enables filter on things
+    Scheduler is the default in Juno and enables filter on things
     like Capacity, Availability Zone, Volume Types and Capabilities as
     well as custom filters.
 
@@ -279,7 +279,7 @@ Finally, let's add a section for `keystone` authentication::
     admin_user = cinder
     admin_password = gridka
 
-.. is already set to tgtadm in IceHouse``iscsi_helper``.
+.. is already set to tgtadm in Juno``iscsi_helper``.
 
 Populate the cinder database::
 

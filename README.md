@@ -1,8 +1,8 @@
-GridKa School 2014 - Training Session on OpenStack
-==================================================
+Master in HPC 2014-2015 - OpenStack Workshop
+============================================
 
 <sub>
-   This tutorial is licensed ©2014, licensed under a
+   This tutorial is licensed ©2015, licensed under a
    [Creative Commons Attribution/Share-Alike (BY-SA) license](http://creativecommons.org/licenses/by-sa/3.0/).
 </sub>
 
@@ -11,21 +11,18 @@ This guide is currently *broken*, and it doesn't work out of the
 box. This is **intentional**: studens are requested to find the
 bugs!!!
 
-A new, corrected version will be released after the GridKa school is terminated.
 **WARNING WARNING WARNING***
 
-Teachers:
+Teacher:
 
 * [Antonio Messina](mailto:antonio.s.messina@gmail.com)
-* [Tyanko Aleksiev](mailto:tyanko.alexiev@gmail.com)
 
 
 This guide is to be used as reference for the installation of
-OpenStack `Icehouse` during the: `GridKa School 2014 - Training Session
-on OpenStack`.
+OpenStack `Juno` during the: `Master in HPC - 2014-2015 - OpenStack Workshop`.
 
 Goal of the tutorial is to end up with a small installation of
-OpenStack Icehouse on a set of different Ubuntu 14.04 virtual
+OpenStack Juno on a set of different Ubuntu 14.04 virtual
 machines.
 
 Since our focus is to explain the most basic components of OpenStack

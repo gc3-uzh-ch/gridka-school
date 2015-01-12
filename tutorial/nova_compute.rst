@@ -72,7 +72,7 @@ the host node does not support *nested virtualization*, we install
 This will also install the **nova-compute** package and all its
 dependencies.
 
-.. FIXME: let's see if with icehouse nova-compute is using
+.. FIXME: let's see if with Juno nova-compute is using
    nova-conductor by default and nothing else.
 
    In order to allow the compute nodes to access the MySQL server you must 

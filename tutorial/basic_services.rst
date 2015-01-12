@@ -145,7 +145,7 @@ would suggest you to run it before proceeding::
     [...]
 
 ..
-   See `here <http://docs.openstack.org/icehouse/install-guide/install/apt/content/basics-database-controller.html>`_ for info on 
+   See `here <http://docs.openstack.org/juno/install-guide/install/apt/content/basics-database-controller.html>`_ for info on 
    TO-DO. 
 
 Check that MySQL is actually running and listening on all the interfaces
