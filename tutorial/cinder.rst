@@ -245,7 +245,7 @@ and RabbitMQ, as usual. Update the section ``[DEFAULT]`` and add
 
     [DEFAULT]
     [...]
-    sql_connection = mysql://cinder:gridka@10.0.0.3/cinder
+    sql_connection = mysql://cinder:mhpc@10.0.0.3/cinder
     rabbit_host = 10.0.0.3
     rabbit_password = mhpc
     ..
