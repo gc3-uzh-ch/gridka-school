@@ -42,8 +42,8 @@ On the **db-node** create the database and the MySQL user::
 
     root@db-node:~# mysql -u root -p
     mysql> CREATE DATABASE glance;
-    mysql> GRANT ALL ON glance.* TO 'glance'@'%' IDENTIFIED BY 'gridka';
-    mysql> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost' IDENTIFIED BY 'gridka';
+    mysql> GRANT ALL ON glance.* TO 'glance'@'%' IDENTIFIED BY 'mhpc';
+    mysql> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost' IDENTIFIED BY 'mhpc';
     mysql> FLUSH PRIVILEGES;
     mysql> exit;
 
@@ -56,7 +56,7 @@ First of all we create a `glance` user for keystone, belonging to the
 `service` tenant. You could also use the `admin` user, but it's better
 not to mix things::
 
-    root@auth-node:~# keystone user-create --name=glance --pass=gridka
+    root@auth-node:~# keystone user-create --name=glance --pass=mhpc
     +----------+----------------------------------+
     | Property |              Value               |
     +----------+----------------------------------+
@@ -83,28 +83,28 @@ We need then to create the **image** service::
     +-------------+----------------------------------+
     | description |       Glance Image Service       |
     |   enabled   |               True               |
-    |      id     | 05429191756f4852b935c81c19c21424 |
+    |      id     | 28aecbab2c1d445db693180ed0b0fc63 |
     |     name    |              glance              |
     |     type    |              image               |
-    +-------------+----------------------------------+ 
+    +-------------+----------------------------------+
 
 and the related endpoint::
 
     root@auth-node:~# keystone endpoint-create --region RegionOne \
-        --publicurl 'http://image-node.example.org:9292/v2' \
-        --adminurl 'http://image-node.example.org:9292/v2' \
+        --publicurl 'http://image-node.ostklab:9292/v2' \
+        --adminurl 'http://image-node.ostklab:9292/v2' \
         --internalurl 'http://10.0.0.5:9292/v2' \
         --region RegionOne --service glance
-    +-------------+---------------------------------------+
-    |   Property  |                 Value                 |
-    +-------------+---------------------------------------+
-    |   adminurl  |        http://10.0.0.5:9292/v2        |
-    |      id     |    3cc1713aaf644c8abf72fadc75697864   |
-    | internalurl |        http://10.0.0.5:9292/v2        |
-    |  publicurl  | http://image-node.example.org:9292/v2 |
-    |    region   |               RegionOne               |
-    |  service_id |    05429191756f4852b935c81c19c21424   |
-    +-------------+---------------------------------------+
+    +-------------+-----------------------------------+
+    |   Property  |               Value               |
+    +-------------+-----------------------------------+
+    |   adminurl  | http://image-node.ostklab:9292/v2 |
+    |      id     |  577457f15ca341debc377fcb325dd740 |
+    | internalurl |      http://10.0.0.5:9292/v2      |
+    |  publicurl  | http://image-node.ostklab:9292/v2 |
+    |    region   |             RegionOne             |
+    |  service_id |  28aecbab2c1d445db693180ed0b0fc63 |
+    +-------------+-----------------------------------+
 
 glance installation and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -124,7 +124,7 @@ files and change it to (if it's not there, add it to the section)::
 
     [database]
     ...
-    connection = mysql://glance:gridka@10.0.0.3/glance
+    connection = mysql://glance:mhpc@10.0.0.3/glance
 
 The Image Service has to be configured to use the message broker. Configuration
 information is stored in ``/etc/glance/glance-api.conf``. Please open the file 
@@ -134,7 +134,7 @@ and change as follows in the ``[DEFAULT] section``::
      ...
      rpc_backend = rabbit
      rabbit_host = 10.0.0.3
-     rabbit_password = gridka
+     rabbit_password = mhpc
 
 .. NOTE: I don't think glance is sending notifications at all, as they
    are not needed very often. I think it's used only when you want to
@@ -153,12 +153,21 @@ it matches the values we used when we created the keystone **glance**
 user in both in ``glance-api.conf`` and ``glance-registry.conf``::
 
     [keystone_authtoken]
+    identity_url = http://10.0.0.4:35357
+
+    # These two lines should not be here, but there is still a bug in
+    # glance!
     auth_host = 10.0.0.4
-    auth_port = 35357
     auth_protocol = http
+
     admin_tenant_name = service
     admin_user = glance
-    admin_password = gridka
+    admin_password = mhpc
+
+    ..
+       auth_host = 10.0.0.4
+       auth_port = 35357
+       auth_protocol = http
 
 Finally, we need to specify which paste pipeline we are using. We are not
 entering into details here, just check that the following option is present again
@@ -196,9 +205,9 @@ As we did for keystone, we can set environment variables in order to
 access glance::
 
     root@image-node:~# export OS_USERNAME=glance
-    root@image-node:~# export OS_PASSWORD=gridka
+    root@image-node:~# export OS_PASSWORD=mhpc
     root@image-node:~# export OS_TENANT_NAME=service
-    root@image-node:~# export OS_AUTH_URL=http://auth-node.example.org:5000/v2.0
+    root@image-node:~# export OS_AUTH_URL=http://auth-node.ostklab:5000/v2.0
 
 Testing glance
 ~~~~~~~~~~~~~~
@@ -208,7 +217,7 @@ First of all, let's download a very small test image::
     root@image-node:~# wget https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img
 
 .. Note that if the --os-endpoint-type is not specified glance will try to use 
-   publicurl and if the image-node.example.org is not in /etc/hosts an error 
+   publicurl and if the image-node.ostklab is not in /etc/hosts an error 
    will be issued.  
 
 (You can also download an Ubuntu distribution from the official
