@@ -155,7 +155,7 @@ it matches the values we used when we created the keystone **glance**
 user in both in ``glance-api.conf`` and ``glance-registry.conf``::
 
     [keystone_authtoken]
-    identity_url = http://10.0.0.4:35357
+    identity_uri = http://10.0.0.4:35357
 
     # These two lines should not be here, but there is still a bug in
     # glance!
@@ -166,10 +166,10 @@ user in both in ``glance-api.conf`` and ``glance-registry.conf``::
     admin_user = glance
     admin_password = mhpc
 
-    ..
-       auth_host = 10.0.0.4
-       auth_port = 35357
-       auth_protocol = http
+..
+   auth_host = 10.0.0.4
+   auth_port = 35357
+   auth_protocol = http
 
 Finally, we need to specify which paste pipeline we are using. We are not
 entering into details here, just check that the following option is present again
