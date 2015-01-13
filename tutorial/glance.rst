@@ -118,7 +118,7 @@ On the **image-node** install the **glance** package::
 To configure the glance service we need to edit a few files in ``/etc/glance``:
 
 Information on how to connect to the MySQL database is stored in the
-``/etc/glance/glance-api.conf`` and ``/etc/glance-registry.conf``
+``/etc/glance/glance-api.conf`` and ``/etc/glance/glance-registry.conf``
 files.  The syntax is similar to the one used in the
 ``/etc/keystone/keystone.conf`` file, the name of the option is
 ``connection`` again, in ``[database]`` section. Please edit both
