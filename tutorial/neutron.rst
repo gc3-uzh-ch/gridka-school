@@ -307,10 +307,10 @@ look like (also refer `troubleshooting session <troubleshooting1.rst>`_)::
 
     auto eth1
     iface eth1 inet static
-        address 172.16.0.9
+        address 172.17.0.9
         netmask 255.255.0.0
-        broadcast 172.16.255.255
-        gateway 172.16.0.1
+        broadcast 172.17.255.255
+        gateway 172.17.0.1
         dns-nameservers 141.52.27.35
         dns-search ostklab
 
@@ -344,11 +344,11 @@ neutron using virtual routers.
 
        auto br-ex
        iface br-ex inet static
-            address    172.16.0.9
-            network    172.16.0.0
+            address    172.17.0.9
+            network    172.17.0.0
             netmask    255.255.0.0
-            broadcast  172.16.255.255
-            gateway    172.16.0.1
+            broadcast  172.17.255.255
+            gateway    172.17.0.1
             up ifconfig eth2 promisc
 
    (didn't do anything on eth2 but remove IP and shut down the
@@ -567,18 +567,18 @@ Let's now create the L3 network, using the range of floating IPs we
 decided to use::
 
     root@neutron-node:~# neutron subnet-create external-net --name ext-subnet \
-      --allocation-pool start=172.16.1.1,end=172.16.1.254 \
-      --disable-dhcp --gateway 172.16.0.1 \
-      172.16.0.0/16
+      --allocation-pool start=172.17.1.1,end=172.17.1.254 \
+      --disable-dhcp --gateway 172.17.0.1 \
+      172.17.0.0/16
     Created a new subnet:
     +------------------+------------------------------------------------+
     | Field            | Value                                          |
     +------------------+------------------------------------------------+
-    | allocation_pools | {"start": "172.16.1.1", "end": "172.16.1.254"} |
-    | cidr             | 172.16.0.0/16                                  |
+    | allocation_pools | {"start": "172.17.1.1", "end": "172.17.1.254"} |
+    | cidr             | 172.17.0.0/16                                  |
     | dns_nameservers  |                                                |
     | enable_dhcp      | False                                          |
-    | gateway_ip       | 172.16.0.1                                     |
+    | gateway_ip       | 172.17.0.1                                     |
     | host_routes      |                                                |
     | id               | d7fc327b-8e04-43ce-bad4-98840b9b0927           |
     | ip_version       | 4                                              |
@@ -728,7 +728,7 @@ However, switching namespace...::
            valid_lft forever preferred_lft forever
     11: qg-808b139c-45: <BROADCAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default 
         link/ether fa:16:3e:ca:6f:eb brd ff:ff:ff:ff:ff:ff
-        inet 172.16.1.2/16 brd 172.16.255.255 scope global qg-808b139c-45
+        inet 172.17.1.2/16 brd 172.17.255.255 scope global qg-808b139c-45
            valid_lft forever preferred_lft forever
         inet6 fe80::f816:3eff:feca:6feb/64 scope link 
            valid_lft forever preferred_lft forever
@@ -746,14 +746,14 @@ Now, as you can see::
     | id                                   | name | mac_address       | fixed_ips                                                                         |
     +--------------------------------------+------+-------------------+-----------------------------------------------------------------------------------+
     | 32ea1402-bb31-4575-8c14-06aea02d3442 |      | fa:16:3e:e2:d8:74 | {"subnet_id": "5d4c6c72-9cf8-4272-8cec-08bd04b4b1f4", "ip_address": "10.99.0.1"}  |
-    | 808b139c-4598-4bf4-92b4-1a728aa0a21e |      | fa:16:3e:ca:6f:eb | {"subnet_id": "d7fc327b-8e04-43ce-bad4-98840b9b0927", "ip_address": "172.16.1.2"} |
+    | 808b139c-4598-4bf4-92b4-1a728aa0a21e |      | fa:16:3e:ca:6f:eb | {"subnet_id": "d7fc327b-8e04-43ce-bad4-98840b9b0927", "ip_address": "172.17.1.2"} |
     +--------------------------------------+------+-------------------+-----------------------------------------------------------------------------------+
     root@neutron-node:~# neutron subnet-list
     +--------------------------------------+-------------+---------------+------------------------------------------------+
     | id                                   | name        | cidr          | allocation_pools                               |
     +--------------------------------------+-------------+---------------+------------------------------------------------+
     | 5d4c6c72-9cf8-4272-8cec-08bd04b4b1f4 | demo-subnet | 10.99.0.0/24  | {"start": "10.99.0.2", "end": "10.99.0.254"}   |
-    | d7fc327b-8e04-43ce-bad4-98840b9b0927 | ext-subnet  | 172.16.0.0/16 | {"start": "172.16.1.1", "end": "172.16.1.254"} |
+    | d7fc327b-8e04-43ce-bad4-98840b9b0927 | ext-subnet  | 172.17.0.0/16 | {"start": "172.17.1.1", "end": "172.17.1.254"} |
     +--------------------------------------+-------------+---------------+------------------------------------------------+
 
 an IP address has been assigned to the virtual port connected to the
@@ -761,16 +761,16 @@ an IP address has been assigned to the virtual port connected to the
 as you have already seen::
 
     root@neutron-node:~# ip netns exec qrouter-3616bd03-0100-4247-9699-2839e360a688 ip addr show | grep 172
-        inet 172.16.1.2/16 brd 172.16.255.255 scope global qg-808b139c-45
+        inet 172.17.1.2/16 brd 172.17.255.255 scope global qg-808b139c-45
 
 If everything went fine, you should be able to ping this IP address
 from the physical node::
 
-    [root@gks-061 ~]# ping 172.16.1.2 -c 1
-    PING 172.16.1.2 (172.16.1.2) 56(84) bytes of data.
-    64 bytes from 172.16.1.2: icmp_seq=1 ttl=64 time=0.307 ms
+    [root@gks-061 ~]# ping 172.17.1.2 -c 1
+    PING 172.17.1.2 (172.17.1.2) 56(84) bytes of data.
+    64 bytes from 172.17.1.2: icmp_seq=1 ttl=64 time=0.307 ms
 
-    --- 172.16.1.2 ping statistics ---
+    --- 172.17.1.2 ping statistics ---
     1 packets transmitted, 1 received, 0% packet loss, time 0ms
     rtt min/avg/max/mdev = 0.307/0.307/0.307/0.000 ms
 
@@ -864,7 +864,7 @@ public IP used by the `demo-router`, connecting the internal network
            valid_lft forever preferred_lft forever
     24: qg-808b139c-45: <BROADCAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default 
         link/ether fa:16:3e:ca:6f:eb brd ff:ff:ff:ff:ff:ff
-        inet 172.16.1.2/16 brd 172.16.255.255 scope global qg-808b139c-45
+        inet 172.17.1.2/16 brd 172.17.255.255 scope global qg-808b139c-45
            valid_lft forever preferred_lft forever
 
 
@@ -874,14 +874,14 @@ public IP used by the `demo-router`, connecting the internal network
     +--------------------------------------+------+-------------------+-----------------------------------------------------------------------------------+
     | 32ea1402-bb31-4575-8c14-06aea02d3442 |      | fa:16:3e:e2:d8:74 | {"subnet_id": "5d4c6c72-9cf8-4272-8cec-08bd04b4b1f4", "ip_address": "10.99.0.1"}  |
     | 6b31e572-b5e7-49e6-94ab-0c1e78505ce9 |      | fa:16:3e:0d:5d:20 | {"subnet_id": "5d4c6c72-9cf8-4272-8cec-08bd04b4b1f4", "ip_address": "10.99.0.12"} |
-    | 808b139c-4598-4bf4-92b4-1a728aa0a21e |      | fa:16:3e:ca:6f:eb | {"subnet_id": "d7fc327b-8e04-43ce-bad4-98840b9b0927", "ip_address": "172.16.1.2"} |
+    | 808b139c-4598-4bf4-92b4-1a728aa0a21e |      | fa:16:3e:ca:6f:eb | {"subnet_id": "d7fc327b-8e04-43ce-bad4-98840b9b0927", "ip_address": "172.17.1.2"} |
     +--------------------------------------+------+-------------------+-----------------------------------------------------------------------------------+
     root@neutron-node:~# neutron subnet-list
     +--------------------------------------+-------------+---------------+------------------------------------------------+
     | id                                   | name        | cidr          | allocation_pools                               |
     +--------------------------------------+-------------+---------------+------------------------------------------------+
     | 5d4c6c72-9cf8-4272-8cec-08bd04b4b1f4 | demo-subnet | 10.99.0.0/24  | {"start": "10.99.0.2", "end": "10.99.0.254"}   |
-    | d7fc327b-8e04-43ce-bad4-98840b9b0927 | ext-subnet  | 172.16.0.0/16 | {"start": "172.16.1.1", "end": "172.16.1.254"} |
+    | d7fc327b-8e04-43ce-bad4-98840b9b0927 | ext-subnet  | 172.17.0.0/16 | {"start": "172.17.1.1", "end": "172.17.1.254"} |
     +--------------------------------------+-------------+---------------+------------------------------------------------+
 
 On the compute node instead::
@@ -957,7 +957,7 @@ Let's now allocate a new floating IP::
     | Field               | Value                                |
     +---------------------+--------------------------------------+
     | fixed_ip_address    |                                      |
-    | floating_ip_address | 172.16.1.4                           |
+    | floating_ip_address | 172.17.1.4                           |
     | floating_network_id | b09f88f7-be98-40e1-9911-d1127182de96 |
     | id                  | 21d81167-1373-442b-85ad-b930f8223c17 |
     | port_id             |                                      |
@@ -965,12 +965,12 @@ Let's now allocate a new floating IP::
     | status              | DOWN                                 |
     | tenant_id           | cacb2edc36a343c4b4747b8a8349371a     |
     +---------------------+--------------------------------------+
-    root@neutron-node:~# nova floating-ip-associate test-2 172.16.1.4
+    root@neutron-node:~# nova floating-ip-associate test-2 172.17.1.4
     root@neutron-node:~# nova list
     +--------------------------------------+--------+--------+------------+-------------+---------------------------------+
     | ID                                   | Name   | Status | Task State | Power State | Networks                        |
     +--------------------------------------+--------+--------+------------+-------------+---------------------------------+
-    | ff57e37d-a5f3-4591-8655-1c7f535231f8 | test-2 | ACTIVE | -          | Running     | demo-net=10.99.0.12, 172.16.1.4 |
+    | ff57e37d-a5f3-4591-8655-1c7f535231f8 | test-2 | ACTIVE | -          | Running     | demo-net=10.99.0.12, 172.17.1.4 |
     +--------------------------------------+--------+--------+------------+-------------+---------------------------------+
 
 As usual, if you want to check the firewall rules created to
@@ -996,7 +996,7 @@ inside the correct namespace::
 
     Chain neutron-l3-agent-OUTPUT (1 references)
     target     prot opt source               destination         
-    DNAT       all  --  anywhere             172.16.1.4           to:10.99.0.12
+    DNAT       all  --  anywhere             172.17.1.4           to:10.99.0.12
 
     Chain neutron-l3-agent-POSTROUTING (1 references)
     target     prot opt source               destination         
@@ -1005,16 +1005,16 @@ inside the correct namespace::
     Chain neutron-l3-agent-PREROUTING (1 references)
     target     prot opt source               destination         
     REDIRECT   tcp  --  anywhere             169.254.169.254      tcp dpt:http redir ports 9697
-    DNAT       all  --  anywhere             172.16.1.4           to:10.99.0.12
+    DNAT       all  --  anywhere             172.17.1.4           to:10.99.0.12
 
     Chain neutron-l3-agent-float-snat (1 references)
     target     prot opt source               destination         
-    SNAT       all  --  10.99.0.12           anywhere             to:172.16.1.4
+    SNAT       all  --  10.99.0.12           anywhere             to:172.17.1.4
 
     Chain neutron-l3-agent-snat (1 references)
     target     prot opt source               destination         
     neutron-l3-agent-float-snat  all  --  anywhere             anywhere            
-    SNAT       all  --  10.99.0.0/24         anywhere             to:172.16.1.2
+    SNAT       all  --  10.99.0.0/24         anywhere             to:172.17.1.2
 
     Chain neutron-postrouting-bottom (1 references)
     target     prot opt source               destination         
