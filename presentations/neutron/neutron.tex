@@ -224,31 +224,6 @@
 
 % \end{frame}
 
-\begin{frame}[fragile]
-  \frametitle{Linux Network Namespaces}
-A namespace is an \textit{isolated copy} of the network stack
-
-\begin{itemize}
-\item Each namespace has its own private loopback.
-\item Routing is local to the namespace.
-\item Addressing scope limited to the namespace
-  \begin{itemize}
-  \item[$\Rightarrow$] different namespaces can have overlapping IP addresses
-  \end{itemize}
-\item Interfaces \textbf{do not have} direct connectivity to the
-  network: you must connect them to a bridge in the default namespace
-\item You can spawn processes within a namespace
-  (e.g. \texttt{dnsmasq} for DHCP)
-\end{itemize}
-
-\footnotesize
-\begin{verbatim}
-ip netns help
-\end{verbatim}
-{\footnotesize\href{http://lwn.net/Articles/531114/}{LWN.net: Namespaces
-    in operation}}
-\end{frame}
-
 
 \begin{frame}
   {DHCP configuration agent}
@@ -259,9 +234,9 @@ ip netns help
   \item typically runs on the network node
   \item tap interface \texttt{tap-XXX} with \textit{private IP}, wired
     to \texttt{br-int}
-  \item you can have multiple copies to achieve HA (part of DHCP:
+  \item you can have multiple copies to achieve HA {\scriptsize(part of DHCP:
     multiple servers cun run on the same network segment, the client
-    gets the first response)\footnote{as long as the conf is the same}
+    gets the first response)}\footnote{as long as the conf is the same}
   \end{itemize}
 \end{frame}
 
@@ -298,6 +273,32 @@ ip netns help
   \end{itemize}
 \end{frame}
 
+\begin{frame}[fragile]
+  \frametitle{Linux Network Namespaces}
+A namespace is an \textit{isolated copy} of the network stack
+
+\begin{itemize}
+\item Each namespace has its own private loopback.
+\item Routing is local to the namespace.
+\item Addressing scope limited to the namespace
+  \begin{itemize}
+  \item[$\Rightarrow$] different namespaces can have overlapping IP addresses
+  \end{itemize}
+\item Interfaces \textbf{do not have} direct connectivity to the
+  network: you must connect them to a bridge in the default namespace
+\item You can spawn processes within a namespace
+  (e.g. \texttt{dnsmasq} for DHCP)
+\end{itemize}
+
+\footnotesize
+\begin{verbatim}
+ip netns help
+\end{verbatim}
+{\footnotesize\href{http://lwn.net/Articles/531114/}{LWN.net: Namespaces
+    in operation}}
+\end{frame}
+
+
 \begin{frame}{Under the hood - network node}
   \includegraphics[width=\linewidth]{under-the-hood-neutron-server}
 \end{frame}
@@ -326,7 +327,12 @@ ip netns help
   \item \url{https://wiki.openstack.org/wiki/Neutron}
   \item \href{http://www.confreaks.com/videos/3533-openstacksummitatl2014-inside-the-architecture-of-neutron}{OpenStack
       Summit Atlanta 2014 - Inside the Architecture of Neutron}
-
+  \item
+    \href{http://masimum.inf.um.es/fjrm/2013/12/26/the-journey-of-a-packet-within-an-openstack-cloud/}
+    {The journey of a packet within an OpenStack cloud}
+  \item
+    \href{http://pinrojas.com/2014/07/29/theres-real-magic-behind-openstack-neutron/}
+    {There's Real Magic behind OpenStack Neutron}
   \end{itemize}
 \end{frame}
 
