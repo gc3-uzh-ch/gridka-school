@@ -190,6 +190,13 @@ service and the `metadata-agent`::
     nova_metadata_ip = 10.0.0.6
     metadata_proxy_shared_secret = d1a6195d-5912-4ef9-b01f-426603d56bd2
 
+Finally, we can populate the neutron database with the following command::
+
+    neutron-db-manage --config-file /etc/neutron/neutron.conf \
+        --config-file /etc/neutron/plugins/ml2/ml2_conf.ini  \
+        upgrade juno
+
+
 `nova-api` service
 ------------------
 
